@@ -7,3 +7,4 @@ build/*
 # But keep these files
 !build/PKGBUILD
 !build/rebuild-package.sh
+!modules/config

@@ -11,7 +11,7 @@
 MODULES_DIR="$(dirname "${BASH_SOURCE[0]}")"
 
 # Import all modules in dependency order
-source "$MODULES_DIR/config.sh"     # Configuration and JSON parsing
+source "$MODULES_DIR/config/index.sh"     # Configuration and JSON parsing
 source "$MODULES_DIR/tmux.sh"       # Tmux session management
 source "$MODULES_DIR/project.sh"    # Project status and management
 source "$MODULES_DIR/menu.sh"       # Interactive menu system
@@ -25,6 +25,12 @@ modules_loaded() {
     echo "  - Project: $(type display_project_status &>/dev/null && echo "✓" || echo "✗")"
     echo "  - Menu: $(type show_project_menu_tmux &>/dev/null && echo "✓" || echo "✗")"
     echo "  - Wizard: $(type run_wizard &>/dev/null && echo "✓" || echo "✗")"
+    
+    # Also check config sub-modules
+    if type config_modules_loaded &>/dev/null; then
+        echo ""
+        config_modules_loaded
+    fi
 }
 
 # Function to initialize all modules
