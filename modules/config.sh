@@ -9,12 +9,6 @@
 # Get the script directory to make paths relative to script location
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Get JSON_CONFIG_FILE from shell environment (set by startup.sh)
-# If not set, use default path
-if [ -z "$JSON_CONFIG_FILE" ]; then
-    JSON_CONFIG_FILE="$SCRIPT_DIR/../config/projects_output.json"
-fi
-
 # Global projects array
 declare -g -a projects=()
 
@@ -68,12 +62,11 @@ check_and_setup_config() {
         # Run the wizard
         show_loading "Launching setup wizard" 1
         (
-            JSON_CONFIG_FILE="$JSON_CONFIG_FILE"
             source "$SCRIPT_DIR/wizard.sh"
             main
         )
         
-        # Check if config was created
+        # Check if config was created AFTER running the wizard
         if [ ! -f "$JSON_CONFIG_FILE" ]; then
             print_error "Configuration was not created. Exiting."
             exit 1
@@ -104,7 +97,6 @@ load_config() {
             # Run the wizard
             show_loading "Running setup wizard" 1
             (
-                JSON_CONFIG_FILE="$JSON_CONFIG_FILE"
                 source "$SCRIPT_DIR/wizard.sh"
                 main
             )
@@ -137,7 +129,6 @@ load_config() {
             # Run the wizard
             show_loading "Running setup wizard" 1
             (
-                JSON_CONFIG_FILE="$JSON_CONFIG_FILE"
                 source "$SCRIPT_DIR/wizard.sh"
                 main
             )

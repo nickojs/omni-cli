@@ -1,17 +1,9 @@
 #!/bin/bash
-
 # Project Setup Wizard
 # Generates project configuration for the tmux project manager
 
-# Get JSON_CONFIG_FILE from shell environment (set by startup.sh)
-# If not set, use default path
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [ -z "$JSON_CONFIG_FILE" ]; then
-    JSON_CONFIG_FILE="$SCRIPT_DIR/../config/projects_output.json"
-fi
-
 # Import styling functions
-source "$SCRIPT_DIR/../styles/index.sh"
+source "$BASE_DIR/styles/index.sh"
 
 # Function to scan directory and list projects
 scan_projects_directory() {
@@ -105,9 +97,6 @@ generate_config() {
     # Generate the JSON configuration file
     print_header "GENERATING CONFIGURATION"
     local json_file="$JSON_CONFIG_FILE"
-    
-    # Create config directory if it doesn't exist
-    mkdir -p "$(dirname "$JSON_CONFIG_FILE")"
     
     # Start JSON array
     echo "[" > "$json_file"

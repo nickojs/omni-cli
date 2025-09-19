@@ -228,11 +228,10 @@ handle_wizard_command() {
     
     # Get the modules directory for wizard path
     local modules_dir="$(dirname "${BASH_SOURCE[0]}")"
-    
+       
     # Run the wizard
     if [ -f "$modules_dir/wizard.sh" ]; then
         (
-            export JSON_CONFIG_FILE="$JSON_CONFIG_FILE"
             source "$modules_dir/wizard.sh"
             main
         )

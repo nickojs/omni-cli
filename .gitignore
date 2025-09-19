@@ -1,1 +1,9 @@
+# Local projects_output.json file location
 config/
+
+# Ignore everything in build directory
+build/*
+
+# But keep these files
+!build/PKGBUILD
+!build/rebuild-package.sh

@@ -1,0 +1,41 @@
+# Maintainer: Your Name <your.email@example.com>
+pkgname="fm-manager"
+pkgver="1.0.0"
+pkgrel="1"
+pkgdesc="Terminal-based project manager with tmux integration"
+arch=('any')
+license=('MIT')
+depends=('bash' 'tmux')
+source=("$pkgname-$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+package() {
+    # Create necessary directories
+    install -dm755 "$pkgdir/usr/share/$pkgname"
+    install -dm755 "$pkgdir/usr/share/$pkgname/modules"
+    install -dm755 "$pkgdir/usr/share/$pkgname/styles"
+    install -dm755 "$pkgdir/usr/share/$pkgname/config"
+    
+    # Install main script
+    install -Dm755 "$srcdir/startup.sh" "$pkgdir/usr/bin/$pkgname"
+    
+    # Install modules
+    install -Dm644 "$srcdir/modules/index.sh" "$pkgdir/usr/share/$pkgname/modules/"
+    install -Dm644 "$srcdir/modules/config.sh" "$pkgdir/usr/share/$pkgname/modules/"
+    install -Dm644 "$srcdir/modules/menu.sh" "$pkgdir/usr/share/$pkgname/modules/"
+    install -Dm644 "$srcdir/modules/project.sh" "$pkgdir/usr/share/$pkgname/modules/"
+    install -Dm644 "$srcdir/modules/tmux.sh" "$pkgdir/usr/share/$pkgname/modules/"
+    install -Dm644 "$srcdir/modules/wizard.sh" "$pkgdir/usr/share/$pkgname/modules/"
+    
+    # Install styles
+    install -Dm644 "$srcdir/styles/index.sh" "$pkgdir/usr/share/$pkgname/styles/"
+    install -Dm644 "$srcdir/styles/colors.sh" "$pkgdir/usr/share/$pkgname/styles/"
+    install -Dm644 "$srcdir/styles/ui.sh" "$pkgdir/usr/share/$pkgname/styles/"
+    install -Dm644 "$srcdir/styles/animations.sh" "$pkgdir/usr/share/$pkgname/styles/"
+    
+    # Install configuration template
+    install -Dm644 "$srcdir/.env" "$pkgdir/usr/share/$pkgname/.env"
+    
+    # Install documentation
+    install -Dm644 "$srcdir/README.md" "$pkgdir/usr/share/doc/$pkgname/README.md"
+}
