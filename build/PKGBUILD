@@ -1,6 +1,6 @@
 # Maintainer: Your Name <your.email@example.com>
 pkgname="fm-manager"
-pkgver="1.0.0"
+pkgver="0.0.2"
 pkgrel="1"
 pkgdesc="Terminal-based project manager with tmux integration"
 arch=('any')
@@ -19,13 +19,18 @@ package() {
     # Install main script
     install -Dm755 "$srcdir/startup.sh" "$pkgdir/usr/bin/$pkgname"
     
-    # Install modules
+    # Install main modules index
     install -Dm644 "$srcdir/modules/index.sh" "$pkgdir/usr/share/$pkgname/modules/"
-    install -Dm644 "$srcdir/modules/config.sh" "$pkgdir/usr/share/$pkgname/modules/"
-    install -Dm644 "$srcdir/modules/menu.sh" "$pkgdir/usr/share/$pkgname/modules/"
-    install -Dm644 "$srcdir/modules/project.sh" "$pkgdir/usr/share/$pkgname/modules/"
-    install -Dm644 "$srcdir/modules/tmux.sh" "$pkgdir/usr/share/$pkgname/modules/"
     install -Dm644 "$srcdir/modules/wizard.sh" "$pkgdir/usr/share/$pkgname/modules/"
+    
+    # Install modules subdirectories
+    cp -r "$srcdir/modules/config" "$pkgdir/usr/share/$pkgname/modules/"
+    cp -r "$srcdir/modules/menu" "$pkgdir/usr/share/$pkgname/modules/"
+    cp -r "$srcdir/modules/project" "$pkgdir/usr/share/$pkgname/modules/"
+    cp -r "$srcdir/modules/tmux" "$pkgdir/usr/share/$pkgname/modules/"
+    
+    # Set proper permissions for module files
+    find "$pkgdir/usr/share/$pkgname/modules" -type f -exec chmod 644 {} \;
     
     # Install styles
     install -Dm644 "$srcdir/styles/index.sh" "$pkgdir/usr/share/$pkgname/styles/"
