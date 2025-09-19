@@ -8,7 +8,14 @@
 # Usage: source modules/fetch-project or call directly
 
 # Get the directory where this script is located
-FETCH_MODULE_DIR="$(dirname "${BASH_SOURCE[0]}")"
+# Check environment: packaged vs development
+if [[ -n "$BASE_DIR" ]]; then
+    # Package environment - BASE_DIR is set by startup.sh
+    FETCH_MODULE_DIR="$BASE_DIR/modules/menu"
+else
+    # Development environment - use relative path
+    FETCH_MODULE_DIR="$(dirname "${BASH_SOURCE[0]}")"
+fi
 
 # Ensure styles are available if running standalone
 if [[ -z "$BRIGHT_CYAN" ]]; then
@@ -21,6 +28,15 @@ if [[ -z "$BRIGHT_CYAN" ]]; then
         BRIGHT_WHITE='\033[1;37m'
         NC='\033[0m'
     }
+fi
+
+# Source required modules for configuration management (only needed for standalone execution)
+if [[ -z "$(type -t load_projects_from_json)" ]]; then
+    source "$FETCH_MODULE_DIR/../config/json-parser.sh" 2>/dev/null || true
+fi
+
+if [[ -z "$(type -t add_single_project_config)" ]]; then
+    source "$FETCH_MODULE_DIR/../wizard.sh" 2>/dev/null || true
 fi
 
 # Function to fetch a project from Git repository
@@ -133,7 +149,7 @@ fetch_project_integrated() {
         
         # Extract repository name from URL
         repo_name=$(basename "$github_url" .git)
-        print_info "Project location: $dest_dir/$repo_name"
+        print_info "Project location: ${dest_dir%/}/$repo_name"
         
         return 0
     else
@@ -196,9 +212,43 @@ fetch_project_menu() {
         echo ""
         # Extract repository name from URL
         repo_name=$(basename "$github_url" .git)
-        print_info "Project location: $dest_dir/$repo_name"
+        print_info "Project location: ${dest_dir%/}/$repo_name"
         echo ""
-        print_info "💡 You can add this project to fm-manager using the wizard (w) command"
+        
+        # Offer to automatically configure the project
+        echo -ne "${BRIGHT_CYAN}Do you want to add this project to fm-manager configuration? ${BOLD}(y/N)${NC}: "
+        read -r configure_project
+        
+        if [[ $configure_project =~ ^[Yy]$ ]]; then
+            echo ""
+            
+            # Call the single project configuration function from wizard.sh
+            if type add_single_project_config >/dev/null 2>&1; then
+                # Set up the projects directory relative path
+                local relative_dest_dir
+                if [[ "$dest_dir" = /* ]]; then
+                    # Convert absolute path to relative
+                    relative_dest_dir=$(realpath --relative-to="." "$dest_dir")
+                else
+                    relative_dest_dir="$dest_dir"
+                fi
+                
+                # Call the function to add the project
+                add_single_project_config "$repo_name" "$relative_dest_dir"
+                
+                # Reload the configuration in the current session (only if function is available)
+                if type load_projects_from_json >/dev/null 2>&1 && load_projects_from_json; then
+                    echo ""
+                    print_success "Configuration reloaded! Project is now available in the menu."
+                else
+                    print_warning "Configuration added but could not reload automatically. Please restart fm-manager to see the new project."
+                fi
+            else
+                print_error "Configuration function not available. Please use the wizard (w) command instead."
+            fi
+        else
+            print_info "💡 You can add this project later using the wizard (w) command"
+        fi
         
         echo ""
         echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"

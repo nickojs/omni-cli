@@ -135,6 +135,151 @@ EOF
     cat "$json_file"
 }
 
+# Function to add a single project to existing configuration
+add_single_project_config() {
+    local project_folder="$1"
+    local projects_dir="$2"
+    local backend_project="${3:-}"
+    
+    if [ -z "$project_folder" ] || [ -z "$projects_dir" ]; then
+        print_error "Project folder and projects directory are required"
+        return 1
+    fi
+    
+    print_header "ADD PROJECT TO CONFIGURATION"
+    echo "Configuring project: $project_folder"
+    echo "Folder path: ${projects_dir%/}/$project_folder"
+    echo ""
+    
+    # Check if this is the backend project
+    local is_backend="false"
+    if [ "$project_folder" = "$backend_project" ]; then
+        is_backend="true"
+        print_color "$GREEN" "(This is your backend project)"
+    fi
+    
+    # Ask if user wants to configure this project
+    read -p "Enter display name for this project (or press Enter to skip): " display_name
+    if [ -z "$display_name" ]; then
+        print_color "$BRIGHT_YELLOW" "Skipping $project_folder"
+        return 0
+    fi
+    
+    # Get startup command
+    read -p "Enter startup command (e.g., 'npm start', 'yarn dev'): " startup_cmd
+    if [ -z "$startup_cmd" ]; then
+        startup_cmd="echo 'No startup command configured'"
+    fi
+    
+    # Update the JSON configuration file
+    local json_file="$JSON_CONFIG_FILE"
+    
+    # Check if jq is available for proper JSON manipulation
+    if command -v jq >/dev/null 2>&1; then
+        # Use jq for safe JSON manipulation
+        print_step "Adding to configuration using jq..."
+        
+        # Create new project object using jq with proper escaping
+        local new_project=$(jq -n \
+            --arg display "$display_name" \
+            --arg project "$project_folder" \
+            --arg path "${projects_dir%/}/$project_folder" \
+            --arg cmd "$startup_cmd" \
+            --argjson backend "$is_backend" \
+            '{displayName: $display, projectName: $project, relativePath: $path, startupCmd: $cmd, isBackend: $backend}')
+        
+        if [ -f "$json_file" ] && [ -s "$json_file" ]; then
+            # File exists and is not empty, add to existing array
+            local temp_file=$(mktemp)
+            jq --argjson newproj "$new_project" '. + [$newproj]' "$json_file" > "$temp_file" && mv "$temp_file" "$json_file"
+        else
+            # File doesn't exist or is empty, create new array with single element
+            echo "$new_project" | jq '[.]' > "$json_file"
+        fi
+        
+        print_success "Project '$display_name' added to configuration!"
+        
+        # Show preview of the new entry
+        echo ""
+        print_color "$BRIGHT_YELLOW" "Added configuration:"
+        echo "$new_project" | jq '.'
+        
+    else
+        # Fallback to manual manipulation when jq is not available
+        print_step "jq not found, using fallback method..."
+        
+        # Escape special characters for JSON
+        display_name="${display_name//\\/\\\\}"
+        display_name="${display_name//\"/\\\"}"
+        startup_cmd="${startup_cmd//\\/\\\\}"
+        startup_cmd="${startup_cmd//\"/\\\"}"
+        project_folder="${project_folder//\\/\\\\}"
+        project_folder="${project_folder//\"/\\\"}"
+        local escaped_path="${projects_dir%/}/$project_folder"
+        escaped_path="${escaped_path//\\/\\\\}"
+        escaped_path="${escaped_path//\"/\\\"}"
+        
+        if [ -f "$json_file" ] && [ -s "$json_file" ]; then
+            # Check if the array is empty (just contains [])
+            local content_check=$(cat "$json_file" | tr -d '[:space:]')
+            if [[ "$content_check" == "[]" ]]; then
+                # Empty array, start fresh
+                cat > "$json_file" << EOF
+[
+    {
+        "displayName": "$display_name",
+        "projectName": "$project_folder",
+        "relativePath": "$escaped_path",
+        "startupCmd": "$startup_cmd",
+        "isBackend": $is_backend
+    }
+]
+EOF
+            else
+                # Non-empty array, we need to add before the last ]
+                local temp_file=$(mktemp)
+                # Remove the last line (should be ]) and add comma after the last object
+                head -n -1 "$json_file" > "$temp_file"
+                echo "," >> "$temp_file"
+                # Add the new object
+                cat >> "$temp_file" << EOF
+    {
+        "displayName": "$display_name",
+        "projectName": "$project_folder",
+        "relativePath": "$escaped_path",
+        "startupCmd": "$startup_cmd",
+        "isBackend": $is_backend
+    }
+]
+EOF
+                mv "$temp_file" "$json_file"
+            fi
+        else
+            # File doesn't exist or is empty, create new array
+            print_step "Creating new configuration file..."
+            cat > "$json_file" << EOF
+[
+    {
+        "displayName": "$display_name",
+        "projectName": "$project_folder",
+        "relativePath": "$escaped_path",
+        "startupCmd": "$startup_cmd",
+        "isBackend": $is_backend
+    }
+]
+EOF
+        fi
+        
+        print_success "Project '$display_name' added to configuration!"
+        
+        # Show what was added
+        echo ""
+        print_color "$BRIGHT_YELLOW" "Added configuration for: $display_name"
+    fi
+    
+    return 0
+}
+
 # Main wizard function
 main() {
     print_header "PROJECT SETUP WIZARD"
