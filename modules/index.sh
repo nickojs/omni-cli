@@ -14,7 +14,7 @@ MODULES_DIR="$(dirname "${BASH_SOURCE[0]}")"
 source "$MODULES_DIR/config/index.sh"     # Configuration and JSON parsing
 source "$MODULES_DIR/tmux.sh"       # Tmux session management
 source "$MODULES_DIR/project.sh"    # Project status and management
-source "$MODULES_DIR/menu.sh"       # Interactive menu system
+source "$MODULES_DIR/menu/index.sh"       # Interactive menu system
 source "$MODULES_DIR/wizard.sh"       # Wizard installation and setup
 
 # Export a function to verify modules are loaded
@@ -30,6 +30,12 @@ modules_loaded() {
     if type config_modules_loaded &>/dev/null; then
         echo ""
         config_modules_loaded
+    fi
+    
+    # Also check menu sub-modules
+    if type menu_modules_loaded &>/dev/null; then
+        echo ""
+        menu_modules_loaded
     fi
 }
 
