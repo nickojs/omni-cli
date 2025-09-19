@@ -14,7 +14,7 @@ MODULES_DIR="$(dirname "${BASH_SOURCE[0]}")"
 source "$MODULES_DIR/config/index.sh"     # Configuration and JSON parsing
 source "$MODULES_DIR/tmux/index.sh"       # Tmux session management
 source "$MODULES_DIR/project/index.sh"    # Project status and management
-source "$MODULES_DIR/menu/index.sh"       # Interactive menu system
+source "$MODULES_DIR/menu/index.sh"       # Interactive menu system (includes fetch-project)
 source "$MODULES_DIR/wizard.sh"       # Wizard installation and setup
 
 # Export a function to verify modules are loaded

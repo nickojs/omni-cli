@@ -33,9 +33,9 @@ show_project_menu_tmux() {
         # Commands section with better formatting
         print_divider "COMMANDS"
         if [ ${#projects[@]} -eq 1 ]; then
-            echo -e "${BRIGHT_GREEN}[1]${NC} start │ ${BRIGHT_RED}[k1]${NC} kill │ ${BRIGHT_YELLOW}[r]${NC} refresh │ ${BRIGHT_PURPLE}[w]${NC} wizard │ ${BRIGHT_PURPLE}[q]${NC} quit"
+            echo -e "${BRIGHT_GREEN}[1]${NC} start │ ${BRIGHT_RED}[k1]${NC} kill │ ${BRIGHT_YELLOW}[r]${NC} refresh │ ${BRIGHT_PURPLE}[w]${NC} wizard │ ${BRIGHT_BLUE}[f]${NC} fetch │ ${BRIGHT_PURPLE}[q]${NC} quit"
         else
-            echo -e "${BRIGHT_GREEN}[1-${#projects[@]}]${NC} start │ ${BRIGHT_RED}[k1-k${#projects[@]}]${NC} kill │ ${BRIGHT_YELLOW}[r]${NC} refresh │ ${BRIGHT_PURPLE}[w]${NC} wizard │ ${BRIGHT_PURPLE}[q]${NC} quit"
+            echo -e "${BRIGHT_GREEN}[1-${#projects[@]}]${NC} start │ ${BRIGHT_RED}[k1-k${#projects[@]}]${NC} kill │ ${BRIGHT_YELLOW}[r]${NC} refresh │ ${BRIGHT_PURPLE}[w]${NC} wizard │ ${BRIGHT_BLUE}[f]${NC} fetch │ ${BRIGHT_PURPLE}[q]${NC} quit"
         fi
         
         print_separator
@@ -63,6 +63,7 @@ show_help() {
     echo -e "${BRIGHT_YELLOW}Utility Commands:${NC}"
     echo -e "  ${BRIGHT_CYAN}r${NC}        Refresh project status"
     echo -e "  ${BRIGHT_CYAN}w${NC}        Re-run setup wizard"
+    echo -e "  ${BRIGHT_CYAN}f${NC}        Fetch project from Git repository"
     echo -e "  ${BRIGHT_CYAN}h${NC}        Show this help"
     echo -e "  ${BRIGHT_CYAN}q${NC}        Quit and close session"
     echo ""

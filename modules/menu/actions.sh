@@ -77,3 +77,9 @@ handle_start_command() {
         sleep 2
     fi
 }
+
+# Function to handle fetch command
+handle_fetch_command() {
+    clear
+    fetch_project_menu
+}
