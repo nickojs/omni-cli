@@ -1,152 +1,165 @@
-# FM Manager - Modular Architecture
+# FM Manager
 
-A modular project manager with tmux integration, built using bash modules similar to JavaScript ES6 modules.
+A powerful terminal-based project manager with tmux integration and modular architecture. FM Manager helps you organize, monitor, and manage multiple projects from a single, intuitive interface.
 
-## 🏗️ Architecture Overview
+## ✨ Features
 
-The project is organized into two main module systems:
+- **🚀 Project Management**: Create, configure, and monitor multiple projects
+- **📱 Tmux Integration**: Seamless tmux session management with smart pane layouts
+- **🎨 Beautiful UI**: Rich terminal interface with colors, animations, and responsive layouts
+- **⚙️ Interactive Setup**: Guided project wizard for easy configuration
+- **🔧 Modular Design**: Clean architecture with reusable components
+- **📊 Status Monitoring**: Real-time project status tracking and validation
+- **🏠 Flexible Deployment**: Run locally for development or install system-wide
+
+## 📋 Requirements
+
+### System Dependencies
+- **bash** (4.0+)
+- **tmux** (2.0+)
+- **jq** (for JSON processing)
+- **git** (optional, for version control integration)
+
+### Platform Support
+- Linux (all distributions)
+- macOS (with Homebrew)
+- WSL2 (Windows Subsystem for Linux)
+
+## 🚀 Quick Start
+
+### Option 1: Run Locally (Development)
+
+1. **Clone and setup:**
+   ```bash
+   git clone <repository-url>
+   cd fm-manager
+   chmod +x startup.sh
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   # Ubuntu/Debian
+   sudo apt update && sudo apt install bash tmux jq
+
+   # Arch Linux
+   sudo pacman -S bash tmux jq
+
+   # macOS
+   brew install bash tmux jq
+   ```
+
+3. **Run the application:**
+   ```bash
+   ./startup.sh
+   ```
+
+4. **Test individual modules:**
+```bash
+    # Test styles
+    source styles/index.sh && styles_loaded
+
+    # Test core modules
+    source modules/index.sh && modules_loaded
+```
+
+### Option 2: System Installation (Production)
+
+1. **Build the package:**
+   ```bash
+   cd build/
+   ./rebuild.package.sh // Note this will also install the package in your system
+   ```
+
+2. **Run from anywhere:**
+   ```bash
+   fm-manager // It\'s a good idea to run this in your root folder where other Projects are installed
+   ```
+
+## 📁 Project Structure
 
 ```
 fm-manager/
 ├── startup.sh              # Main entry point
-├── config/                 # Configuration directory
-│   └── projects_output.json # Project configuration
-├── styles/                 # Styling and UI modules
+├── .env                    # Environment configuration
+├── config/                 # Configuration files
+│   └── projects_output.json # Project definitions
+├── styles/                 # UI and styling modules
 │   ├── index.sh            # Styles entry point
 │   ├── colors.sh           # Color definitions
 │   ├── animations.sh       # Loading animations
-│   ├── ui.sh              # UI components
-│   └── README.md          # Styles documentation
-└── modules/               # Business logic modules
+│   └── ui.sh              # UI components
+└── modules/               # Core functionality modules
     ├── index.sh           # Modules entry point
     ├── config.sh          # Configuration management
     ├── tmux.sh           # Tmux session management
-    ├── project.sh        # Project status & management
-    ├── menu.sh           # Interactive menu system
-    ├── wizard.sh         # Project setup wizard
-    └── README.md         # Modules documentation
+    ├── project.sh        # Project operations
+    ├── menu.sh           # Interactive menus
+    └── wizard.sh         # Setup wizard
 ```
 
-## 🎨 Styles Modules
+## ⚙️ Configuration
 
-**Purpose**: Handle all visual presentation and terminal styling.
-
-- **colors.sh**: Terminal color codes and text styling
-- **animations.sh**: Loading spinners and progress bars
-- **ui.sh**: Headers, separators, message functions, and layouts
-
-## 🔧 Business Logic Modules
-
-**Purpose**: Handle application functionality and business rules.
-
-- **config.sh**: JSON parsing and configuration management
-- **tmux.sh**: Tmux session and pane operations
-- **project.sh**: Project status display and validation
-- **menu.sh**: Interactive user interface and input handling
-
-## 🚀 Usage
-
-### Running the Application
+### Environment Variables (.env)
 ```bash
-./startup.sh
+SESSION_NAME=fm-session
+JSON_CONFIG_FILE=projects_output.json
 ```
 
-### Module System Benefits
+### Project Configuration (projects_output.json)
+The application automatically creates and manages project configurations through the interactive wizard. Projects are stored in:
+- **Local development**: `./config/projects_output.json`
+- **System installation**: `~/.cache/fm-manager/projects_output.json`
 
-1. **Separation of Concerns**: Styles vs business logic
-2. **Maintainability**: Easy to update specific functionality
-3. **Reusability**: Import only what you need
-4. **Testability**: Test modules independently
-5. **Scalability**: Easy to add new modules
-6. **Collaboration**: Multiple developers can work on different modules
 
-### Example: Using Individual Modules
-```bash
-#!/bin/bash
+## � Troubleshooting
 
-# Import just colors and project management
-source "styles/colors.sh"
-source "modules/project.sh"
+### Common Issues
 
-# Use specific functionality
-print_color "$BRIGHT_GREEN" "Hello World!"
-list_project_statuses
-```
+1. **Tmux not found:**
+   ```bash
+   # Install tmux
+   sudo apt install tmux  # Ubuntu/Debian
+   sudo pacman -S tmux    # Arch Linux
+   brew install tmux      # macOS
+   ```
 
-### Example: Using Everything
-```bash
-#!/bin/bash
+2. **Permission denied:**
+   ```bash
+   chmod +x startup.sh
+   ```
+   You may need to chmod other scripts as well. *Do your jumps.*
 
-# Import all styles and modules
-source "styles/index.sh"
-source "modules/index.sh"
-
-# Full application functionality available
-print_header "My App"
-load_config
-show_project_menu_tmux
-```
-
-## 🧪 Module Testing
-
-Test individual modules:
-```bash
-# Test styles
-source styles/index.sh
-styles_loaded
-
-# Test modules
-source modules/index.sh  
-modules_loaded
-```
+3. **JSON parsing errors:**
+   ```bash
+   # Install jq if missing
+   sudo apt install jq
+   ```
 
 ## 📚 Documentation
 
-- [Styles Documentation](styles/README.md) - Complete guide to styling modules
-- [Modules Documentation](modules/README.md) - Complete guide to business logic modules
+- [Styles Documentation](styles/README.md) - Complete styling guide
+- [Modules Documentation](modules/README.md) - Core functionality guide
+- [Testing Guide](modules/test/) - Testing and validation
 
-## 🔄 Module Loading Order
+## 🤝 Contributing
 
-The modules are loaded in dependency order:
+1. Fork the repository
+2. Create a feature branch
+3. Follow the modular architecture principles
+4. Add tests for new functionality
+5. Submit a pull request
 
-1. **Styles**: colors → animations → ui
-2. **Modules**: config → tmux → project → menu
+### Development Guidelines
 
-## 🛠️ Development Guidelines
+- **Single Responsibility**: One module, one purpose
+- **Clear Dependencies**: Explicit and minimal
+- **Error Handling**: Graceful failure handling
+- **Documentation**: Clear function documentation
 
-### Adding New Style Components
-1. Add to appropriate styles module or create new one
-2. Follow color variable naming conventions
-3. Update styles/index.sh to import
-4. Document in styles/README.md
+## � License
 
-### Adding New Business Logic
-1. Identify functional domain (config, tmux, project, menu)
-2. Add to existing module or create new one
-3. Follow dependency hierarchy
-4. Update modules/index.sh to import
-5. Document in modules/README.md
+This project is licensed under the NIC License.
 
-### Module Design Principles
-- **Single Responsibility**: One module, one concern
-- **Clear Dependencies**: Explicit and minimal dependencies
-- **Error Handling**: Each module handles its own errors
-- **Documentation**: Clear function documentation and examples
+## 🎉 Credits
 
-## 🔍 Debugging
-
-Debug specific modules:
-```bash
-# Debug config loading
-bash -x modules/config.sh
-
-# Debug tmux operations  
-bash -x modules/tmux.sh
-
-# Check syntax
-bash -n startup.sh
-bash -n styles/index.sh
-bash -n modules/index.sh
-```
-
-This modular architecture makes the FM Manager maintainable, testable, and easy to extend while keeping the main startup.sh file clean and focused.
+Built with ❤️ using claude sonnet 4, thank god.
