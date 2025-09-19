@@ -54,26 +54,28 @@ A powerful terminal-based project manager with tmux integration and modular arch
    ```
 
 4. **Test individual modules:**
-```bash
-    # Test styles
-    source styles/index.sh && styles_loaded
+    ```bash
+        # Test styles
+        source styles/index.sh && styles_loaded
 
-    # Test core modules
-    source modules/index.sh && modules_loaded
-```
+        # Test core modules
+        source modules/index.sh && modules_loaded
+    ```
 
 ### Option 2: System Installation (Production)
 
 1. **Build the package:**
    ```bash
    cd build/
-   ./rebuild.package.sh // Note this will also install the package in your system
+   ./rebuild.package.sh
    ```
+   Note: this will also install the package in your system.
 
 2. **Run from anywhere:**
-   ```bash
-   fm-manager // It\'s a good idea to run this in your root folder where other Projects are installed
-   ```
+    ```bash
+    fm-manager
+    ```
+    Note: It's a good idea to run this in your root folder where other Projects are installed.
 
 ## 📁 Project Structure
 
@@ -156,7 +158,7 @@ The application automatically creates and manages project configurations through
 - **Error Handling**: Graceful failure handling
 - **Documentation**: Clear function documentation
 
-## � License
+## 📓 License
 
 This project is licensed under the NIC License.
 
