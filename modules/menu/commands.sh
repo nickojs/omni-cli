@@ -16,11 +16,6 @@ handle_menu_choice() {
         return
     fi
     
-    # Handle refresh command
-    if [[ $choice =~ ^[Rr]$ ]]; then
-        handle_refresh_command
-        return
-    fi
     
     # Handle wizard command
     if [[ $choice =~ ^[Ww]$ ]]; then

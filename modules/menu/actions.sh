@@ -13,10 +13,6 @@ handle_quit_command() {
     exit 0
 }
 
-# Function to handle refresh command
-handle_refresh_command() {
-    show_loading "Refreshing status" 0.25
-}
 
 # Function to handle kill command
 handle_kill_command() {
