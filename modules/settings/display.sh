@@ -18,28 +18,25 @@ show_settings_menu() {
         
         # Display configuration directly in the menu
         display_config_table
-        
+        echo ""
         print_separator
         
-        # Mode selector section
-        print_divider "MODE"
         if [ "$current_mode" = "delete" ]; then
             echo -e "Mode: ${BRIGHT_RED}[✓] Delete${WHITE} | [ ] Edit${NC}"
         elif [ "$current_mode" = "edit" ]; then
             echo -e "Mode: [ ] Delete | ${BRIGHT_BLUE}[✓] Edit${NC}"
         else
-            echo -e "${BRIGHT_WHITE}Mode: [ ] Delete | [ ] Edit${NC}"
+            echo -e "${BRIGHT_WHITE}Mode: [ ] [d]elete | [ ] [e]dit${NC}"
         fi
-        echo -e "${BRIGHT_YELLOW}Quick keys: [m] then [d/e] to select mode${NC}"
         
         print_separator
 
-        # Commands section - only show navigation when not in edit mode
         if [ "$current_mode" != "edit" ]; then
-            print_divider "NAVIGATION"
+            echo -e "${BRIGHT_PURPLE}[d]${NC} delete │ ${BRIGHT_PURPLE}[e]${NC} edit │ ${BRIGHT_PURPLE}[b]${NC} back │ ${BRIGHT_PURPLE}[h]${NC} help │ ${BRIGHT_PURPLE}[q]${NC} quit"
+        else
             echo -e "${BRIGHT_PURPLE}[b]${NC} back │ ${BRIGHT_PURPLE}[h]${NC} help │ ${BRIGHT_PURPLE}[q]${NC} quit"
-            print_separator
         fi
+        print_separator
         
         # Get user input with enhanced prompt based on current mode
         echo ""
@@ -61,29 +58,18 @@ show_settings_menu() {
             continue
         fi
 
-        # Handle mode selection
-        if [[ $choice =~ ^[Mm]$ ]]; then
-            echo -e "${BRIGHT_YELLOW}Select mode: [d]elete or [e]dit (Enter to cancel)${NC}"
+        # Handle direct mode selection
+        if [[ $choice =~ ^[Dd]$ ]]; then
+            current_mode="delete"
+            echo -e "${BRIGHT_RED}✓ Delete mode activated${NC}"
+            sleep 0.5
+            continue
+        fi
 
-            while true; do
-                IFS= read -r -n1 -s mode_choice
-                case "$mode_choice" in
-                    [Dd])
-                        current_mode="delete"
-                        echo -e "${BRIGHT_RED}✓ Delete mode activated${NC}"
-                        break
-                        ;;
-                    [Ee])
-                        current_mode="edit"
-                        echo -e "${BRIGHT_BLUE}✓ Edit mode activated${NC}"
-                        break
-                        ;;
-                    $'\n'|$'\r'|'')  # Enter key or empty
-                        echo -e "${BRIGHT_YELLOW}Mode selection cancelled${NC}"
-                        break
-                        ;;
-                esac
-            done
+        if [[ $choice =~ ^[Ee]$ ]]; then
+            current_mode="edit"
+            echo -e "${BRIGHT_BLUE}✓ Edit mode activated${NC}"
+            sleep 0.5
             continue
         fi
         
@@ -224,32 +210,46 @@ remove_project_from_config() {
     local target_display_name="$1"
     local target_project_name="$2"
     local target_relative_path="$3"
-    
+
     # Check if configuration file exists
     if [ ! -f "$JSON_CONFIG_FILE" ]; then
         print_error "Configuration file not found: $JSON_CONFIG_FILE"
         return 1
     fi
-    
+
     # Check if jq is available
     if ! command -v jq >/dev/null 2>&1; then
         print_error "jq is required for JSON manipulation but is not installed"
         return 1
     fi
-    
+
     # Check if JSON is valid
     if ! jq empty "$JSON_CONFIG_FILE" 2>/dev/null; then
         print_error "Invalid JSON format in configuration file"
         return 1
     fi
-    
+
     # Create a backup of the original file
     local backup_file="${JSON_CONFIG_FILE}.backup.$(date +%Y%m%d_%H%M%S)"
     if ! cp "$JSON_CONFIG_FILE" "$backup_file"; then
         print_error "Failed to create backup file"
         return 1
     fi
-    
+
+    # Check if there's only one project - if so, remove the entire JSON file
+    if [ ${#projects[@]} -eq 1 ]; then
+        # Remove the entire JSON file since this is the last project
+        if rm "$JSON_CONFIG_FILE"; then
+            print_color "$BRIGHT_GREEN" "✓ Last project removed - JSON configuration file deleted"
+            print_color "$BRIGHT_CYAN" "Backup created: $backup_file"
+            print_color "$BRIGHT_WHITE" "Configuration file removed (was the last project)"
+            return 0
+        else
+            print_error "Failed to remove configuration file"
+            return 1
+        fi
+    fi
+
     # Remove the matching project using jq
     # Using negation that works with all jq versions
     local temp_file=$(mktemp)
@@ -258,11 +258,11 @@ remove_project_from_config() {
           --arg relative_path "$target_relative_path" \
           'map(select(.displayName != $display_name or .projectName != $project_name or .relativePath != $relative_path))' \
           "$JSON_CONFIG_FILE" > "$temp_file"; then
-        
+
         # Check if the operation actually removed something
         local original_count=$(jq length "$JSON_CONFIG_FILE")
         local new_count=$(jq length "$temp_file")
-        
+
         if [ "$new_count" -lt "$original_count" ]; then
             # Move the temporary file to replace the original
             if mv "$temp_file" "$JSON_CONFIG_FILE"; then
@@ -443,10 +443,9 @@ show_settings_help() {
     echo ""
     print_color "$BRIGHT_GREEN" "This menu displays your current project configuration."
     echo ""
-    echo -e "${BRIGHT_YELLOW}Mode Commands:${NC}"
-    echo -e "  ${BRIGHT_CYAN}m${NC}        Open mode selection (then press d or e)"
-    echo ""
-    echo -e "${BRIGHT_YELLOW}Navigation Commands (disabled in Edit Mode):${NC}"
+    echo -e "${BRIGHT_YELLOW}Commands:${NC}"
+    echo -e "  ${BRIGHT_CYAN}d${NC}        Activate delete mode"
+    echo -e "  ${BRIGHT_CYAN}e${NC}        Activate edit mode"
     echo -e "  ${BRIGHT_CYAN}b${NC}        Go back to main menu"
     echo -e "  ${BRIGHT_CYAN}h${NC}        Show this help"
     echo -e "  ${BRIGHT_CYAN}q${NC}        Quit and close session"
