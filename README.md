@@ -8,7 +8,6 @@ A powerful terminal-based project manager with tmux integration and modular arch
 - **📱 Tmux Integration**: Seamless tmux session management with smart pane layouts
 - **🎨 Beautiful UI**: Rich terminal interface with colors, animations, and responsive layouts
 - **⚙️ Interactive Setup**: Guided project wizard for easy configuration
-- **� Git Integration**: Fetch and automatically configure projects from Git repositories
 - **�🔧 Modular Design**: Clean architecture with reusable components
 - **📊 Status Monitoring**: Real-time project status tracking and validation
 - **🏠 Flexible Deployment**: Run locally for development or install system-wide
@@ -112,18 +111,6 @@ JSON_CONFIG_FILE=projects_output.json
 The application automatically creates and manages project configurations through the interactive wizard. Projects are stored in:
 - **Local development**: `./config/projects_output.json`
 - **System installation**: `~/.cache/fm-manager/projects_output.json`
-
-### Fetching and Auto-Configuration
-You can fetch projects from Git repositories and automatically add them to your configuration:
-
-1. **In the menu, press `f` to fetch a project**
-2. **Enter the Git repository URL** (GitHub, GitLab, etc.)
-3. **Choose the destination directory** (or press Enter for current directory)
-4. **After cloning, you'll be asked if you want to add it to fm-manager**
-5. **If yes, provide a display name and startup command**
-6. **The project will be automatically added to your configuration**
-
-This eliminates the need to manually run the wizard after fetching new projects!
 
 
 ## � Troubleshooting

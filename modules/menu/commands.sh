@@ -28,12 +28,6 @@ handle_menu_choice() {
         return
     fi
     
-    # Handle fetch command
-    if [[ $choice =~ ^[Ff]$ ]]; then
-        handle_fetch_command
-        return
-    fi
-    
     # Handle settings command
     if [[ $choice =~ ^[Ss]$ ]]; then
         handle_settings_command

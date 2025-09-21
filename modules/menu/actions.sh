@@ -78,11 +78,6 @@ handle_start_command() {
     fi
 }
 
-# Function to handle fetch command
-handle_fetch_command() {
-    clear
-    fetch_project_menu
-}
 
 # Function to handle settings command
 handle_settings_command() {
