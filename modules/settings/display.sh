@@ -24,14 +24,12 @@ show_settings_menu() {
             echo -e "${BRIGHT_RED}●${NC} delete mode"
         elif [ "$current_mode" = "edit" ]; then
             echo -e "${BRIGHT_BLUE}●${NC} edit mode"
+        else
+            echo -e "${DIM}○${NC} no mode selected │ ${BRIGHT_PURPLE}[d]${NC} delete │ ${BRIGHT_PURPLE}[e]${NC} edit"
         fi
         echo ""
 
-        if [ "$current_mode" != "edit" ]; then
-            echo -e "${BRIGHT_PURPLE}[d]${NC} delete │ ${BRIGHT_PURPLE}[e]${NC} edit │ ${BRIGHT_YELLOW}[b]${NC} back │ ${BRIGHT_BLUE}[h]${NC} help │ ${BRIGHT_PURPLE}[q]${NC} quit"
-        else
-            echo -e "${BRIGHT_YELLOW}[b]${NC} back │ ${BRIGHT_BLUE}[h]${NC} help │ ${BRIGHT_PURPLE}[q]${NC} quit"
-        fi
+        echo -e "${BRIGHT_YELLOW}[b]${NC} back │ ${BRIGHT_YELLOW}[h]${NC} help"
         
         # Get user input with clean prompt
         echo ""
@@ -81,11 +79,6 @@ show_settings_menu() {
                     sleep 0.5
                     show_settings_help
                     continue
-                    ;;
-                "q")
-                    echo -e "${BRIGHT_YELLOW}Quitting${NC}"
-                    sleep 0.5
-                    exit 0
                     ;;
             esac
         fi
@@ -345,9 +338,8 @@ show_settings_help() {
     echo -e "${BRIGHT_YELLOW}Commands${NC}"
     echo -e "  ${BRIGHT_CYAN}d${NC}        delete mode"
     echo -e "  ${BRIGHT_CYAN}e${NC}        edit mode"
-    echo -e "  ${BRIGHT_CYAN}b${NC}        back to main menu"
-    echo -e "  ${BRIGHT_CYAN}h${NC}        show this help"
-    echo -e "  ${BRIGHT_CYAN}q${NC}        quit"
+    echo -e "  ${BRIGHT_YELLOW}b${NC}        back to main menu"
+    echo -e "  ${BRIGHT_YELLOW}h${NC}        show this help"
     echo ""
 
     echo -e "${BRIGHT_BLUE}Configuration${NC}"

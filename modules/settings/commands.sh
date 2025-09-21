@@ -11,11 +11,6 @@ handle_settings_choice() {
     local choice="$1"
     local current_mode="$2"
     
-    # Handle quit command
-    if [[ $choice =~ ^[Qq]$ ]]; then
-        handle_quit_command
-        return
-    fi
     
     # Handle back command
     if [[ $choice =~ ^[Bb]$ ]]; then
@@ -29,7 +24,7 @@ handle_settings_choice() {
     fi
     
     # Invalid command
-    print_error "Invalid command. Use m (mode), b (back), h (help), or q (quit)"
+    print_error "Invalid command. Use b (back) or h (help)"
     sleep 2
 }
 
