@@ -30,50 +30,56 @@ show_settings_menu() {
         else
             echo -e "${BRIGHT_WHITE}Mode: [ ] Delete | [ ] Edit${NC}"
         fi
-        echo -e "${BRIGHT_YELLOW}Quick keys: [m] then [d/e] to change mode${NC}"
+        echo -e "${BRIGHT_YELLOW}Quick keys: [m] then [d/e] to select mode${NC}"
         
         print_separator
-        
-        # Commands section
-        print_divider "NAVIGATION"
-        echo -e "${BRIGHT_PURPLE}[b]${NC} back │ ${BRIGHT_PURPLE}[h]${NC} help │ ${BRIGHT_PURPLE}[q]${NC} quit"
-        
-        print_separator
+
+        # Commands section - only show navigation when not in edit mode
+        if [ "$current_mode" != "edit" ]; then
+            print_divider "NAVIGATION"
+            echo -e "${BRIGHT_PURPLE}[b]${NC} back │ ${BRIGHT_PURPLE}[h]${NC} help │ ${BRIGHT_PURPLE}[q]${NC} quit"
+            print_separator
+        fi
         
         # Get user input with enhanced prompt based on current mode
         echo ""
         if [ "$current_mode" = "delete" ]; then
-            echo -ne "${BRIGHT_WHITE}Select which project you want to ${BRIGHT_RED}delete${NC} ${BRIGHT_CYAN}>>${NC} "
+            echo -ne "${BRIGHT_WHITE}Select which project you want to ${BRIGHT_RED}delete${NC} ${BRIGHT_YELLOW}(or press Enter to return)${NC} ${BRIGHT_CYAN}>>${NC} "
         elif [ "$current_mode" = "edit" ]; then
-            echo -ne "${BRIGHT_WHITE}Select which project you want to ${BRIGHT_BLUE}edit${NC} ${BRIGHT_CYAN}>>${NC} "
+            echo -ne "${BRIGHT_WHITE}Select which project you want to ${BRIGHT_BLUE}edit${NC} ${BRIGHT_YELLOW}(or press Enter to return)${NC} ${BRIGHT_CYAN}>>${NC} "
         else
             echo -ne "${BRIGHT_WHITE}Enter command${NC} ${BRIGHT_CYAN}>>${NC} "
         fi
         
-        read -r choice
-        
-        # Handle mode change
+        IFS= read -r -n1 -s choice
+
+        # Handle Enter key in delete/edit mode - return to normal settings menu
+        if [[ "$choice" == $'\n' || "$choice" == $'\r' || -z "$choice" ]] && ([ "$current_mode" = "delete" ] || [ "$current_mode" = "edit" ]); then
+            current_mode=""
+            echo -e "${BRIGHT_YELLOW}Returned to Settings menu${NC}"
+            sleep 0.5
+            continue
+        fi
+
+        # Handle mode selection
         if [[ $choice =~ ^[Mm]$ ]]; then
-            echo -e "${BRIGHT_YELLOW}Select mode: [d]elete or [e]dit (ESC to cancel)${NC}"
-            
+            echo -e "${BRIGHT_YELLOW}Select mode: [d]elete or [e]dit (Enter to cancel)${NC}"
+
             while true; do
                 IFS= read -r -n1 -s mode_choice
                 case "$mode_choice" in
                     [Dd])
                         current_mode="delete"
                         echo -e "${BRIGHT_RED}✓ Delete mode activated${NC}"
-                        sleep 0.7
                         break
                         ;;
                     [Ee])
                         current_mode="edit"
                         echo -e "${BRIGHT_BLUE}✓ Edit mode activated${NC}"
-                        sleep 0.7
                         break
                         ;;
-                    $'\033')  # ESC key
-                        echo -e "${BRIGHT_YELLOW}Mode change cancelled${NC}"
-                        sleep 0.7
+                    $'\n'|$'\r'|'')  # Enter key or empty
+                        echo -e "${BRIGHT_YELLOW}Mode selection cancelled${NC}"
                         break
                         ;;
                 esac
@@ -81,19 +87,27 @@ show_settings_menu() {
             continue
         fi
         
-        # Handle navigation commands
-        case "${choice,,}" in
-            "b")
-                break
-                ;;
-            "h")
-                show_settings_help
-                continue
-                ;;
-            "q")
-                exit 0
-                ;;
-        esac
+        # Handle navigation commands (disabled in edit mode)
+        if [ "$current_mode" != "edit" ]; then
+            case "${choice,,}" in
+                "b")
+                    echo -e "${BRIGHT_YELLOW}Returning to main menu${NC}"
+                    sleep 0.5
+                    break
+                    ;;
+                "h")
+                    echo -e "${BRIGHT_YELLOW}Opening help${NC}"
+                    sleep 0.5
+                    show_settings_help
+                    continue
+                    ;;
+                "q")
+                    echo -e "${BRIGHT_YELLOW}Quitting${NC}"
+                    sleep 0.5
+                    exit 0
+                    ;;
+            esac
+        fi
         
         # Handle project selection when in delete/edit mode
         if [ "$current_mode" = "delete" ] || [ "$current_mode" = "edit" ]; then
@@ -157,14 +171,20 @@ show_settings_menu() {
                                 echo ""
                                 echo -e "${BRIGHT_WHITE}Press Enter to continue...${NC}"
                                 read -r
+                                # Return to main settings menu after operation
+                                current_mode=""
                                 ;;
                             "n"|"no")
                                 echo -e "${BRIGHT_YELLOW}Operation cancelled${NC}"
                                 sleep 0.5
+                                # Return to main settings menu after cancellation
+                                current_mode=""
                                 ;;
                             *)
                                 echo -e "${BRIGHT_RED}Invalid choice. Operation cancelled${NC}"
-                                sleep 1
+                                sleep 0.5
+                                # Return to main settings menu after invalid choice
+                                current_mode=""
                                 ;;
                         esac
                     else
@@ -172,17 +192,23 @@ show_settings_menu() {
                         print_error "Invalid project number. Please select a number between 1 and $project_count."
                         echo -e "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
                         read -r
+                        # Return to main settings menu after error
+                        current_mode=""
                     fi
                 else
                     print_error "Unable to validate project selection. Configuration may be missing or invalid."
                     echo -e "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
                     read -r
+                    # Return to main settings menu after error
+                    current_mode=""
                 fi
             else
                 echo ""
                 print_error "Please enter a valid project number or use [m] to change mode, [b] to go back."
                 echo -e "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
                 read -r
+                # Return to main settings menu after error
+                current_mode=""
             fi
         else
             # No mode selected, handle as regular command
@@ -418,13 +444,14 @@ show_settings_help() {
     print_color "$BRIGHT_GREEN" "This menu displays your current project configuration."
     echo ""
     echo -e "${BRIGHT_YELLOW}Mode Commands:${NC}"
-    echo -e "  ${BRIGHT_CYAN}m${NC}        Activate mode selection (then press d or e)"
+    echo -e "  ${BRIGHT_CYAN}m${NC}        Open mode selection (then press d or e)"
     echo ""
-    echo -e "${BRIGHT_YELLOW}Navigation Commands:${NC}"
+    echo -e "${BRIGHT_YELLOW}Navigation Commands (disabled in Edit Mode):${NC}"
     echo -e "  ${BRIGHT_CYAN}b${NC}        Go back to main menu"
     echo -e "  ${BRIGHT_CYAN}h${NC}        Show this help"
     echo -e "  ${BRIGHT_CYAN}q${NC}        Quit and close session"
     echo ""
+
     echo -e "${BRIGHT_BLUE}The configuration shows:${NC}"
     echo "  • Display Name - How the project appears in menus"
     echo "  • Folder Name - The actual directory name"
@@ -433,6 +460,8 @@ show_settings_help() {
     echo -e "${BRIGHT_BLUE}Modes:${NC}"
     echo "  • Delete Mode - Select projects to remove from configuration"
     echo "  • Edit Mode - Select projects to modify their settings"
+    echo "  • Press Enter while in a mode to return to Settings menu"
+    echo "  • Navigation commands (b/h/q) are disabled in Edit Mode"
     echo ""
     echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
     read -r
