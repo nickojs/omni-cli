@@ -46,7 +46,6 @@ scan_projects_directory() {
 
 # Function to generate the projects array for the main script
 generate_config() {
-    local backend_project="$1"
     local -a project_configs=()
     
     print_header "PROJECT CONFIGURATION"
@@ -62,12 +61,6 @@ generate_config() {
         print_color "$CYAN" "$folder config:"
         echo "Folder path: ${PROJECTS_DIR%/}/$folder"
         
-        # Check if this is the backend project
-        local is_backend="false"
-        if [ "$folder" = "$backend_project" ]; then
-            is_backend="true"
-            print_color "$GREEN" "(This is your backend project)"
-        fi
         
         # Ask if user wants to skip this project
         read -p "Enter display name for this project (or press Enter to skip): " display_name
@@ -82,7 +75,7 @@ generate_config() {
             startup_cmd="echo 'No startup command configured'"
         fi
         
-        local config="$display_name:$folder:$startup_cmd:$is_backend"
+        local config="$display_name:$folder:$startup_cmd"
         project_configs+=("$config")
     done
     
@@ -103,7 +96,7 @@ generate_config() {
     
     for i in "${!project_configs[@]}"; do
         local config="${project_configs[i]}"
-        IFS=':' read -r display_name folder_name startup_cmd is_backend <<< "$config"
+        IFS=':' read -r display_name folder_name startup_cmd <<< "$config"
         
         # Add comma for all but the last item
         local comma=""
@@ -118,7 +111,6 @@ generate_config() {
         "projectName": "$folder_name",
         "relativePath": "${PROJECTS_DIR%/}/$folder_name",
         "startupCmd": "$startup_cmd",
-        "isBackend": $is_backend
     }$comma
 EOF
     done
@@ -139,7 +131,6 @@ EOF
 add_single_project_config() {
     local project_folder="$1"
     local projects_dir="$2"
-    local backend_project="${3:-}"
     
     if [ -z "$project_folder" ] || [ -z "$projects_dir" ]; then
         print_error "Project folder and projects directory are required"
@@ -151,12 +142,6 @@ add_single_project_config() {
     echo "Folder path: ${projects_dir%/}/$project_folder"
     echo ""
     
-    # Check if this is the backend project
-    local is_backend="false"
-    if [ "$project_folder" = "$backend_project" ]; then
-        is_backend="true"
-        print_color "$GREEN" "(This is your backend project)"
-    fi
     
     # Ask if user wants to configure this project
     read -p "Enter display name for this project (or press Enter to skip): " display_name
@@ -185,8 +170,7 @@ add_single_project_config() {
             --arg project "$project_folder" \
             --arg path "${projects_dir%/}/$project_folder" \
             --arg cmd "$startup_cmd" \
-            --argjson backend "$is_backend" \
-            '{displayName: $display, projectName: $project, relativePath: $path, startupCmd: $cmd, isBackend: $backend}')
+            '{displayName: $display, projectName: $project, relativePath: $path, startupCmd: $cmd}')
         
         if [ -f "$json_file" ] && [ -s "$json_file" ]; then
             # File exists and is not empty, add to existing array
@@ -231,7 +215,6 @@ add_single_project_config() {
         "projectName": "$project_folder",
         "relativePath": "$escaped_path",
         "startupCmd": "$startup_cmd",
-        "isBackend": $is_backend
     }
 ]
 EOF
@@ -248,7 +231,6 @@ EOF
         "projectName": "$project_folder",
         "relativePath": "$escaped_path",
         "startupCmd": "$startup_cmd",
-        "isBackend": $is_backend
     }
 ]
 EOF
@@ -264,7 +246,6 @@ EOF
         "projectName": "$project_folder",
         "relativePath": "$escaped_path",
         "startupCmd": "$startup_cmd",
-        "isBackend": $is_backend
     }
 ]
 EOF
@@ -319,31 +300,6 @@ main() {
         break
     done
     
-    # Ask about backend configuration FIRST
-    local backend_project=""
-    echo ""
-    printf "If you want to flag any of those projects as Backend, input the project number (or press Enter to skip): "
-    read backend_choice
-
-    if [[ -n "$backend_choice" ]]; then
-        if [[ $backend_choice =~ ^[0-9]+$ ]] && [ "$backend_choice" -ge 1 ] && [ "$backend_choice" -le "${#FOUND_PROJECTS[@]}" ]; then
-            local backend_index=$((backend_choice - 1))
-            local selected_project="${FOUND_PROJECTS[backend_index]}"
-            
-            echo ""
-            printf "Confirm \033[32m$selected_project\033[0m as backend? (y/n): "
-            read confirm_backend
-            
-            if [[ $confirm_backend =~ ^[Yy]$ ]]; then
-                backend_project="$selected_project"
-                print_success "Backend project set to: $backend_project"
-            else
-                echo "Backend configuration skipped."
-            fi
-        else
-            print_error "Invalid selection. Please enter a number between 1 and ${#FOUND_PROJECTS[@]}"
-        fi
-    fi
     
     # Ask user which projects to configure
     echo ""
@@ -373,8 +329,8 @@ main() {
         FOUND_PROJECTS=("${selected_projects[@]}")
     fi
     
-    # Generate configuration with the backend project variable
-    generate_config "$backend_project"
+    # Generate configuration
+    generate_config
 
     # Check if JSON file exists but is empty or contains only empty array, and remove it if so
     if [ -f "$JSON_CONFIG_FILE" ]; then

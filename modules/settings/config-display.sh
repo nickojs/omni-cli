@@ -88,11 +88,6 @@ display_config_with_jq() {
     print_separator
     echo -e "${BRIGHT_CYAN}Summary:${NC} $project_count projects configured"
     
-    # Count backend projects
-    local backend_count=$(jq '[.[] | select(.isBackend == true)] | length' "$JSON_CONFIG_FILE")
-    if [ "$backend_count" -gt 0 ]; then
-        echo -e "${BRIGHT_CYAN}Backend projects:${NC} $backend_count"
-    fi
 }
 
 # Function to display configuration without jq (fallback method)
