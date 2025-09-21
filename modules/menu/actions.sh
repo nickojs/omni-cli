@@ -83,3 +83,13 @@ handle_fetch_command() {
     clear
     fetch_project_menu
 }
+
+# Function to handle settings command
+handle_settings_command() {
+    show_settings_menu
+}
+
+# Function to handle help command
+handle_help_command() {
+    show_help
+}

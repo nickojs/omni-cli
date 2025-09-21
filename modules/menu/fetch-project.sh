@@ -212,8 +212,6 @@ fetch_project_menu() {
         echo ""
         # Extract repository name from URL
         repo_name=$(basename "$github_url" .git)
-        print_info "Project location: ${dest_dir%/}/$repo_name"
-        echo ""
         
         # Offer to automatically configure the project
         echo -ne "${BRIGHT_CYAN}Do you want to add this project to fm-manager configuration? ${BOLD}(y/N)${NC}: "

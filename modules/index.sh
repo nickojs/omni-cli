@@ -15,6 +15,7 @@ source "$MODULES_DIR/config/index.sh"     # Configuration and JSON parsing
 source "$MODULES_DIR/tmux/index.sh"       # Tmux session management
 source "$MODULES_DIR/project/index.sh"    # Project status and management
 source "$MODULES_DIR/menu/index.sh"       # Interactive menu system (includes fetch-project)
+source "$MODULES_DIR/settings/index.sh"   # Settings menu and configuration management
 source "$MODULES_DIR/wizard.sh"       # Wizard installation and setup
 
 # Export a function to verify modules are loaded
@@ -24,6 +25,7 @@ modules_loaded() {
     echo "  - Tmux: $(type check_tmux &>/dev/null && echo "✓" || echo "✗")"
     echo "  - Project: $(type display_project_status &>/dev/null && echo "✓" || echo "✗")"
     echo "  - Menu: $(type show_project_menu_tmux &>/dev/null && echo "✓" || echo "✗")"
+    echo "  - Settings: $(type show_settings_menu &>/dev/null && echo "✓" || echo "✗")"
     echo "  - Wizard: $(type run_wizard &>/dev/null && echo "✓" || echo "✗")"
     
     # Also check config sub-modules
@@ -48,6 +50,12 @@ modules_loaded() {
     if type menu_modules_loaded &>/dev/null; then
         echo ""
         menu_modules_loaded
+    fi
+    
+    # Also check settings sub-modules
+    if type settings_modules_loaded &>/dev/null; then
+        echo ""
+        settings_modules_loaded
     fi
 }
 
