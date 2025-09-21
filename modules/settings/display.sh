@@ -95,8 +95,8 @@ show_settings_menu() {
             # Check if input is a number
             if [[ $choice =~ ^[0-9]+$ ]]; then
                 # Validate project selection
-                if command -v jq >/dev/null 2>&1 && [ -f "$JSON_CONFIG_FILE" ] && [ -s "$JSON_CONFIG_FILE" ]; then
-                    local project_count=$(jq length "$JSON_CONFIG_FILE")
+                if validate_json_config; then
+                    local project_count=$(get_project_count)
                     
                     if [ "$choice" -ge 1 ] && [ "$choice" -le "$project_count" ]; then
                         # Clear screen and show highlighted selection
@@ -104,14 +104,13 @@ show_settings_menu() {
                         print_header "Settings"
                         
                         # Display configuration with highlighted selection
-                        display_config_table_with_highlight "$choice" "$current_mode"
+                        display_config_table "$choice" "$current_mode"
                         
                         print_separator
                         
                         # Show confirmation prompt
-                        local index=$((choice - 1))
-                        local display_name=$(jq -r ".[$index].displayName" "$JSON_CONFIG_FILE")
-                        local project_name=$(jq -r ".[$index].projectName" "$JSON_CONFIG_FILE")
+                        local display_name=$(get_project_field "$choice" "displayName")
+                        local project_name=$(get_project_field "$choice" "projectName")
                         
                         echo ""
                         if [ "$current_mode" = "delete" ]; then
@@ -134,7 +133,7 @@ show_settings_menu() {
                                     echo ""
                                     
                                     # Extract full project data for deletion
-                                    local relative_path=$(jq -r ".[$index].relativePath" "$JSON_CONFIG_FILE")
+                                    local relative_path=$(get_project_field "$choice" "relativePath")
                                     
                                     # Call the removal function
                                     if remove_project_from_config "$display_name" "$project_name" "$relative_path"; then
@@ -206,21 +205,15 @@ remove_project_from_config() {
     local target_project_name="$2"
     local target_relative_path="$3"
 
-    # Check if configuration file exists
-    if [ ! -f "$JSON_CONFIG_FILE" ]; then
+    # Validate configuration using shared utility
+    if ! validate_json_config; then
         print_error "Configuration file not found: $JSON_CONFIG_FILE"
         return 1
     fi
 
-    # Check if jq is available
-    if ! command -v jq >/dev/null 2>&1; then
-        print_error "jq is required for JSON manipulation but is not installed"
-        return 1
-    fi
-
-    # Check if JSON is valid
-    if ! jq empty "$JSON_CONFIG_FILE" 2>/dev/null; then
-        print_error "Invalid JSON format in configuration file"
+    # Get current project count using shared utility
+    local project_count=$(get_project_count)
+    if [ -z "$project_count" ]; then
         return 1
     fi
 
@@ -232,7 +225,7 @@ remove_project_from_config() {
     fi
 
     # Check if there's only one project - if so, remove the entire JSON file
-    if [ ${#projects[@]} -eq 1 ]; then
+    if [ "$project_count" -eq 1 ]; then
         # Remove the entire JSON file since this is the last project
         if rm "$JSON_CONFIG_FILE"; then
             print_color "$BRIGHT_GREEN" "✓ Last project removed - JSON configuration file deleted"
@@ -255,7 +248,7 @@ remove_project_from_config() {
           "$JSON_CONFIG_FILE" > "$temp_file"; then
 
         # Check if the operation actually removed something
-        local original_count=$(jq length "$JSON_CONFIG_FILE")
+        local original_count="$project_count"
         local new_count=$(jq length "$temp_file")
 
         if [ "$new_count" -lt "$original_count" ]; then
@@ -288,138 +281,60 @@ remove_project_from_config() {
     fi
 }
 
-# Function to display configuration in table format with highlighted selection
-display_config_table_with_highlight() {
-    local highlight_number="$1"
-    local current_mode="$2"
-    
-    # Check if configuration file exists
-    if [ ! -f "$JSON_CONFIG_FILE" ]; then
-        print_error "No configuration file found"
-        return 1
-    fi
-    
-    # Check if file is empty
-    if [ ! -s "$JSON_CONFIG_FILE" ]; then
-        print_error "Configuration file is empty"
-        return 1
-    fi
-    
-    # Check if jq is available for better JSON parsing
-    if command -v jq >/dev/null 2>&1; then
-        # Check if JSON is valid
-        if ! jq empty "$JSON_CONFIG_FILE" 2>/dev/null; then
-            print_error "Invalid JSON format in configuration file"
-            return 1
+
+# Callback function for displaying table rows
+_display_table_row() {
+    local counter="$1"
+    local display_name="$2"
+    local project_name="$3"
+    local relative_path="$4"
+    local highlight_number="$5"
+    local current_mode="$6"
+
+    # Check if this is the highlighted row
+    if [ -n "$highlight_number" ] && [ "$counter" = "$highlight_number" ]; then
+        # Set background color based on mode
+        if [ "$current_mode" = "delete" ]; then
+            local bg_color="\033[41m"  # Red background
+            local text_color="\033[1;37m"  # Bright white text
+        else
+            local bg_color="\033[44m"  # Blue background
+            local text_color="\033[1;37m"  # Bright white text
         fi
-        
-        # Get number of projects
-        local project_count=$(jq length "$JSON_CONFIG_FILE")
-        
-        if [ "$project_count" -eq 0 ]; then
-            print_color "$BRIGHT_YELLOW" "No projects configured."
-            return 0
-        fi
-        
-        print_color "$BRIGHT_CYAN" "Projects ($project_count configured)"
 
-        # Display each project in clean format with highlighting
-        local counter=1
-        while [ $counter -le $project_count ]; do
-            local index=$((counter - 1))
-
-            # Extract project data
-            local display_name=$(jq -r ".[$index].displayName" "$JSON_CONFIG_FILE")
-            local project_name=$(jq -r ".[$index].projectName" "$JSON_CONFIG_FILE")
-            local relative_path=$(jq -r ".[$index].relativePath" "$JSON_CONFIG_FILE")
-
-            # Check if this is the highlighted row
-            if [ "$counter" = "$highlight_number" ]; then
-                # Set background color based on mode
-                if [ "$current_mode" = "delete" ]; then
-                    local bg_color="\033[41m"  # Red background
-                    local text_color="\033[1;37m"  # Bright white text
-                else
-                    local bg_color="\033[44m"  # Blue background
-                    local text_color="\033[1;37m"  # Bright white text
-                fi
-
-                # Display highlighted row
-                printf "${bg_color}${text_color}  %-2s  %-20s  %-20s  %s${NC}\n" "$counter" "$display_name" "$project_name" "$relative_path"
-            else
-                # Display normal row
-                printf "  ${BRIGHT_CYAN}%-2s${NC}  ${BRIGHT_WHITE}%-20s${NC}  ${DIM}%-20s${NC}  ${DIM}%s${NC}\n" "$counter" "$display_name" "$project_name" "$relative_path"
-            fi
-
-            counter=$((counter + 1))
-        done
+        # Display highlighted row
+        printf "${bg_color}${text_color}  %-2s  %-20s  %-20s  %s${NC}\n" "$counter" "$display_name" "$project_name" "$relative_path"
     else
-        print_color "$BRIGHT_YELLOW" "Install 'jq' for better configuration display"
-        echo ""
-        print_color "$BRIGHT_CYAN" "Raw configuration:"
-        cat "$JSON_CONFIG_FILE"
+        # Display normal row
+        printf "  ${BRIGHT_CYAN}%-2s${NC}  ${BRIGHT_WHITE}%-20s${NC}  ${DIM}%-20s${NC}  ${DIM}%s${NC}\n" "$counter" "$display_name" "$project_name" "$relative_path"
     fi
 }
 
 # Function to display configuration in table format
-display_config_table() {   
-    # Check if configuration file exists
-    if [ ! -f "$JSON_CONFIG_FILE" ]; then
-        print_error "No configuration file found"
+display_config_table() {
+    local highlight_number="${1:-}"  # Optional row to highlight
+    local current_mode="${2:-}"      # Optional mode for highlight color
+
+    # Validate configuration
+    if ! validate_json_config; then
         echo ""
         print_color "$BRIGHT_YELLOW" "Run the wizard (w) to create your first configuration."
         return 1
     fi
-    
-    # Check if file is empty
-    if [ ! -s "$JSON_CONFIG_FILE" ]; then
-        print_error "Configuration file is empty"
+
+    # Get project count
+    local project_count=$(get_project_count)
+    if [ -z "$project_count" ] || [ "$project_count" -eq 0 ]; then
+        print_color "$BRIGHT_YELLOW" "No projects configured."
         echo ""
-        print_color "$BRIGHT_YELLOW" "Run the wizard (w) to create your first configuration."
-        return 1
+        print_color "$BLUE" "Run the wizard (w) to add projects to your configuration."
+        return 0
     fi
-    
-    # Check if jq is available for better JSON parsing
-    if command -v jq >/dev/null 2>&1; then
-        # Check if JSON is valid
-        if ! jq empty "$JSON_CONFIG_FILE" 2>/dev/null; then
-            print_error "Invalid JSON format in configuration file"
-            return 1
-        fi
-        
-        # Get number of projects
-        local project_count=$(jq length "$JSON_CONFIG_FILE")
-        
-        if [ "$project_count" -eq 0 ]; then
-            print_color "$BRIGHT_YELLOW" "No projects configured."
-            echo ""
-            print_color "$BLUE" "Run the wizard (w) to add projects to your configuration."
-            return 0
-        fi
-        
-        print_color "$BRIGHT_CYAN" "Projects ($project_count configured)"
 
-        # Display each project in clean format
-        local counter=1
-        while [ $counter -le $project_count ]; do
-            local index=$((counter - 1))
+    print_color "$BRIGHT_CYAN" "Projects ($project_count configured)"
 
-            # Extract project data
-            local display_name=$(jq -r ".[$index].displayName" "$JSON_CONFIG_FILE")
-            local project_name=$(jq -r ".[$index].projectName" "$JSON_CONFIG_FILE")
-            local relative_path=$(jq -r ".[$index].relativePath" "$JSON_CONFIG_FILE")
-
-            # Display project info in clean format
-            printf "  ${BRIGHT_CYAN}%-2s${NC}  ${BRIGHT_WHITE}%-20s${NC}  ${DIM}%-20s${NC}  ${DIM}%s${NC}\n" "$counter" "$display_name" "$project_name" "$relative_path"
-
-            counter=$((counter + 1))
-        done
-    else
-        print_color "$BRIGHT_YELLOW" "Install 'jq' for better configuration display"
-        echo ""
-        print_color "$BRIGHT_CYAN" "Raw configuration:"
-        cat "$JSON_CONFIG_FILE"
-    fi
+    # Use utility function to iterate and display projects
+    iterate_projects _display_table_row "$highlight_number" "$current_mode"
 }
 
 # Function to show settings help

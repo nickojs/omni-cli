@@ -1,0 +1,128 @@
+#!/bin/bash
+
+# ========================================
+# Configuration Utilities Module
+# ========================================
+# This module provides shared utilities for JSON configuration handling
+# Usage: source modules/settings/utils.sh
+
+# Function to validate JSON configuration file
+# Returns: 0 if valid, 1 if invalid
+validate_json_config() {
+    # Check if configuration file exists
+    if [ ! -f "$JSON_CONFIG_FILE" ]; then
+        print_error "No configuration file found"
+        return 1
+    fi
+
+    # Check if file is empty
+    if [ ! -s "$JSON_CONFIG_FILE" ]; then
+        print_error "Configuration file is empty"
+        return 1
+    fi
+
+    # Check if jq is available
+    if ! command -v jq >/dev/null 2>&1; then
+        print_error "jq is required for JSON manipulation but is not installed"
+        return 1
+    fi
+
+    # Check if JSON is valid
+    if ! jq empty "$JSON_CONFIG_FILE" 2>/dev/null; then
+        print_error "Invalid JSON format in configuration file"
+        return 1
+    fi
+
+    return 0
+}
+
+# Function to get project count from JSON config
+# Returns: project count via echo, or empty if error
+get_project_count() {
+    if ! validate_json_config; then
+        return 1
+    fi
+
+    local project_count=$(jq length "$JSON_CONFIG_FILE")
+    echo "$project_count"
+    return 0
+}
+
+# Function to iterate through projects with a callback
+# Parameters: callback_function [additional_args...]
+# Callback receives: counter, display_name, project_name, relative_path, [additional_args...]
+iterate_projects() {
+    local callback_function="$1"
+    shift  # Remove callback function from arguments, rest are passed to callback
+
+    if ! validate_json_config; then
+        return 1
+    fi
+
+    local project_count=$(get_project_count)
+    if [ -z "$project_count" ] || [ "$project_count" -eq 0 ]; then
+        return 1
+    fi
+
+    # Iterate through each project
+    local counter=1
+    while [ $counter -le $project_count ]; do
+        local index=$((counter - 1))
+
+        # Extract project data
+        local display_name=$(jq -r ".[$index].displayName" "$JSON_CONFIG_FILE")
+        local project_name=$(jq -r ".[$index].projectName" "$JSON_CONFIG_FILE")
+        local relative_path=$(jq -r ".[$index].relativePath" "$JSON_CONFIG_FILE")
+
+        # Call the callback function with project data and additional arguments
+        "$callback_function" "$counter" "$display_name" "$project_name" "$relative_path" "$@"
+
+        counter=$((counter + 1))
+    done
+
+    return 0
+}
+
+# Function to get specific project data by index
+# Parameters: project_index (1-based)
+# Returns: JSON object with project data via echo
+get_project_by_index() {
+    local project_index="$1"
+
+    if ! validate_json_config; then
+        return 1
+    fi
+
+    local project_count=$(get_project_count)
+    if [ -z "$project_count" ] || [ "$project_index" -lt 1 ] || [ "$project_index" -gt "$project_count" ]; then
+        print_error "Invalid project index: $project_index"
+        return 1
+    fi
+
+    local index=$((project_index - 1))
+    jq ".[$index]" "$JSON_CONFIG_FILE"
+    return 0
+}
+
+# Function to extract project field by index
+# Parameters: project_index (1-based), field_name
+# Returns: field value via echo
+get_project_field() {
+    local project_index="$1"
+    local field_name="$2"
+
+    if ! validate_json_config; then
+        return 1
+    fi
+
+    local project_count=$(get_project_count)
+    if [ -z "$project_count" ] || [ "$project_index" -lt 1 ] || [ "$project_index" -gt "$project_count" ]; then
+        print_error "Invalid project index: $project_index"
+        return 1
+    fi
+
+    local index=$((project_index - 1))
+    jq -r ".[$index].$field_name" "$JSON_CONFIG_FILE"
+    return 0
+}
+

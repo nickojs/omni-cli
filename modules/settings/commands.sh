@@ -33,15 +33,6 @@ handle_settings_choice() {
     sleep 2
 }
 
-# Function to handle list config command
-handle_list_config_command() {
-    clear
-    list_current_config
-    echo ""
-    echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
-    read -r
-}
-
 # Function to handle edit config command (placeholder)
 handle_edit_config_command() {
     clear
@@ -53,21 +44,6 @@ handle_edit_config_command() {
     echo "• Edit existing project settings"
     echo "• Remove projects from configuration"
     echo "• Change project display names and startup commands"
-    echo ""
-    echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
-    read -r
-}
-
-# Function to handle reset config command (placeholder)
-handle_reset_config_command() {
-    clear
-    print_header "RESET CONFIGURATION"
-    echo ""
-    print_color "$BRIGHT_YELLOW" "This feature is coming soon!"
-    echo "You'll be able to:"
-    echo "• Reset configuration to defaults"
-    echo "• Clear all project configurations"
-    echo "• Re-run the setup wizard"
     echo ""
     echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
     read -r
