@@ -13,39 +13,34 @@ show_settings_menu() {
     while true; do
         clear
         
-        # Fancy header
-        print_header "SETTINGS MENU"
+        # Clean header
+        print_header "Settings"
         
         # Display configuration directly in the menu
         display_config_table
         echo ""
-        print_separator
-        
+
         if [ "$current_mode" = "delete" ]; then
-            echo -e "Mode: ${BRIGHT_RED}[✓] Delete${WHITE} | [ ] Edit${NC}"
+            echo -e "${BRIGHT_RED}●${NC} delete mode"
         elif [ "$current_mode" = "edit" ]; then
-            echo -e "Mode: [ ] Delete | ${BRIGHT_BLUE}[✓] Edit${NC}"
-        else
-            echo -e "${BRIGHT_WHITE}Mode: [ ] [d]elete | [ ] [e]dit${NC}"
+            echo -e "${BRIGHT_BLUE}●${NC} edit mode"
         fi
-        
-        print_separator
+        echo ""
 
         if [ "$current_mode" != "edit" ]; then
-            echo -e "${BRIGHT_PURPLE}[d]${NC} delete │ ${BRIGHT_PURPLE}[e]${NC} edit │ ${BRIGHT_PURPLE}[b]${NC} back │ ${BRIGHT_PURPLE}[h]${NC} help │ ${BRIGHT_PURPLE}[q]${NC} quit"
+            echo -e "${BRIGHT_PURPLE}[d]${NC} delete │ ${BRIGHT_PURPLE}[e]${NC} edit │ ${BRIGHT_YELLOW}[b]${NC} back │ ${BRIGHT_BLUE}[h]${NC} help │ ${BRIGHT_PURPLE}[q]${NC} quit"
         else
-            echo -e "${BRIGHT_PURPLE}[b]${NC} back │ ${BRIGHT_PURPLE}[h]${NC} help │ ${BRIGHT_PURPLE}[q]${NC} quit"
+            echo -e "${BRIGHT_YELLOW}[b]${NC} back │ ${BRIGHT_BLUE}[h]${NC} help │ ${BRIGHT_PURPLE}[q]${NC} quit"
         fi
-        print_separator
         
-        # Get user input with enhanced prompt based on current mode
+        # Get user input with clean prompt
         echo ""
         if [ "$current_mode" = "delete" ]; then
-            echo -ne "${BRIGHT_WHITE}Select which project you want to ${BRIGHT_RED}delete${NC} ${BRIGHT_YELLOW}(or press Enter to return)${NC} ${BRIGHT_CYAN}>>${NC} "
+            echo -ne "${DIM}Select project to ${BRIGHT_RED}delete${NC} ${DIM}(Enter to return)${NC} ${BRIGHT_CYAN}>${NC} "
         elif [ "$current_mode" = "edit" ]; then
-            echo -ne "${BRIGHT_WHITE}Select which project you want to ${BRIGHT_BLUE}edit${NC} ${BRIGHT_YELLOW}(or press Enter to return)${NC} ${BRIGHT_CYAN}>>${NC} "
+            echo -ne "${DIM}Select project to ${BRIGHT_BLUE}edit${NC} ${DIM}(Enter to return)${NC} ${BRIGHT_CYAN}>${NC} "
         else
-            echo -ne "${BRIGHT_WHITE}Enter command${NC} ${BRIGHT_CYAN}>>${NC} "
+            echo -ne "${BRIGHT_CYAN}>${NC} "
         fi
         
         IFS= read -r -n1 -s choice
@@ -106,7 +101,7 @@ show_settings_menu() {
                     if [ "$choice" -ge 1 ] && [ "$choice" -le "$project_count" ]; then
                         # Clear screen and show highlighted selection
                         clear
-                        print_header "SETTINGS MENU"
+                        print_header "Settings"
                         
                         # Display configuration with highlighted selection
                         display_config_table_with_highlight "$choice" "$current_mode"
@@ -326,41 +321,36 @@ display_config_table_with_highlight() {
             return 0
         fi
         
-        print_color "$BRIGHT_CYAN" "Current Projects ($project_count configured):"
-        echo ""
-        
-        # Table header
-        printf "%-4s %-20s %-20s %-30s\n" "#" "Display Name" "Folder Name" "Path"
-        printf "%-4s %-20s %-20s %-30s\n" "---" "--------------------" "--------------------" "------------------------------"
-        
-        # Display each project in table format with highlighting
+        print_color "$BRIGHT_CYAN" "Projects ($project_count configured)"
+
+        # Display each project in clean format with highlighting
         local counter=1
         while [ $counter -le $project_count ]; do
             local index=$((counter - 1))
-            
+
             # Extract project data
             local display_name=$(jq -r ".[$index].displayName" "$JSON_CONFIG_FILE")
             local project_name=$(jq -r ".[$index].projectName" "$JSON_CONFIG_FILE")
             local relative_path=$(jq -r ".[$index].relativePath" "$JSON_CONFIG_FILE")
-            
+
             # Check if this is the highlighted row
             if [ "$counter" = "$highlight_number" ]; then
                 # Set background color based on mode
                 if [ "$current_mode" = "delete" ]; then
-                    local bg_color="\033[41m"  # Light red background
+                    local bg_color="\033[41m"  # Red background
                     local text_color="\033[1;37m"  # Bright white text
                 else
-                    local bg_color="\033[44m"  # Light blue background  
+                    local bg_color="\033[44m"  # Blue background
                     local text_color="\033[1;37m"  # Bright white text
                 fi
-                
+
                 # Display highlighted row
-                printf "${bg_color}${text_color}%-4s %-20s %-20s %-30s${NC}\n" "$counter" "$display_name" "$project_name" "$relative_path"
+                printf "${bg_color}${text_color}  %-2s  %-20s  %-20s  %s${NC}\n" "$counter" "$display_name" "$project_name" "$relative_path"
             else
                 # Display normal row
-                printf "${BRIGHT_WHITE}%-4s${NC} ${BRIGHT_YELLOW}%-20s${NC} ${BRIGHT_CYAN}%-20s${NC} ${BRIGHT_GREEN}%-30s${NC}\n" "$counter" "$display_name" "$project_name" "$relative_path"
+                printf "  ${BRIGHT_CYAN}%-2s${NC}  ${BRIGHT_WHITE}%-20s${NC}  ${DIM}%-20s${NC}  ${DIM}%s${NC}\n" "$counter" "$display_name" "$project_name" "$relative_path"
             fi
-            
+
             counter=$((counter + 1))
         done
     else
@@ -407,26 +397,21 @@ display_config_table() {
             return 0
         fi
         
-        print_color "$BRIGHT_CYAN" "Current Projects ($project_count configured):"
-        echo ""
-        
-        # Table header
-        printf "%-4s %-20s %-20s %-30s\n" "#" "Display Name" "Folder Name" "Path"
-        printf "%-4s %-20s %-20s %-30s\n" "---" "--------------------" "--------------------" "------------------------------"
-        
-        # Display each project in table format
+        print_color "$BRIGHT_CYAN" "Projects ($project_count configured)"
+
+        # Display each project in clean format
         local counter=1
         while [ $counter -le $project_count ]; do
             local index=$((counter - 1))
-            
+
             # Extract project data
             local display_name=$(jq -r ".[$index].displayName" "$JSON_CONFIG_FILE")
             local project_name=$(jq -r ".[$index].projectName" "$JSON_CONFIG_FILE")
             local relative_path=$(jq -r ".[$index].relativePath" "$JSON_CONFIG_FILE")
-            
-            # Display project info in table row format with colors
-            printf "${BRIGHT_WHITE}%-4s${NC} ${BRIGHT_YELLOW}%-20s${NC} ${BRIGHT_CYAN}%-20s${NC} ${BRIGHT_GREEN}%-30s${NC}\n" "$counter" "$display_name" "$project_name" "$relative_path"
-            
+
+            # Display project info in clean format
+            printf "  ${BRIGHT_CYAN}%-2s${NC}  ${BRIGHT_WHITE}%-20s${NC}  ${DIM}%-20s${NC}  ${DIM}%s${NC}\n" "$counter" "$display_name" "$project_name" "$relative_path"
+
             counter=$((counter + 1))
         done
     else
@@ -439,29 +424,27 @@ display_config_table() {
 
 # Function to show settings help
 show_settings_help() {
-    print_header "SETTINGS HELP"
-    echo ""
+    print_header "Settings Help"
     print_color "$BRIGHT_GREEN" "This menu displays your current project configuration."
     echo ""
-    echo -e "${BRIGHT_YELLOW}Commands:${NC}"
-    echo -e "  ${BRIGHT_CYAN}d${NC}        Activate delete mode"
-    echo -e "  ${BRIGHT_CYAN}e${NC}        Activate edit mode"
-    echo -e "  ${BRIGHT_CYAN}b${NC}        Go back to main menu"
-    echo -e "  ${BRIGHT_CYAN}h${NC}        Show this help"
-    echo -e "  ${BRIGHT_CYAN}q${NC}        Quit and close session"
+    echo -e "${BRIGHT_YELLOW}Commands${NC}"
+    echo -e "  ${BRIGHT_CYAN}d${NC}        delete mode"
+    echo -e "  ${BRIGHT_CYAN}e${NC}        edit mode"
+    echo -e "  ${BRIGHT_CYAN}b${NC}        back to main menu"
+    echo -e "  ${BRIGHT_CYAN}h${NC}        show this help"
+    echo -e "  ${BRIGHT_CYAN}q${NC}        quit"
     echo ""
 
-    echo -e "${BRIGHT_BLUE}The configuration shows:${NC}"
-    echo "  • Display Name - How the project appears in menus"
-    echo "  • Folder Name - The actual directory name"
-    echo "  • Path - The relative path to the project"
+    echo -e "${BRIGHT_BLUE}Configuration${NC}"
+    echo "  • Display Name - how the project appears in menus"
+    echo "  • Folder Name - the actual directory name"
+    echo "  • Path - the relative path to the project"
     echo ""
-    echo -e "${BRIGHT_BLUE}Modes:${NC}"
-    echo "  • Delete Mode - Select projects to remove from configuration"
-    echo "  • Edit Mode - Select projects to modify their settings"
-    echo "  • Press Enter while in a mode to return to Settings menu"
-    echo "  • Navigation commands (b/h/q) are disabled in Edit Mode"
+    echo -e "${BRIGHT_BLUE}Modes${NC}"
+    echo "  • Delete Mode - select projects to remove"
+    echo "  • Edit Mode - select projects to modify"
+    echo "  • Press Enter while in a mode to return to Settings"
     echo ""
-    echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+    echo -ne "${DIM}Press Enter to continue...${NC}"
     read -r
 }

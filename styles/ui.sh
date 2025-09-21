@@ -28,50 +28,38 @@ get_terminal_width() {
     echo "$width"
 }
 
-# Function to print a fancy header (simplified with just top/bottom borders)
+# Function to print a clean header (minimal styling)
 print_header() {
     local title="$1"
-    local width=$(get_terminal_width)
-    local padding=$(( (width - ${#title} - 2) / 2 ))
-    
-    echo ""
-    # Top border
-    echo -e "${BRIGHT_CYAN}$(printf '━%.0s' $(seq 1 $width))${NC}"
-    # Title with proper centering
-    local left_pad=$(( (width - ${#title}) / 2 ))
-    local right_pad=$(( width - ${#title} - left_pad ))
-    echo -e "${BRIGHT_WHITE}$(printf "%*s" $left_pad "")${title}$(printf "%*s" $right_pad "")${NC}"
-    # Bottom border
-    echo -e "${BRIGHT_CYAN}$(printf '━%.0s' $(seq 1 $width))${NC}"
-    echo ""
+
+    echo -e "${BRIGHT_WHITE}${BOLD}${title}${NC}"
+    echo -e "${BRIGHT_CYAN}$(printf '─%.0s' $(seq 1 ${#title}))${NC}"
 }
 
-# Function to print a fancy separator
+# Function to print a clean separator
 print_separator() {
-    local char="${1:-━}"
-    local color="${2:-$BRIGHT_BLUE}"
-    local width=$(get_terminal_width)
-    echo -e "${color}$(printf "%.0s${char}" $(seq 1 $width))${NC}"
+    local color="${1:-$DIM}"
+    echo -e "${color}$(printf '%.0s─' $(seq 1 40))${NC}"
 }
 
 # Function to print success message
 print_success() {
-    print_color "$BRIGHT_GREEN" "[SUCCESS] $*"
+    print_color "$BRIGHT_GREEN" "✓ $*"
 }
 
 # Function to print error message
 print_error() {
-    print_color "$BRIGHT_RED" "[ERROR] $*"
+    print_color "$BRIGHT_RED" "✗ $*"
 }
 
 # Function to print warning message
 print_warning() {
-    print_color "$BRIGHT_YELLOW" "[WARNING] $*"
+    print_color "$BRIGHT_YELLOW" "⚠ $*"
 }
 
 # Function to print info message
 print_info() {
-    print_color "$BRIGHT_BLUE" "[INFO] $*"
+    print_color "$BRIGHT_BLUE" "ℹ $*"
 }
 
 # Function to print step message
@@ -79,105 +67,51 @@ print_step() {
     print_color "$BLUE" "→ $*"
 }
 
-# Function to print a fancy box around text
+# Function to print a clean box around text
 print_box() {
     local title="$1"
-    local width=${2:-$(get_terminal_width)}
-    local border_char="${3:-┃}"
-    local top_char="${4:-━}"
-    
-    echo ""
-    # Top border
-    echo -e "${BRIGHT_CYAN}┏$(printf "${top_char}%.0s" $(seq 1 $((width-2))))┓${NC}"
-    # Title with proper centering
-    local title_length=${#title}
-    local content_width=$((width - 4))  # Account for border chars and spaces
-    local left_pad=$(( (content_width - title_length) / 2 ))
-    local right_pad=$(( content_width - title_length - left_pad ))
-    echo -e "${BRIGHT_CYAN}${border_char}${NC} ${BRIGHT_WHITE}$(printf "%*s" $left_pad "")${title}$(printf "%*s" $right_pad "")${NC} ${BRIGHT_CYAN}${border_char}${NC}"
-    # Bottom border
-    echo -e "${BRIGHT_CYAN}┗$(printf "${top_char}%.0s" $(seq 1 $((width-2))))┛${NC}"
-    echo ""
+
+    echo -e "${BRIGHT_WHITE}${BOLD}${title}${NC}"
 }
 
 # Function for a simple divider with text
 print_divider() {
     local text="$1"
-    local total_width=$(get_terminal_width)
-    local text_length=${#text}
-    local dash_count=$(( (total_width - text_length - 2) / 2 ))
-    
-    printf "${BRIGHT_BLUE}"
-    printf "%.0s─" $(seq 1 $dash_count)
-    printf " ${BRIGHT_WHITE}%s${BRIGHT_BLUE} " "$text"
-    printf "%.0s─" $(seq 1 $dash_count)
-    # Handle odd numbers
-    if (( (total_width - text_length) % 2 == 1 )); then
-        printf "─"
-    fi
-    printf "${NC}\n"
+
+    echo -e "${DIM}${text}${NC}"
 }
 
-# Function to create a full-width border line
+# Function to create a clean border line
 print_border() {
-    local char="${1:-─}"
-    local color="${2:-$BRIGHT_CYAN}"
-    local width=$(get_terminal_width)
-    echo -e "${color}$(printf "%.0s${char}" $(seq 1 $width))${NC}"
+    local color="${1:-$DIM}"
+    echo -e "${color}$(printf '%.0s─' $(seq 1 40))${NC}"
 }
 
-# Function to print text with padding to center it
+# Function to print centered text (simplified)
 print_centered() {
     local text="$1"
     local color="${2:-$BRIGHT_WHITE}"
-    local width=$(get_terminal_width)
-    local text_length=${#text}
-    local left_pad=$(( (width - text_length) / 2 ))
-    local right_pad=$(( width - text_length - left_pad ))
-    
-    echo -e "${color}$(printf "%*s" $left_pad "")${text}$(printf "%*s" $right_pad "")${NC}"
+
+    echo -e "${color}${text}${NC}"
 }
 
-# Function to print text with left and right borders
+# Function to print simple text (no borders)
 print_bordered_text() {
     local text="$1"
-    local border_char="${2:-┃}"
-    local text_color="${3:-$BRIGHT_WHITE}"
-    local border_color="${4:-$BRIGHT_CYAN}"
-    local width=$(get_terminal_width)
-    local content_width=$((width - 4))  # Account for borders and spaces
-    local text_length=${#text}
-    
-    if [ "$text_length" -gt "$content_width" ]; then
-        # Truncate text if too long
-        text="${text:0:$content_width}"
-        text_length=$content_width
-    fi
-    
-    local right_pad=$(( content_width - text_length ))
-    echo -e "${border_color}${border_char}${NC} ${text_color}${text}$(printf "%*s" $right_pad "")${NC} ${border_color}${border_char}${NC}"
+    local text_color="${2:-$BRIGHT_WHITE}"
+
+    echo -e "${text_color}${text}${NC}"
 }
 
-# Function to create a status panel with title and content
+# Function to create a clean status panel with title and content
 print_status_panel() {
     local title="$1"
     local content="$2"
-    local width=$(get_terminal_width)
-    
+
     echo ""
-    # Top border with title
-    echo -e "${BRIGHT_CYAN}┏━━━ ${BRIGHT_WHITE}${title}${BRIGHT_CYAN} $(printf "%.0s━" $(seq 1 $((width - ${#title} - 8))))┓${NC}"
-    
-    # Content lines
-    echo "$content" | while IFS= read -r line; do
-        if [ -n "$line" ]; then
-            print_bordered_text "$line" "┃"
-        else
-            print_bordered_text "" "┃"
-        fi
-    done
-    
-    # Bottom border
-    echo -e "${BRIGHT_CYAN}┗$(printf "%.0s━" $(seq 1 $((width - 2))))┛${NC}"
+    echo -e "${BRIGHT_WHITE}${BOLD}${title}${NC}"
+    echo -e "${BRIGHT_CYAN}$(printf '─%.0s' $(seq 1 ${#title}))${NC}"
+    echo ""
+    echo -e "${BRIGHT_WHITE}${content}${NC}"
     echo ""
 }
