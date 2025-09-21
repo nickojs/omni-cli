@@ -110,7 +110,7 @@ generate_config() {
         "displayName": "$display_name",
         "projectName": "$folder_name",
         "relativePath": "${PROJECTS_DIR%/}/$folder_name",
-        "startupCmd": "$startup_cmd",
+        "startupCmd": "$startup_cmd"
     }$comma
 EOF
     done

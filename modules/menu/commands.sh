@@ -54,6 +54,6 @@ handle_menu_choice() {
     fi
     
     # Invalid command
-    print_error "Invalid command. Use numbers 1-${#projects[@]}, k1-k${#projects[@]}, r, w, f, s, h, or q"
-    sleep 2
+    print_error "Invalid command. Use numbers 1-${#projects[@]}, k[1-${#projects[@]}], r, f, s, h, or q"
+    sleep 1
 }

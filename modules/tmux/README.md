@@ -28,7 +28,6 @@ All original functions from `tmux.sh` are still available:
 ### Session Management
 - `setup_tmux_session()` - Create or attach to tmux session
 - `attach_session()` - Attach to existing session
-- `session_status()` - Check session status and pane count
 
 ### Pane Management
 - `get_project_pane()` - Get pane ID for a specific project
