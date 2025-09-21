@@ -87,6 +87,9 @@ handle_fetch_command() {
 # Function to handle settings command
 handle_settings_command() {
     show_settings_menu
+    # Reload configuration after returning from settings
+    # This ensures the main menu reflects any changes made in settings
+    reload_config
 }
 
 # Function to handle help command

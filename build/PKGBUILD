@@ -27,6 +27,7 @@ package() {
     cp -r "$srcdir/modules/config" "$pkgdir/usr/share/$pkgname/modules/"
     cp -r "$srcdir/modules/menu" "$pkgdir/usr/share/$pkgname/modules/"
     cp -r "$srcdir/modules/project" "$pkgdir/usr/share/$pkgname/modules/"
+    cp -r "$srcdir/modules/settings" "$pkgdir/usr/share/$pkgname/modules/"
     cp -r "$srcdir/modules/tmux" "$pkgdir/usr/share/$pkgname/modules/"
     
     # Set proper permissions for module files
