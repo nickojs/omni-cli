@@ -16,46 +16,23 @@ check_and_setup_config() {
         print_warning "Project configuration not found."
         print_info "Running setup wizard to configure your projects..."
         echo ""
-        
+
         # Check if wizard exists
-        if [ ! -f "$SCRIPT_DIR/../wizard.sh" ]; then
-            print_error "wizard.sh not found in modules directory."
+        if [ ! -f "$SCRIPT_DIR/../wizard/index.sh" ]; then
+            print_error "wizard/index.sh not found."
             print_error "Please ensure the setup wizard script is available."
             exit 1
         fi
-        
+
         # Run the wizard
         show_loading "Launching setup wizard" 1
         (
-            source "$SCRIPT_DIR/../wizard.sh"
+            source "$SCRIPT_DIR/../wizard/index.sh"
             main
         )
-        
-        # Check if config was created AFTER running the wizard
-        if [ ! -f "$JSON_CONFIG_FILE" ]; then
-            print_error "Configuration was not created. Exiting."
-            exit 1
-        fi
-        
+
         print_success "Configuration created successfully!"
         show_loading "Starting project manager" 1
         echo ""
     fi
-}
-
-# Function to run wizard when configuration is missing or invalid
-run_setup_wizard() {
-    # Check if wizard exists
-    if [ ! -f "$SCRIPT_DIR/../wizard.sh" ]; then
-        print_error "wizard.sh not found in modules directory."
-        print_error "Please ensure the setup wizard script is available."
-        exit 1
-    fi
-    
-    # Run the wizard
-    show_loading "Running setup wizard" 1
-    (
-        source "$SCRIPT_DIR/../wizard.sh"
-        main
-    )
 }

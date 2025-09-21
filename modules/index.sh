@@ -16,7 +16,7 @@ source "$MODULES_DIR/tmux/index.sh"       # Tmux session management
 source "$MODULES_DIR/project/index.sh"    # Project status and management
 source "$MODULES_DIR/menu/index.sh"       # Interactive menu system
 source "$MODULES_DIR/settings/index.sh"   # Settings menu and configuration management
-source "$MODULES_DIR/wizard.sh"       # Wizard installation and setup
+source "$MODULES_DIR/wizard/index.sh"       # Wizard installation and setup
 
 # Export a function to verify modules are loaded
 modules_loaded() {

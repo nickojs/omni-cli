@@ -16,7 +16,7 @@ load_config() {
         
         if [[ $run_wizard =~ ^[Yy]$ ]]; then
             # Run the wizard
-            run_setup_wizard
+            check_and_setup_config
             
             # Try loading again after wizard
             if ! load_projects_from_json; then
@@ -38,7 +38,7 @@ load_config() {
         
         if [[ $run_wizard =~ ^[Yy]$ ]]; then
             # Run the wizard
-            run_setup_wizard
+            check_and_setup_config
             
             # Try loading again
             if ! load_projects_from_json || [ ${#projects[@]} -eq 0 ]; then
