@@ -214,7 +214,7 @@ add_single_project_config() {
         "displayName": "$display_name",
         "projectName": "$project_folder",
         "relativePath": "$escaped_path",
-        "startupCmd": "$startup_cmd",
+        "startupCmd": "$startup_cmd"
     }
 ]
 EOF
@@ -230,7 +230,7 @@ EOF
         "displayName": "$display_name",
         "projectName": "$project_folder",
         "relativePath": "$escaped_path",
-        "startupCmd": "$startup_cmd",
+        "startupCmd": "$startup_cmd"
     }
 ]
 EOF
@@ -245,7 +245,7 @@ EOF
         "displayName": "$display_name",
         "projectName": "$project_folder",
         "relativePath": "$escaped_path",
-        "startupCmd": "$startup_cmd",
+        "startupCmd": "$startup_cmd"
     }
 ]
 EOF
