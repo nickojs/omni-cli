@@ -50,7 +50,7 @@ get_project_count() {
 
 # Function to iterate through projects with a callback
 # Parameters: callback_function [additional_args...]
-# Callback receives: counter, display_name, project_name, relative_path, [additional_args...]
+# Callback receives: counter, display_name, project_name, relative_path, startup_cmd, [additional_args...]
 iterate_projects() {
     local callback_function="$1"
     shift  # Remove callback function from arguments, rest are passed to callback
@@ -73,9 +73,10 @@ iterate_projects() {
         local display_name=$(jq -r ".[$index].displayName" "$JSON_CONFIG_FILE")
         local project_name=$(jq -r ".[$index].projectName" "$JSON_CONFIG_FILE")
         local relative_path=$(jq -r ".[$index].relativePath" "$JSON_CONFIG_FILE")
+        local startup_cmd=$(jq -r ".[$index].startupCmd" "$JSON_CONFIG_FILE")
 
         # Call the callback function with project data and additional arguments
-        "$callback_function" "$counter" "$display_name" "$project_name" "$relative_path" "$@"
+        "$callback_function" "$counter" "$display_name" "$project_name" "$relative_path" "$startup_cmd" "$@"
 
         counter=$((counter + 1))
     done
@@ -124,5 +125,58 @@ get_project_field() {
     local index=$((project_index - 1))
     jq -r ".[$index].$field_name" "$JSON_CONFIG_FILE"
     return 0
+}
+
+# Function to update a project in JSON configuration
+# Parameters: project_index (1-based), new_display_name, new_startup_cmd
+# Returns: 0 if successful, 1 if error
+update_project_in_config() {
+    local project_index="$1"
+    local new_display_name="$2"
+    local new_startup_cmd="$3"
+
+    if ! validate_json_config; then
+        print_error "Configuration file not found: $JSON_CONFIG_FILE"
+        return 1
+    fi
+
+    local project_count=$(get_project_count)
+    if [ -z "$project_count" ] || [ "$project_index" -lt 1 ] || [ "$project_index" -gt "$project_count" ]; then
+        print_error "Invalid project index: $project_index"
+        return 1
+    fi
+
+    # Create a backup of the original file
+    local backup_file="${JSON_CONFIG_FILE}.backup.$(date +%Y%m%d_%H%M%S)"
+    if ! cp "$JSON_CONFIG_FILE" "$backup_file"; then
+        print_error "Failed to create backup file"
+        return 1
+    fi
+
+    # Update the project using jq
+    local index=$((project_index - 1))
+    local temp_file=$(mktemp)
+
+    if jq --arg display_name "$new_display_name" \
+          --arg startup_cmd "$new_startup_cmd" \
+          ".[$index].displayName = \$display_name | .[$index].startupCmd = \$startup_cmd" \
+          "$JSON_CONFIG_FILE" > "$temp_file"; then
+
+        # Move the temporary file to replace the original
+        if mv "$temp_file" "$JSON_CONFIG_FILE"; then
+            print_color "$BRIGHT_GREEN" "✓ Project updated successfully"
+            print_color "$BRIGHT_CYAN" "Backup created: $backup_file"
+            return 0
+        else
+            print_error "Failed to update configuration file"
+            rm -f "$temp_file"
+            return 1
+        fi
+    else
+        print_error "Failed to process JSON with jq"
+        rm -f "$temp_file"
+        rm -f "$backup_file"
+        return 1
+    fi
 }
 

@@ -98,36 +98,29 @@ show_settings_menu() {
                         
                         # Display configuration with highlighted selection
                         display_config_table "$choice" "$current_mode"
-                        
-                        print_separator
-                        
-                        # Show confirmation prompt
+
+                        # Get project data
                         local display_name=$(get_project_field "$choice" "displayName")
                         local project_name=$(get_project_field "$choice" "projectName")
-                        
+
                         echo ""
                         if [ "$current_mode" = "delete" ]; then
+                            # Show confirmation prompt for deletion
                             echo -e "${BRIGHT_RED}⚠️  CONFIRM DELETION${NC}"
                             echo -e "Are you sure you want to ${BRIGHT_RED}DELETE${NC} project: ${BRIGHT_YELLOW}$display_name${NC} (${BRIGHT_CYAN}$project_name${NC})?"
                             echo -e "${BRIGHT_WHITE}Type [y] to confirm deletion, [n] to cancel${NC}"
-                        else
-                            echo -e "${BRIGHT_BLUE}📝  EDIT PROJECT${NC}"
-                            echo -e "Edit project: ${BRIGHT_YELLOW}$display_name${NC} (${BRIGHT_CYAN}$project_name${NC})"
-                            echo -e "${BRIGHT_WHITE}Type [y] to proceed with editing, [n] to cancel${NC}"
-                        fi
-                        
-                        echo -ne "${BRIGHT_CYAN}>>${NC} "
-                        read -r confirm_choice
-                        
-                        case "${confirm_choice,,}" in
-                            "y"|"yes")
-                                if [ "$current_mode" = "delete" ]; then
+
+                            echo -ne "${BRIGHT_CYAN}>>${NC} "
+                            read -r confirm_choice
+
+                            case "${confirm_choice,,}" in
+                                "y"|"yes")
                                     echo -e "${BRIGHT_RED}✓ Project deletion confirmed${NC}"
                                     echo ""
-                                    
+
                                     # Extract full project data for deletion
                                     local relative_path=$(get_project_field "$choice" "relativePath")
-                                    
+
                                     # Call the removal function
                                     if remove_project_from_config "$display_name" "$project_name" "$relative_path"; then
                                         echo ""
@@ -136,30 +129,72 @@ show_settings_menu() {
                                         echo ""
                                         print_color "$BRIGHT_RED" "❌ Failed to remove project from configuration"
                                     fi
-                                else
-                                    echo -e "${BRIGHT_BLUE}✓ Starting project editor${NC}"
-                                    # TODO: Add actual edit logic here
-                                    echo -e "${BRIGHT_YELLOW}Project editor would launch (edit logic not implemented yet)${NC}"
-                                fi
+                                    ;;
+                                "n"|"no")
+                                    echo -e "${BRIGHT_YELLOW}Deletion cancelled${NC}"
+                                    sleep 0.5
+                                    ;;
+                                *)
+                                    echo -e "${BRIGHT_RED}Invalid choice. Deletion cancelled${NC}"
+                                    sleep 0.5
+                                    ;;
+                            esac
+                        else
+                            # Edit mode - go directly to editing without confirmation
+                            echo -e "${BRIGHT_BLUE}📝  EDIT PROJECT${NC}"
+                            echo -e "${BRIGHT_YELLOW}$display_name${NC} (${BRIGHT_CYAN}$project_name${NC})"
+                            echo ""
+
+                            # Get current values
+                            local current_display_name=$(get_project_field "$choice" "displayName")
+                            local current_startup_cmd=$(get_project_field "$choice" "startupCmd")
+
+                            echo -e "${BRIGHT_WHITE}Current values:${NC}"
+                            echo -e "  Display Name: ${BRIGHT_CYAN}$current_display_name${NC}"
+                            echo -e "  Startup Cmd:  ${BRIGHT_CYAN}$current_startup_cmd${NC}"
+                            echo ""
+
+                            # Get new display name
+                            echo -e "${BRIGHT_WHITE}Enter new display name (press Enter to keep current):${NC}"
+                            echo -ne "${BRIGHT_CYAN}>${NC} "
+                            read -r new_display_name
+                            if [ -z "$new_display_name" ]; then
+                                new_display_name="$current_display_name"
+                            fi
+
+                            # Get new startup command
+                            echo -e "${BRIGHT_WHITE}Enter new startup command (press Enter to keep current):${NC}"
+                            echo -ne "${BRIGHT_CYAN}>${NC} "
+                            read -r new_startup_cmd
+                            if [ -z "$new_startup_cmd" ]; then
+                                new_startup_cmd="$current_startup_cmd"
+                            fi
+
+                            # Check if any changes were made
+                            if [ "$new_display_name" = "$current_display_name" ] && [ "$new_startup_cmd" = "$current_startup_cmd" ]; then
+                                echo -e "${BRIGHT_YELLOW}No changes made${NC}"
+                            else
                                 echo ""
-                                echo -e "${BRIGHT_WHITE}Press Enter to continue...${NC}"
-                                read -r
-                                # Return to main settings menu after operation
-                                current_mode=""
-                                ;;
-                            "n"|"no")
-                                echo -e "${BRIGHT_YELLOW}Operation cancelled${NC}"
-                                sleep 0.5
-                                # Return to main settings menu after cancellation
-                                current_mode=""
-                                ;;
-                            *)
-                                echo -e "${BRIGHT_RED}Invalid choice. Operation cancelled${NC}"
-                                sleep 0.5
-                                # Return to main settings menu after invalid choice
-                                current_mode=""
-                                ;;
-                        esac
+                                echo -e "${BRIGHT_WHITE}Updating project with:${NC}"
+                                echo -e "  Display Name: ${BRIGHT_GREEN}$new_display_name${NC}"
+                                echo -e "  Startup Cmd:  ${BRIGHT_GREEN}$new_startup_cmd${NC}"
+                                echo ""
+
+                                # Update the project
+                                if update_project_in_config "$choice" "$new_display_name" "$new_startup_cmd"; then
+                                    echo ""
+                                    print_color "$BRIGHT_GREEN" "🎉 Project '$current_display_name' has been successfully updated"
+                                else
+                                    echo ""
+                                    print_color "$BRIGHT_RED" "❌ Failed to update project"
+                                fi
+                            fi
+                        fi
+                        echo ""
+                        echo -e "${BRIGHT_WHITE}Press Enter to continue...${NC}"
+                        read -r
+                        # Return to main settings menu after operation
+                        current_mode=""
                     else
                         echo ""
                         print_error "Invalid project number. Please select a number between 1 and $project_count."
@@ -281,8 +316,19 @@ _display_table_row() {
     local display_name="$2"
     local project_name="$3"
     local relative_path="$4"
-    local highlight_number="$5"
-    local current_mode="$6"
+    local startup_cmd="$5"
+    local highlight_number="$6"
+    local current_mode="$7"
+
+    # Truncate long values for better display
+    local truncated_display_name=$(printf "%.18s" "$display_name")
+    local truncated_project_name=$(printf "%.15s" "$project_name")
+    local truncated_startup_cmd=$(printf "%.20s" "$startup_cmd")
+
+    # Add ellipsis if truncated
+    [ ${#display_name} -gt 18 ] && truncated_display_name="${truncated_display_name}.."
+    [ ${#project_name} -gt 15 ] && truncated_project_name="${truncated_project_name}.."
+    [ ${#startup_cmd} -gt 20 ] && truncated_startup_cmd="${truncated_startup_cmd}.."
 
     # Check if this is the highlighted row
     if [ -n "$highlight_number" ] && [ "$counter" = "$highlight_number" ]; then
@@ -295,11 +341,11 @@ _display_table_row() {
             local text_color="\033[1;37m"  # Bright white text
         fi
 
-        # Display highlighted row
-        printf "${bg_color}${text_color}  %-2s  %-20s  %-20s  %s${NC}\n" "$counter" "$display_name" "$project_name" "$relative_path"
+        # Display highlighted row with 4 columns
+        printf "${bg_color}${text_color}  %-2s  %-18s  %-15s  %-20s${NC}\n" "$counter" "$truncated_display_name" "$truncated_project_name" "$truncated_startup_cmd"
     else
-        # Display normal row
-        printf "  ${BRIGHT_CYAN}%-2s${NC}  ${BRIGHT_WHITE}%-20s${NC}  ${DIM}%-20s${NC}  ${DIM}%s${NC}\n" "$counter" "$display_name" "$project_name" "$relative_path"
+        # Display normal row with 4 columns
+        printf "  ${BRIGHT_CYAN}%-2s${NC}  ${BRIGHT_WHITE}%-18s${NC}  ${DIM}%-15s${NC}  ${DIM}%-20s${NC}\n" "$counter" "$truncated_display_name" "$truncated_project_name" "$truncated_startup_cmd"
     fi
 }
 
@@ -325,6 +371,11 @@ display_config_table() {
     fi
 
     print_color "$BRIGHT_CYAN" "Projects ($project_count configured)"
+    echo ""
+
+    # Display table header
+    printf "  ${BRIGHT_WHITE}%-2s  %-18s  %-15s  %-20s${NC}\n" "#" "Project Name" "Project Dir" "Startup Command"
+    printf "  ${DIM}%-2s  %-18s  %-15s  %-20s${NC}\n" "─" "──────────────────" "─────────────" "────────────────────"
 
     # Use utility function to iterate and display projects
     iterate_projects _display_table_row "$highlight_number" "$current_mode"
@@ -345,7 +396,6 @@ show_settings_help() {
     echo -e "${BRIGHT_BLUE}Configuration${NC}"
     echo "  • Display Name - how the project appears in menus"
     echo "  • Folder Name - the actual directory name"
-    echo "  • Path - the relative path to the project"
     echo ""
     echo -e "${BRIGHT_BLUE}Modes${NC}"
     echo "  • Delete Mode - select projects to remove"
