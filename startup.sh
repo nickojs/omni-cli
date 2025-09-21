@@ -26,11 +26,19 @@ setup_config_paths() {
     if [ "$IS_INSTALLED" = true ]; then
         # Installed: use user cache directory
         JSON_CONFIG_FOLDER="$HOME/.cache/fm-manager"
-        mkdir -p "$JSON_CONFIG_FOLDER"
+        if ! mkdir -p "$JSON_CONFIG_FOLDER" 2>/dev/null; then
+            echo "Error: Failed to create cache directory: $JSON_CONFIG_FOLDER" >&2
+            echo "Please check permissions or try running: mkdir -p $JSON_CONFIG_FOLDER" >&2
+            exit 1
+        fi
         JSON_CONFIG_FILE="$JSON_CONFIG_FOLDER/projects_output.json"
     else
         # Development: use relative to script directory
         JSON_CONFIG_FOLDER="$BASE_DIR/config"
+        if ! mkdir -p "$JSON_CONFIG_FOLDER" 2>/dev/null; then
+            echo "Error: Failed to create config directory: $JSON_CONFIG_FOLDER" >&2
+            exit 1
+        fi
         JSON_CONFIG_FILE="$JSON_CONFIG_FOLDER/projects_output.json"
     fi
     

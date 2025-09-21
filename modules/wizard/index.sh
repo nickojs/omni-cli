@@ -5,9 +5,14 @@
 # Get the directory where this script is located
 WIZARD_DIR="$(dirname "${BASH_SOURCE[0]}")"
 
-# Import required modules
-source "$WIZARD_DIR/../../styles/index.sh"
-source "$WIZARD_DIR/../config/json.sh"
+# Import required modules using BASE_DIR if available, otherwise use relative paths
+if [ -n "$BASE_DIR" ]; then
+    source "$BASE_DIR/styles/index.sh"
+    source "$BASE_DIR/modules/config/json.sh"
+else
+    source "$WIZARD_DIR/../../styles/index.sh"
+    source "$WIZARD_DIR/../config/json.sh"
+fi
 
 # Function to scan directory and list projects
 scan_projects_directory() {

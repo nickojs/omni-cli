@@ -21,7 +21,6 @@ package() {
     
     # Install main modules index
     install -Dm644 "$srcdir/modules/index.sh" "$pkgdir/usr/share/$pkgname/modules/"
-    install -Dm644 "$srcdir/modules/wizard.sh" "$pkgdir/usr/share/$pkgname/modules/"
     
     # Install modules subdirectories
     cp -r "$srcdir/modules/config" "$pkgdir/usr/share/$pkgname/modules/"
@@ -29,6 +28,7 @@ package() {
     cp -r "$srcdir/modules/project" "$pkgdir/usr/share/$pkgname/modules/"
     cp -r "$srcdir/modules/settings" "$pkgdir/usr/share/$pkgname/modules/"
     cp -r "$srcdir/modules/tmux" "$pkgdir/usr/share/$pkgname/modules/"
+    cp -r "$srcdir/modules/wizard" "$pkgdir/usr/share/$pkgname/modules/"
     
     # Set proper permissions for module files
     find "$pkgdir/usr/share/$pkgname/modules" -type f -exec chmod 644 {} \;
@@ -41,6 +41,9 @@ package() {
     
     # Install configuration template
     install -Dm644 "$srcdir/.env" "$pkgdir/usr/share/$pkgname/.env"
+
+    # Install config directory for runtime configuration
+    install -dm755 "$pkgdir/usr/share/$pkgname/config"
     
     # Install documentation
     install -Dm644 "$srcdir/README.md" "$pkgdir/usr/share/doc/$pkgname/README.md"

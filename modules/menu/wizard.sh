@@ -54,9 +54,9 @@ handle_wizard_command() {
     local modules_dir="$(dirname "${BASH_SOURCE[0]}")/.."
        
     # Run the wizard
-    if [ -f "$modules_dir/wizard.sh" ]; then
+    if [ -f "$modules_dir/wizard/index.sh" ]; then
         (
-            source "$modules_dir/wizard.sh"
+            source "$modules_dir/wizard/index.sh"
             main
         )
         
@@ -73,7 +73,7 @@ handle_wizard_command() {
             print_info "Please check the configuration or try running the wizard again."
         fi
     else
-        print_error "Setup wizard not found at: $modules_dir/wizard.sh"
+        print_error "Setup wizard not found at: $modules_dir/wizard/index.sh"
     fi
     
     echo ""

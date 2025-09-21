@@ -111,7 +111,7 @@ show_settings_menu() {
                             echo -e "Are you sure you want to ${BRIGHT_RED}DELETE${NC} project: ${BRIGHT_YELLOW}$display_name${NC} (${BRIGHT_CYAN}$project_name${NC})?"
                             echo -e "${BRIGHT_WHITE}Type [y] to confirm deletion, [n] to cancel${NC}"
                         else
-                            echo -e "${BRIGHT_BLUE}📝 EDIT PROJECT${NC}"
+                            echo -e "${BRIGHT_BLUE}📝  EDIT PROJECT${NC}"
                             echo -e "Edit project: ${BRIGHT_YELLOW}$display_name${NC} (${BRIGHT_CYAN}$project_name${NC})"
                             echo -e "${BRIGHT_WHITE}Type [y] to proceed with editing, [n] to cancel${NC}"
                         fi

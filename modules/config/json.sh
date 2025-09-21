@@ -20,24 +20,54 @@ load_projects_from_json() {
     # Parse JSON and create the projects array
     projects=()
     
-    # Read each project object from JSON
+    # Read each project object from JSON - use safer approach
+    local json_content
+    json_content=$(cat "$json_file" 2>/dev/null)
+    if [ $? -ne 0 ] || [ -z "$json_content" ]; then
+        return 1
+    fi
+
+    # Remove newlines and split on project boundaries
+    local flat_json
+    flat_json=$(echo "$json_content" | tr -d '\n\r' | sed 's/},/},\n/g')
+
+    # Extract JSON objects - use more robust method
+    local parsed_objects
+    parsed_objects=$(echo "$flat_json" | grep -o '{[^}]*}' || true)
+
+    if [ -z "$parsed_objects" ]; then
+        return 1
+    fi
+
+    # Process each JSON object
     while IFS= read -r line; do
+        # Skip empty lines
+        [ -z "$line" ] && continue
+
         # Skip lines that don't contain project objects
         if [[ ! "$line" =~ \"displayName\" ]]; then
             continue
         fi
-        
-        # Extract values using basic string manipulation
-        local display_name=$(echo "$line" | grep -o '"displayName": *"[^"]*"' | sed 's/"displayName": *"//' | sed 's/".*//')
-        local relative_path=$(echo "$line" | grep -o '"relativePath": *"[^"]*"' | sed 's/"relativePath": *"//' | sed 's/".*//')
-        local startup_cmd=$(echo "$line" | grep -o '"startupCmd": *"[^"]*"' | sed 's/"startupCmd": *"//' | sed 's/".*//')
-        
+
+        # Extract values using more robust regex patterns
+        local display_name
+        local relative_path
+        local startup_cmd
+
+        display_name=$(echo "$line" | sed -n 's/.*"displayName"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+        relative_path=$(echo "$line" | sed -n 's/.*"relativePath"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+        startup_cmd=$(echo "$line" | sed -n 's/.*"startupCmd"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+
         # Add to projects array in the original format (using relativePath as folder_name)
         if [ -n "$display_name" ] && [ -n "$relative_path" ] && [ -n "$startup_cmd" ]; then
             projects+=("$display_name:$relative_path:$startup_cmd")
         fi
-    done < <(cat "$json_file" | tr -d '\n' | sed 's/},/},\n/g' | grep -o '{[^}]*}')
-    
+    done <<< "$parsed_objects"
+
+    # Validate that we actually loaded some projects
+    if [ ${#projects[@]} -eq 0 ]; then
+        return 1
+    fi
     return 0
 }
 
@@ -59,8 +89,18 @@ write_json_config() {
 
     print_header "GENERATING CONFIGURATION"
 
+    # Check if we can write to the JSON file
+    if ! touch "$json_file" 2>/dev/null; then
+        print_error "Cannot write to configuration file: $json_file"
+        print_error "Check directory permissions for: $(dirname "$json_file")"
+        return 1
+    fi
+
     # Start JSON array
-    echo "[" > "$json_file"
+    if ! echo "[" > "$json_file" 2>/dev/null; then
+        print_error "Failed to write to configuration file: $json_file"
+        return 1
+    fi
 
     for i in "${!configs_ref[@]}"; do
         local config="${configs_ref[i]}"
