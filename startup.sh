@@ -52,6 +52,8 @@ main() {
         load_config
         show_project_menu_tmux
     else
+        # Clear terminal before starting session
+        clear
         # Startup sequence
         print_header "INITIALIZING PROJECT MANAGER"
         check_and_setup_config
