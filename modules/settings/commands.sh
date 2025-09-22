@@ -22,9 +22,15 @@ handle_settings_choice() {
         show_settings_help
         return
     fi
-    
+
+    # Handle add command
+    if [[ $choice =~ ^[Aa]$ ]]; then
+        show_add_project_screen
+        return
+    fi
+
     # Invalid command
-    print_error "Invalid command. Use b (back) or h (help)"
+    print_error "Invalid command. Use a (add), b (back) or h (help)"
     sleep 2
 }
 

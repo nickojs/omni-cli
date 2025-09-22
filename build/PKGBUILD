@@ -1,6 +1,6 @@
 # Maintainer: Your Name <your.email@example.com>
 pkgname="fm-manager"
-pkgver="0.0.3"
+pkgver="0.0.4"
 pkgrel="1"
 pkgdesc="Terminal-based project manager with tmux integration"
 arch=('any')

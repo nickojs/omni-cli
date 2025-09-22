@@ -127,6 +127,104 @@ get_project_field() {
     return 0
 }
 
+# Function to extract projects root directory from existing config
+# Returns: projects root directory via echo, empty if error
+get_projects_root_directory() {
+    if ! validate_json_config; then
+        return 1
+    fi
+
+    local project_count=$(get_project_count)
+    if [ -z "$project_count" ] || [ "$project_count" -eq 0 ]; then
+        return 1
+    fi
+
+    # Get the first project's relativePath and extract parent directory
+    local first_relative_path=$(jq -r ".[0].relativePath" "$JSON_CONFIG_FILE")
+    if [ -z "$first_relative_path" ] || [ "$first_relative_path" = "null" ]; then
+        return 1
+    fi
+
+    # Extract parent directory (remove the last component)
+    local projects_root=$(dirname "$first_relative_path")
+    echo "$projects_root"
+    return 0
+}
+
+# Function to check if a folder is already managed
+# Parameters: folder_name, projects_root_path
+# Returns: 0 if managed, 1 if not managed
+is_folder_managed() {
+    local folder_name="$1"
+    local projects_root="$2"
+
+    if ! validate_json_config; then
+        return 1
+    fi
+
+    # Check if any project has this folder as projectName
+    local managed_count=$(jq --arg folder "$folder_name" \
+        '[.[] | select(.projectName == $folder)] | length' \
+        "$JSON_CONFIG_FILE")
+
+    [ "$managed_count" -gt 0 ]
+}
+
+# Function to append new project to JSON config
+# Parameters: display_name, folder_name, projects_root, startup_cmd
+# Returns: 0 if successful, 1 if error
+add_project_to_config() {
+    local display_name="$1"
+    local folder_name="$2"
+    local projects_root="$3"
+    local startup_cmd="$4"
+
+    if ! validate_json_config; then
+        print_error "Configuration file not found: $JSON_CONFIG_FILE"
+        return 1
+    fi
+
+    # Create a backup of the original file
+    local backup_file="${JSON_CONFIG_FILE}.backup.$(date +%Y%m%d_%H%M%S)"
+    if ! cp "$JSON_CONFIG_FILE" "$backup_file"; then
+        print_error "Failed to create backup file"
+        return 1
+    fi
+
+    # Create the new project object and append it
+    local relative_path="${projects_root%/}/$folder_name"
+    local temp_file=$(mktemp)
+
+    if jq --arg display_name "$display_name" \
+          --arg project_name "$folder_name" \
+          --arg relative_path "$relative_path" \
+          --arg startup_cmd "$startup_cmd" \
+          '. += [{
+              "displayName": $display_name,
+              "projectName": $project_name,
+              "relativePath": $relative_path,
+              "startupCmd": $startup_cmd
+          }]' \
+          "$JSON_CONFIG_FILE" > "$temp_file"; then
+
+        # Move the temporary file to replace the original
+        if mv "$temp_file" "$JSON_CONFIG_FILE"; then
+            print_color "$BRIGHT_GREEN" "✓ Project added successfully"
+            print_color "$BRIGHT_CYAN" "Backup created: $backup_file"
+            return 0
+        else
+            print_error "Failed to update configuration file"
+            rm -f "$temp_file"
+            return 1
+        fi
+    else
+        print_error "Failed to process JSON with jq"
+        rm -f "$temp_file"
+        rm -f "$backup_file"
+        return 1
+    fi
+}
+
 # Function to update a project in JSON configuration
 # Parameters: project_index (1-based), new_display_name, new_startup_cmd
 # Returns: 0 if successful, 1 if error

@@ -24,8 +24,10 @@ show_settings_menu() {
             echo -e "${BRIGHT_RED}●${NC} delete mode"
         elif [ "$current_mode" = "edit" ]; then
             echo -e "${BRIGHT_BLUE}●${NC} edit mode"
+        elif [ "$current_mode" = "add" ]; then
+            echo -e "${BRIGHT_GREEN}●${NC} add mode"
         else
-            echo -e "${DIM}○${NC} no mode selected │ ${BRIGHT_PURPLE}[d]${NC} delete │ ${BRIGHT_PURPLE}[e]${NC} edit"
+            echo -e "${DIM}○${NC} no mode selected │ ${BRIGHT_RED}[d]${NC} delete │ ${BRIGHT_YELLOW}[e]${NC} edit │ ${BRIGHT_GREEN}[a]${NC} add"
         fi
         echo ""
 
@@ -37,14 +39,16 @@ show_settings_menu() {
             echo -ne "${DIM}Select project to ${BRIGHT_RED}delete${NC} ${DIM}(Enter to return)${NC} ${BRIGHT_CYAN}>${NC} "
         elif [ "$current_mode" = "edit" ]; then
             echo -ne "${DIM}Select project to ${BRIGHT_BLUE}edit${NC} ${DIM}(Enter to return)${NC} ${BRIGHT_CYAN}>${NC} "
+        elif [ "$current_mode" = "add" ]; then
+            echo -ne "${DIM}${BRIGHT_GREEN}Add mode${NC} ${DIM}activated${NC} ${BRIGHT_CYAN}>${NC} "
         else
             echo -ne "${BRIGHT_CYAN}>${NC} "
         fi
         
         IFS= read -r -n1 -s choice
 
-        # Handle Enter key in delete/edit mode - return to normal settings menu
-        if [[ "$choice" == $'\n' || "$choice" == $'\r' || -z "$choice" ]] && ([ "$current_mode" = "delete" ] || [ "$current_mode" = "edit" ]); then
+        # Handle Enter key in delete/edit/add mode - return to normal settings menu
+        if [[ "$choice" == $'\n' || "$choice" == $'\r' || -z "$choice" ]] && ([ "$current_mode" = "delete" ] || [ "$current_mode" = "edit" ] || [ "$current_mode" = "add" ]); then
             current_mode=""
             echo -e "${BRIGHT_YELLOW}Returned to Settings menu${NC}"
             sleep 0.5
@@ -65,9 +69,18 @@ show_settings_menu() {
             sleep 0.5
             continue
         fi
+
+        if [[ $choice =~ ^[Aa]$ ]]; then
+            current_mode="add"
+            echo -e "${BRIGHT_GREEN}✓ Add mode activated${NC}"
+            sleep 0.5
+            show_add_project_screen
+            current_mode=""
+            continue
+        fi
         
         # Handle navigation commands (disabled in edit mode)
-        if [ "$current_mode" != "edit" ]; then
+        if [ "$current_mode" != "edit" ] && [ "$current_mode" != "add" ]; then
             case "${choice,,}" in
                 "b")
                     echo -e "${BRIGHT_YELLOW}Returning to main menu${NC}"
@@ -387,6 +400,7 @@ show_settings_help() {
     print_color "$BRIGHT_GREEN" "This menu displays your current project configuration."
     echo ""
     echo -e "${BRIGHT_YELLOW}Commands${NC}"
+    echo -e "  ${BRIGHT_CYAN}a${NC}        add mode"
     echo -e "  ${BRIGHT_CYAN}d${NC}        delete mode"
     echo -e "  ${BRIGHT_CYAN}e${NC}        edit mode"
     echo -e "  ${BRIGHT_YELLOW}b${NC}        back to main menu"
@@ -398,10 +412,210 @@ show_settings_help() {
     echo "  • Folder Name - the actual directory name"
     echo ""
     echo -e "${BRIGHT_BLUE}Modes${NC}"
+    echo "  • Add Mode - scan and add new projects from your projects directory"
     echo "  • Delete Mode - select projects to remove"
     echo "  • Edit Mode - select projects to modify"
     echo "  • Press Enter while in a mode to return to Settings"
     echo ""
     echo -ne "${DIM}Press Enter to continue...${NC}"
+    read -r
+}
+
+# Function to show add project screen
+show_add_project_screen() {
+    clear
+    print_header "Add New Project"
+
+    # Get projects root directory from existing config
+    local projects_root
+    projects_root=$(get_projects_root_directory)
+    if [ $? -ne 0 ] || [ -z "$projects_root" ]; then
+        echo ""
+        print_error "Cannot determine projects directory from existing configuration"
+        echo "Please make sure you have at least one project configured"
+        echo ""
+        echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+        read -r
+        return 1
+    fi
+
+    echo ""
+    print_color "$BRIGHT_CYAN" "Scanning projects directory: $projects_root"
+    echo ""
+
+    # Check if directory exists
+    if [ ! -d "$projects_root" ]; then
+        print_error "Projects directory does not exist: $projects_root"
+        echo ""
+        echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+        read -r
+        return 1
+    fi
+
+    # Find all subdirectories
+    local -a available_folders=()
+    local -a managed_status=()
+
+    while IFS= read -r -d '' dir; do
+        local folder_name=$(basename "$dir")
+
+        # Skip hidden directories and fm-manager itself
+        if [[ ! "$folder_name" =~ ^\. ]] && [[ "$folder_name" != "fm-manager" ]]; then
+            available_folders+=("$folder_name")
+
+            # Check if this folder is already managed
+            if is_folder_managed "$folder_name" "$projects_root"; then
+                managed_status+=("managed")
+            else
+                managed_status+=("available")
+            fi
+        fi
+    done < <(find "$projects_root" -mindepth 1 -maxdepth 1 -type d -print0 | sort -z)
+
+    if [ ${#available_folders[@]} -eq 0 ]; then
+        print_error "No folders found in projects directory: $projects_root"
+        echo ""
+        echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+        read -r
+        return 1
+    fi
+
+    # Display table header
+    printf "  ${BRIGHT_WHITE}%-2s  %-18s  %-8s${NC}\n" "#" "Folder Name" "Managed"
+    printf "  ${DIM}%-2s  %-18s  %-8s${NC}\n" "─" "──────────────────" "───────"
+
+    # Display all folders with their managed status
+    for i in "${!available_folders[@]}"; do
+        local counter=$((i + 1))
+        local folder="${available_folders[i]}"
+        local status="${managed_status[i]}"
+
+        # Truncate long folder names
+        local truncated_folder=$(printf "%.18s" "$folder")
+        [ ${#folder} -gt 18 ] && truncated_folder="${truncated_folder}.."
+
+        if [ "$status" = "managed" ]; then
+            # Already managed - show in green
+            printf "  ${DIM}%-2s  %-18s  ${BRIGHT_GREEN}%s${NC}\n" "$counter" "$truncated_folder" "$status"
+        else
+            # Available to add - show in yellow
+            printf "  ${BRIGHT_CYAN}%-2s${NC}  ${BRIGHT_WHITE}%-18s${NC}  ${BRIGHT_YELLOW}%s${NC}\n" "$counter" "$truncated_folder" "$status"
+        fi
+    done
+
+    echo ""
+    print_color "$BRIGHT_YELLOW" "Select a folder to add (enter number), or press Enter to go back"
+    echo -ne "${BRIGHT_CYAN}>${NC} "
+
+    read -r folder_choice
+
+    # Handle empty input (go back)
+    if [ -z "$folder_choice" ]; then
+        return 0
+    fi
+
+    # Validate choice is a number
+    if ! [[ "$folder_choice" =~ ^[0-9]+$ ]]; then
+        print_error "Invalid choice. Please enter a number."
+        echo ""
+        echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+        read -r
+        return 1
+    fi
+
+    # Validate choice is in range
+    if [ "$folder_choice" -lt 1 ] || [ "$folder_choice" -gt "${#available_folders[@]}" ]; then
+        print_error "Invalid choice. Please select a number between 1 and ${#available_folders[@]}."
+        echo ""
+        echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+        read -r
+        return 1
+    fi
+
+    # Get selected folder
+    local selected_index=$((folder_choice - 1))
+    local selected_folder="${available_folders[selected_index]}"
+    local selected_status="${managed_status[selected_index]}"
+
+    # Check if folder is already managed
+    if [ "$selected_status" = "managed" ]; then
+        print_error "Folder '$selected_folder' is already managed."
+        echo ""
+        echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+        read -r
+        return 1
+    fi
+
+    # Show configuration screen for selected folder
+    configure_new_project "$selected_folder" "$projects_root"
+}
+
+# Function to configure a new project
+configure_new_project() {
+    local folder_name="$1"
+    local projects_root="$2"
+
+    clear
+    print_header "Configure New Project"
+    echo ""
+    print_color "$BRIGHT_CYAN" "Adding project: $folder_name"
+    print_color "$DIM" "Location: ${projects_root%/}/$folder_name"
+    echo ""
+
+    # Get display name
+    echo -e "${BRIGHT_WHITE}Enter display name for this project:${NC}"
+    echo -ne "${DIM}(press Enter to use '$folder_name')${NC} ${BRIGHT_CYAN}>${NC} "
+    read -r display_name
+
+    if [ -z "$display_name" ]; then
+        display_name="$folder_name"
+    fi
+
+    # Get startup command
+    echo ""
+    echo -e "${BRIGHT_WHITE}Enter startup command:${NC}"
+    echo -ne "${DIM}(e.g., 'npm start', 'yarn dev')${NC} ${BRIGHT_CYAN}>${NC} "
+    read -r startup_cmd
+
+    if [ -z "$startup_cmd" ]; then
+        startup_cmd="echo 'No startup command configured'"
+    fi
+
+    # Show confirmation
+    echo ""
+    echo -e "${BRIGHT_WHITE}Project Configuration:${NC}"
+    echo -e "  Display Name: ${BRIGHT_GREEN}$display_name${NC}"
+    echo -e "  Folder Name:  ${BRIGHT_CYAN}$folder_name${NC}"
+    echo -e "  Location:     ${DIM}${projects_root%/}/$folder_name${NC}"
+    echo -e "  Startup Cmd:  ${BRIGHT_YELLOW}$startup_cmd${NC}"
+    echo ""
+
+    echo -e "${BRIGHT_WHITE}Add this project to configuration? (y/n):${NC}"
+    echo -ne "${BRIGHT_CYAN}>${NC} "
+    read -r confirm_add
+
+    case "${confirm_add,,}" in
+        "y"|"yes")
+            echo ""
+            if add_project_to_config "$display_name" "$folder_name" "$projects_root" "$startup_cmd"; then
+                echo ""
+                print_color "$BRIGHT_GREEN" "🎉 Project '$display_name' has been successfully added to configuration"
+            else
+                echo ""
+                print_color "$BRIGHT_RED" "❌ Failed to add project to configuration"
+            fi
+            ;;
+        "n"|"no")
+            echo ""
+            print_color "$BRIGHT_YELLOW" "Project addition cancelled"
+            ;;
+        *)
+            echo ""
+            print_color "$BRIGHT_RED" "Invalid choice. Project addition cancelled"
+            ;;
+    esac
+
+    echo ""
+    echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
     read -r
 }
