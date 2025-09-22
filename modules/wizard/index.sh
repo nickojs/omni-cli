@@ -114,30 +114,23 @@ main() {
     echo "This wizard will help you configure projects for the tmux project manager."
     echo ""
     
-    # Get projects directory
-    local projects_dir=""
-    while [ -z "$projects_dir" ]; do
-        read -p "Enter the relative path to your projects folder: " projects_dir
-        
-        if [ -z "$projects_dir" ]; then
-            print_error "Please enter a valid path"
-            continue
-        fi
-        
-        # Convert to relative path if absolute path was provided
-        if [[ "$projects_dir" = /* ]]; then
-            projects_dir=$(realpath --relative-to="." "$projects_dir")
-            print_step "Converted to relative path: $projects_dir"
-        fi
-        
-        # Scan the directory
-        if ! scan_projects_directory "$projects_dir"; then
-            projects_dir=""
-            continue
-        fi
-        
-        break
-    done
+    # Get projects directory using the new path selector
+    show_path_selector
+
+    # Check if a path was selected
+    if [ -z "$SELECTED_PROJECTS_DIR" ]; then
+        print_error "No directory selected. Exiting wizard."
+        exit 1
+    fi
+
+    local projects_dir="$SELECTED_PROJECTS_DIR"
+    print_step "Using selected directory: $projects_dir"
+
+    # Scan the directory
+    if ! scan_projects_directory "$projects_dir"; then
+        print_error "Failed to scan selected directory. Exiting wizard."
+        exit 1
+    fi
     
     
     # Ask user which projects to configure

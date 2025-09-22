@@ -14,6 +14,7 @@ MODULES_DIR="$(dirname "${BASH_SOURCE[0]}")"
 source "$MODULES_DIR/config/index.sh"     # Configuration and JSON parsing
 source "$MODULES_DIR/tmux/index.sh"       # Tmux session management
 source "$MODULES_DIR/project/index.sh"    # Project status and management
+source "$MODULES_DIR/navigator/index.sh"  # Filesystem navigation
 source "$MODULES_DIR/menu/index.sh"       # Interactive menu system
 source "$MODULES_DIR/settings/index.sh"   # Settings menu and configuration management
 source "$MODULES_DIR/wizard/index.sh"       # Wizard installation and setup
@@ -24,6 +25,7 @@ modules_loaded() {
     echo "  - Config: $(type load_config &>/dev/null && echo "✓" || echo "✗")"
     echo "  - Tmux: $(type check_tmux &>/dev/null && echo "✓" || echo "✗")"
     echo "  - Project: $(type display_project_status &>/dev/null && echo "✓" || echo "✗")"
+    echo "  - Navigator: $(type show_path_selector &>/dev/null && echo "✓" || echo "✗")"
     echo "  - Menu: $(type show_project_menu_tmux &>/dev/null && echo "✓" || echo "✗")"
     echo "  - Settings: $(type show_settings_menu &>/dev/null && echo "✓" || echo "✗")"
     echo "  - Wizard: $(type run_wizard &>/dev/null && echo "✓" || echo "✗")"
@@ -44,6 +46,12 @@ modules_loaded() {
     if type project_modules_loaded &>/dev/null; then
         echo ""
         project_modules_loaded
+    fi
+
+    # Also check navigator sub-modules
+    if type navigator_modules_loaded &>/dev/null; then
+        echo ""
+        navigator_modules_loaded
     fi
 
     # Also check menu sub-modules
