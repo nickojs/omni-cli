@@ -36,6 +36,12 @@ handle_menu_choice() {
         return
     fi
     
+    # Handle kill all command
+    if [[ $choice =~ ^[Kk][Aa]$ ]]; then
+        handle_kill_all_command
+        return
+    fi
+
     # Handle kill commands (k1, k2, etc.)
     if [[ $choice =~ ^[Kk]([0-9]+)$ ]]; then
         local kill_choice="${BASH_REMATCH[1]}"
@@ -50,6 +56,6 @@ handle_menu_choice() {
     fi
     
     # Invalid command
-    print_error "Invalid command. Use numbers 1-${#projects[@]}, k[1-${#projects[@]}], r, f, s, h, or q"
+    print_error "Invalid command. Use numbers 1-${#projects[@]}, k[1-${#projects[@]}], ka, r, f, s, h, or q"
     sleep 1
 }

@@ -83,6 +83,26 @@ handle_settings_command() {
     reload_config
 }
 
+# Function to handle kill all command
+handle_kill_all_command() {
+    # Check if there are any running projects
+    local running_projects
+    running_projects=$(list_project_panes)
+
+    if [[ -z "$running_projects" ]]; then
+        print_warning "No projects are currently running"
+        echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+        read -r
+        return
+    fi
+
+    show_loading "Killing all running projects" 2
+    kill_all_projects
+    print_success "All projects stopped successfully"
+    echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+    read -r
+}
+
 # Function to handle help command
 handle_help_command() {
     show_help
