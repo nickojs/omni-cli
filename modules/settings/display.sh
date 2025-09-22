@@ -31,7 +31,7 @@ show_settings_menu() {
         fi
         echo ""
 
-        echo -e "${BRIGHT_YELLOW}[b]${NC} back │ ${BRIGHT_YELLOW}[h]${NC} help"
+        echo -e "${BRIGHT_PURPLE}[b]${NC} back │ ${BRIGHT_PURPLE}[h]${NC} help"
         
         # Get user input with clean prompt
         echo ""
