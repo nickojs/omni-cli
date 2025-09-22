@@ -31,6 +31,7 @@ handle_menu_choice() {
     
     # Handle help command
     if [[ $choice =~ ^[Hh]$ ]]; then
+        clean
         handle_help_command
         return
     fi

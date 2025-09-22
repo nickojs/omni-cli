@@ -27,7 +27,7 @@ show_settings_menu() {
         elif [ "$current_mode" = "add" ]; then
             echo -e "${BRIGHT_GREEN}●${NC} add mode"
         else
-            echo -e "${DIM}○${NC} no mode selected │ ${BRIGHT_RED}[d]${NC} delete │ ${BRIGHT_YELLOW}[e]${NC} edit │ ${BRIGHT_GREEN}[a]${NC} add"
+            echo -e "${DIM}○${NC} no mode selected │ ${BRIGHT_RED}[d]${NC} delete │ ${BRIGHT_BLUE}[e]${NC} edit │ ${BRIGHT_GREEN}[a]${NC} add"
         fi
         echo ""
 
@@ -88,8 +88,7 @@ show_settings_menu() {
                     break
                     ;;
                 "h")
-                    echo -e "${BRIGHT_YELLOW}Opening help${NC}"
-                    sleep 0.5
+                    clear
                     show_settings_help
                     continue
                     ;;
@@ -394,32 +393,6 @@ display_config_table() {
     iterate_projects _display_table_row "$highlight_number" "$current_mode"
 }
 
-# Function to show settings help
-show_settings_help() {
-    print_header "Settings Help"
-    print_color "$BRIGHT_GREEN" "This menu displays your current project configuration."
-    echo ""
-    echo -e "${BRIGHT_YELLOW}Commands${NC}"
-    echo -e "  ${BRIGHT_CYAN}a${NC}        add mode"
-    echo -e "  ${BRIGHT_CYAN}d${NC}        delete mode"
-    echo -e "  ${BRIGHT_CYAN}e${NC}        edit mode"
-    echo -e "  ${BRIGHT_YELLOW}b${NC}        back to main menu"
-    echo -e "  ${BRIGHT_YELLOW}h${NC}        show this help"
-    echo ""
-
-    echo -e "${BRIGHT_BLUE}Configuration${NC}"
-    echo "  • Display Name - how the project appears in menus"
-    echo "  • Folder Name - the actual directory name"
-    echo ""
-    echo -e "${BRIGHT_BLUE}Modes${NC}"
-    echo "  • Add Mode - scan and add new projects from your projects directory"
-    echo "  • Delete Mode - select projects to remove"
-    echo "  • Edit Mode - select projects to modify"
-    echo "  • Press Enter while in a mode to return to Settings"
-    echo ""
-    echo -ne "${DIM}Press Enter to continue...${NC}"
-    read -r
-}
 
 # Function to show add project screen
 show_add_project_screen() {

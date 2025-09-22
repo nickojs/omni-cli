@@ -53,6 +53,7 @@ setup_config_paths() {
 setup_config_paths
 source "$BASE_DIR/styles/index.sh"
 source "$BASE_DIR/modules/index.sh"
+source "$BASE_DIR/docs/index.sh"
 
 main() {
     # Check if running with --tmux-menu flag (inside tmux session)

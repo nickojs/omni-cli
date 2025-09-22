@@ -29,9 +29,9 @@ show_project_menu_tmux() {
         
         # Commands section with better formatting
         if [ ${#projects[@]} -eq 1 ]; then
-            echo -e "${BRIGHT_GREEN}[1]${NC} start │ ${BRIGHT_RED}[k1]${NC} kill │ ${BRIGHT_PURPLE}[s]${NC} settings │ ${BRIGHT_PURPLE}[q]${NC} quit"
+            echo -e "${BRIGHT_GREEN}[1]${NC} start │ ${BRIGHT_RED}[k1]${NC} kill │ ${BRIGHT_PURPLE}[s]${NC} settings │ ${BRIGHT_PURPLE}[h]${NC} help │ ${BRIGHT_PURPLE}[q]${NC} quit"
         else
-            echo -e "${BRIGHT_GREEN}[1-${#projects[@]}]${NC} start │ ${BRIGHT_RED}[k1-${#projects[@]}]${NC} kill │ ${BRIGHT_PURPLE}[s]${NC} settings │ ${BRIGHT_PURPLE}[q]${NC} quit"
+            echo -e "${BRIGHT_GREEN}[1-${#projects[@]}]${NC} start │ ${BRIGHT_RED}[k1-${#projects[@]}]${NC} kill │ ${BRIGHT_PURPLE}[s]${NC} settings │ ${BRIGHT_PURPLE}[h]${NC} help │ ${BRIGHT_PURPLE}[q]${NC} quit"
         fi
 
         # Get user input with clean prompt
@@ -44,21 +44,3 @@ show_project_menu_tmux() {
     done
 }
 
-# Function to show help menu
-show_help() {
-    print_header "Help"
-    echo -e "${BRIGHT_GREEN}Start Commands${NC}"
-    echo -e "  ${BRIGHT_CYAN}1-${#projects[@]}${NC}    Start project by number"
-    echo ""
-    echo -e "${BRIGHT_RED}Kill Commands${NC}"
-    echo -e "  ${BRIGHT_CYAN}k1-k${#projects[@]}${NC}  Kill project by number"
-    echo ""
-    echo -e "${BRIGHT_YELLOW}Utility Commands${NC}"
-    echo -e "  ${BRIGHT_CYAN}w${NC}        Re-run setup wizard"
-    echo -e "  ${BRIGHT_CYAN}s${NC}        Open settings menu"
-    echo -e "  ${BRIGHT_CYAN}h${NC}        Show this help"
-    echo -e "  ${BRIGHT_CYAN}q${NC}        Quit and close session"
-    echo ""
-    echo -ne "${DIM}Press Enter to continue...${NC}"
-    read -r
-}

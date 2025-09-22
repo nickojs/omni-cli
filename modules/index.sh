@@ -27,31 +27,31 @@ modules_loaded() {
     echo "  - Menu: $(type show_project_menu_tmux &>/dev/null && echo "✓" || echo "✗")"
     echo "  - Settings: $(type show_settings_menu &>/dev/null && echo "✓" || echo "✗")"
     echo "  - Wizard: $(type run_wizard &>/dev/null && echo "✓" || echo "✗")"
-    
+
     # Also check config sub-modules
     if type config_modules_loaded &>/dev/null; then
         echo ""
         config_modules_loaded
     fi
-    
+
     # Also check tmux sub-modules
     if type tmux_modules_loaded &>/dev/null; then
         echo ""
         tmux_modules_loaded
     fi
-    
+
     # Also check project sub-modules
     if type project_modules_loaded &>/dev/null; then
         echo ""
         project_modules_loaded
     fi
-    
+
     # Also check menu sub-modules
     if type menu_modules_loaded &>/dev/null; then
         echo ""
         menu_modules_loaded
     fi
-    
+
     # Also check settings sub-modules
     if type settings_modules_loaded &>/dev/null; then
         echo ""
