@@ -30,8 +30,30 @@ fi
 echo "Building $pkgname version $pkgver-$pkgrel"
 
 echo "Cleaning up existing build files..."
-rm -rf pkg/
-rm -rf src/
+
+# Safety check: ensure we're in the build directory with PKGBUILD file
+if [ ! -f "PKGBUILD" ]; then
+    echo "Error: PKGBUILD not found in current directory!" >&2
+    echo "This script must be run from the build directory containing PKGBUILD." >&2
+    exit 1
+fi
+
+# Safety check: ensure we're in a directory that looks like a build environment
+if [ ! -d "../modules" ] || [ ! -f "../startup.sh" ]; then
+    echo "Error: Directory structure doesn't match expected fm-manager build environment!" >&2
+    echo "This script must be run from the fm-manager/build directory." >&2
+    exit 1
+fi
+
+# Now safely remove build artifacts
+if [ -d "pkg" ]; then
+    rm -rf pkg/
+fi
+
+if [ -d "src" ]; then
+    rm -rf src/
+fi
+
 rm -f "${pkgname}"-*.pkg.tar.zst 2>/dev/null || true
 rm -f "${pkgname}"-*.tar.gz 2>/dev/null || true
 
@@ -49,7 +71,22 @@ if [ $? -eq 0 ]; then
     answer=${answer:-y}
     if [[ "$answer" =~ ^[Yy]$ ]]; then
         echo "Installing package..."
-        sudo pacman -U "${pkgname}-${pkgver}-${pkgrel}-any.pkg.tar.zst"
+
+        # Verify package file exists before installation
+        if [ ! -f "${pkgname}-${pkgver}-${pkgrel}-any.pkg.tar.zst" ]; then
+            echo "Error: Package file '${pkgname}-${pkgver}-${pkgrel}-any.pkg.tar.zst' not found!" >&2
+            echo "Build may have failed or package filename is unexpected." >&2
+            exit 1
+        fi
+
+        # Additional safety: ensure filename doesn't contain path traversal
+        if [[ "${pkgname}-${pkgver}-${pkgrel}-any.pkg.tar.zst" == *"/"* ]] || [[ "${pkgname}-${pkgver}-${pkgrel}-any.pkg.tar.zst" == *".."* ]]; then
+            echo "Error: Package filename contains invalid path characters!" >&2
+            exit 1
+        fi
+
+        # Install with explicit path to prevent any ambiguity
+        sudo pacman -U "./${pkgname}-${pkgver}-${pkgrel}-any.pkg.tar.zst"
     else
         echo "Skipping installation."
     fi
