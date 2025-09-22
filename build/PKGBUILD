@@ -1,19 +1,20 @@
 # Maintainer: Your Name <your.email@example.com>
 pkgname="fm-manager"
-pkgver="0.0.4"
+pkgver="0.0.5"
 pkgrel="1"
 pkgdesc="Terminal-based project manager with tmux integration"
 arch=('any')
 license=('MIT')
 depends=('bash' 'tmux')
 source=("$pkgname-$pkgver.tar.gz")
-sha256sums=('SKIP')
+sha256sums=('b5bb9d8014a0f9b1d61e21e796d78dccdf1352f23cd32812f4850b878ae4944c')
 
 package() {
     # Create necessary directories
     install -dm755 "$pkgdir/usr/share/$pkgname"
     install -dm755 "$pkgdir/usr/share/$pkgname/modules"
     install -dm755 "$pkgdir/usr/share/$pkgname/styles"
+    install -dm755 "$pkgdir/usr/share/$pkgname/docs"
     install -dm755 "$pkgdir/usr/share/$pkgname/config"
     
     # Install main script
@@ -38,6 +39,9 @@ package() {
     install -Dm644 "$srcdir/styles/colors.sh" "$pkgdir/usr/share/$pkgname/styles/"
     install -Dm644 "$srcdir/styles/ui.sh" "$pkgdir/usr/share/$pkgname/styles/"
     install -Dm644 "$srcdir/styles/animations.sh" "$pkgdir/usr/share/$pkgname/styles/"
+
+    # Install docs
+    install -Dm644 "$srcdir/docs/index.sh" "$pkgdir/usr/share/$pkgname/docs/"
     
     # Install configuration template
     install -Dm644 "$srcdir/.env" "$pkgdir/usr/share/$pkgname/.env"
