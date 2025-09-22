@@ -26,7 +26,7 @@ kill_project() {
     local display_name="$1"
     local pane_id
     pane_id=$(get_project_pane "$display_name")
-    
+
     if [[ -n "$pane_id" ]]; then
         tmux kill-pane -t "$pane_id" 2>/dev/null
         return 0
@@ -43,7 +43,7 @@ list_project_panes() {
 kill_all_projects() {
     local pane_ids
     mapfile -t pane_ids < <(tmux list-panes -t "$SESSION_NAME" -F "#{pane_id}" 2>/dev/null | grep -v "^%0$")
-    
+
     for pane_id in "${pane_ids[@]}"; do
         tmux kill-pane -t "$pane_id" 2>/dev/null
     done
