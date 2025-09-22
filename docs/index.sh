@@ -8,7 +8,7 @@
 
 # Function to show settings help
 show_settings_help() {
-    print_header "Settings Help"
+    print_header "Help"
     print_color "$WHITE" "This menu displays your current project configuration."
     echo ""
     echo -e "${BRIGHT_BLUE}Commands${NC}"
@@ -36,16 +36,23 @@ show_settings_help() {
 # Function to show main menu help
 show_help() {
     print_header "Help"
-    echo -e "${BRIGHT_GREEN}Start Commands${NC}"
-    echo -e "  ${BRIGHT_GREEN}1-${#projects[@]}${NC}    Start project by number"
+    print_color "$WHITE" "This menu allows you to manage and start your configured projects."
     echo ""
-    echo -e "${BRIGHT_RED}Kill Commands${NC}"
-    echo -e "  ${BRIGHT_RED}k1-k${#projects[@]}${NC}  Kill project by number"
+    echo -e "${BRIGHT_BLUE}Start Commands${NC}"
+    echo -e "  ${WHITE}1-${#projects[@]}${NC}        Start project by number"
     echo ""
-    echo -e "${BRIGHT_PURPLE}Utility Commands${NC}"
-    echo -e "  ${BRIGHT_PURPLE}s${NC}        Open settings menu"
-    echo -e "  ${BRIGHT_PURPLE}h${NC}        Show this help"
-    echo -e "  ${BRIGHT_PURPLE}q${NC}        Quit and close session"
+    echo -e "${BRIGHT_BLUE}Kill Commands${NC}"
+    echo -e "  ${WHITE}k1-k${#projects[@]}${NC}       Kill project by number"
+    echo ""
+    echo -e "${BRIGHT_BLUE}Utility Commands${NC}"
+    echo -e "  ${WHITE}s${NC}        Open settings menu"
+    echo -e "  ${WHITE}h${NC}        Show this help"
+    echo -e "  ${WHITE}q${NC}        Quit and close session"
+    echo ""
+    echo -e "${BRIGHT_BLUE}About${NC}"
+    echo "  • Projects run in separate tmux panes"
+    echo "  • Use settings menu to add/edit/delete projects"
+    echo "  • Kill running projects before starting new ones"
     echo ""
     echo -ne "${DIM}Press Enter to continue...${NC}"
     read -r
