@@ -184,11 +184,14 @@ add_project_to_config() {
         return 1
     fi
 
-    # Create a backup of the original file
-    local backup_file="${JSON_CONFIG_FILE}.backup.$(date +%Y%m%d_%H%M%S)"
-    if ! cp "$JSON_CONFIG_FILE" "$backup_file"; then
-        print_error "Failed to create backup file"
-        return 1
+    # Create a backup of the original file (if enabled)
+    local backup_file=""
+    if [ "$BACKUP_JSON" = true ]; then
+        backup_file="${JSON_CONFIG_FILE}.backup.$(date +%Y%m%d_%H%M%S)"
+        if ! cp "$JSON_CONFIG_FILE" "$backup_file"; then
+            print_error "Failed to create backup file"
+            return 1
+        fi
     fi
 
     # Create the new project object and append it
@@ -210,7 +213,9 @@ add_project_to_config() {
         # Move the temporary file to replace the original
         if mv "$temp_file" "$JSON_CONFIG_FILE"; then
             print_color "$BRIGHT_GREEN" "✓ Project added successfully"
-            print_color "$BRIGHT_CYAN" "Backup created: $backup_file"
+            if [ "$BACKUP_JSON" = true ] && [ -n "$backup_file" ]; then
+                print_color "$BRIGHT_CYAN" "Backup created: $backup_file"
+            fi
             return 0
         else
             print_error "Failed to update configuration file"
@@ -220,7 +225,9 @@ add_project_to_config() {
     else
         print_error "Failed to process JSON with jq"
         rm -f "$temp_file"
-        rm -f "$backup_file"
+        if [ "$BACKUP_JSON" = true ] && [ -n "$backup_file" ]; then
+            rm -f "$backup_file"
+        fi
         return 1
     fi
 }
@@ -244,11 +251,14 @@ update_project_in_config() {
         return 1
     fi
 
-    # Create a backup of the original file
-    local backup_file="${JSON_CONFIG_FILE}.backup.$(date +%Y%m%d_%H%M%S)"
-    if ! cp "$JSON_CONFIG_FILE" "$backup_file"; then
-        print_error "Failed to create backup file"
-        return 1
+    # Create a backup of the original file (if enabled)
+    local backup_file=""
+    if [ "$BACKUP_JSON" = true ]; then
+        backup_file="${JSON_CONFIG_FILE}.backup.$(date +%Y%m%d_%H%M%S)"
+        if ! cp "$JSON_CONFIG_FILE" "$backup_file"; then
+            print_error "Failed to create backup file"
+            return 1
+        fi
     fi
 
     # Update the project using jq
@@ -263,7 +273,9 @@ update_project_in_config() {
         # Move the temporary file to replace the original
         if mv "$temp_file" "$JSON_CONFIG_FILE"; then
             print_color "$BRIGHT_GREEN" "✓ Project updated successfully"
-            print_color "$BRIGHT_CYAN" "Backup created: $backup_file"
+            if [ "$BACKUP_JSON" = true ] && [ -n "$backup_file" ]; then
+                print_color "$BRIGHT_CYAN" "Backup created: $backup_file"
+            fi
             return 0
         else
             print_error "Failed to update configuration file"
@@ -273,7 +285,9 @@ update_project_in_config() {
     else
         print_error "Failed to process JSON with jq"
         rm -f "$temp_file"
-        rm -f "$backup_file"
+        if [ "$BACKUP_JSON" = true ] && [ -n "$backup_file" ]; then
+            rm -f "$backup_file"
+        fi
         return 1
     fi
 }

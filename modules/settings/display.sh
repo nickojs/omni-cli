@@ -257,11 +257,14 @@ remove_project_from_config() {
         return 1
     fi
 
-    # Create a backup of the original file
-    local backup_file="${JSON_CONFIG_FILE}.backup.$(date +%Y%m%d_%H%M%S)"
-    if ! cp "$JSON_CONFIG_FILE" "$backup_file"; then
-        print_error "Failed to create backup file"
-        return 1
+    # Create a backup of the original file (if enabled)
+    local backup_file=""
+    if [ "$BACKUP_JSON" = true ]; then
+        backup_file="${JSON_CONFIG_FILE}.backup.$(date +%Y%m%d_%H%M%S)"
+        if ! cp "$JSON_CONFIG_FILE" "$backup_file"; then
+            print_error "Failed to create backup file"
+            return 1
+        fi
     fi
 
     # Check if there's only one project - if so, remove the entire JSON file
@@ -269,7 +272,9 @@ remove_project_from_config() {
         # Remove the entire JSON file since this is the last project
         if rm "$JSON_CONFIG_FILE"; then
             print_color "$BRIGHT_GREEN" "✓ Last project removed - JSON configuration file deleted"
-            print_color "$BRIGHT_CYAN" "Backup created: $backup_file"
+            if [ "$BACKUP_JSON" = true ] && [ -n "$backup_file" ]; then
+                print_color "$BRIGHT_CYAN" "Backup created: $backup_file"
+            fi
             print_color "$BRIGHT_WHITE" "Configuration file removed (was the last project)"
             return 0
         else
@@ -295,7 +300,9 @@ remove_project_from_config() {
             # Move the temporary file to replace the original
             if mv "$temp_file" "$JSON_CONFIG_FILE"; then
                 print_color "$BRIGHT_GREEN" "✓ Project removed successfully"
-                print_color "$BRIGHT_CYAN" "Backup created: $backup_file"
+                if [ "$BACKUP_JSON" = true ] && [ -n "$backup_file" ]; then
+                    print_color "$BRIGHT_CYAN" "Backup created: $backup_file"
+                fi
                 print_color "$BRIGHT_WHITE" "Projects before: $original_count → Projects after: $new_count"
                 return 0
             else
@@ -310,13 +317,17 @@ remove_project_from_config() {
             print_color "$BRIGHT_YELLOW" "  Folder Name: $target_project_name"
             print_color "$BRIGHT_YELLOW" "  Path: $target_relative_path"
             rm -f "$temp_file"
-            rm -f "$backup_file"  # Remove backup since no changes were made
+            if [ "$BACKUP_JSON" = true ] && [ -n "$backup_file" ]; then
+                rm -f "$backup_file"  # Remove backup since no changes were made
+            fi
             return 1
         fi
     else
         print_error "Failed to process JSON with jq"
         rm -f "$temp_file"
-        rm -f "$backup_file"
+        if [ "$BACKUP_JSON" = true ] && [ -n "$backup_file" ]; then
+            rm -f "$backup_file"
+        fi
         return 1
     fi
 }
