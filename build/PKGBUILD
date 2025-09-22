@@ -1,6 +1,6 @@
 # Maintainer: Your Name <your.email@example.com>
 pkgname="fm-manager"
-pkgver="0.0.5"
+pkgver="0.0.6"
 pkgrel="1"
 pkgdesc="Terminal-based project manager with tmux integration"
 arch=('any')
@@ -26,6 +26,7 @@ package() {
     # Install modules subdirectories
     cp -r "$srcdir/modules/config" "$pkgdir/usr/share/$pkgname/modules/"
     cp -r "$srcdir/modules/menu" "$pkgdir/usr/share/$pkgname/modules/"
+    cp -r "$srcdir/modules/navigator" "$pkgdir/usr/share/$pkgname/modules/"
     cp -r "$srcdir/modules/project" "$pkgdir/usr/share/$pkgname/modules/"
     cp -r "$srcdir/modules/settings" "$pkgdir/usr/share/$pkgname/modules/"
     cp -r "$srcdir/modules/tmux" "$pkgdir/usr/share/$pkgname/modules/"
