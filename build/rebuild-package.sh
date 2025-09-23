@@ -61,8 +61,13 @@ echo "Creating source tarball..."
 cd ..
 tar -czf "build/${pkgname}-${pkgver}.tar.gz" --exclude='.git' --exclude='build' --exclude='rebuild-package.sh' .
 
-echo "Building package..."
+echo "Updating checksums in PKGBUILD..."
 cd build
+# Use standard updpkgsums command to generate checksums
+updpkgsums
+echo "Checksums updated successfully"
+
+echo "Building package..."
 makepkg -f
 
 if [ $? -eq 0 ]; then
@@ -94,3 +99,7 @@ else
     echo "Package build failed!"
     exit 1
 fi
+
+echo "Restoring PKGBUILD to original state..."
+git checkout PKGBUILD
+echo "PKGBUILD restored"

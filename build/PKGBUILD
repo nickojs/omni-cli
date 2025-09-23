@@ -7,7 +7,7 @@ arch=('any')
 license=('MIT')
 depends=('bash' 'tmux')
 source=("$pkgname-$pkgver.tar.gz")
-sha256sums=('b5bb9d8014a0f9b1d61e21e796d78dccdf1352f23cd32812f4850b878ae4944c')
+sha256sums=('PLACEHOLDER')
 
 package() {
     # Create necessary directories
