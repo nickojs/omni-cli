@@ -65,12 +65,14 @@ handle_start_command() {
         print_separator
         
         start_project_in_tmux "$display_name" "$folder_name" "$startup_command"
-        
+
         echo ""
-        show_loading "Returning to menu" 2
+        echo -ne "${BRIGHT_YELLOW}Press Enter to return to menu...${NC}"
+        read -r
     else
         print_error "Please enter a number between 1 and ${#projects[@]}"
-        sleep 2
+        echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+        read -r
     fi
 }
 

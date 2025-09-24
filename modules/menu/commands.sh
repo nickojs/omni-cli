@@ -35,7 +35,7 @@ handle_menu_choice() {
         handle_help_command
         return
     fi
-    
+
     # Handle kill all command
     if [[ $choice =~ ^[Kk][Aa]$ ]]; then
         handle_kill_all_command
@@ -57,5 +57,6 @@ handle_menu_choice() {
     
     # Invalid command
     print_error "Invalid command. Use numbers 1-${#projects[@]}, k[1-${#projects[@]}], ka, r, f, s, h, or q"
-    sleep 1
+    echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+    read -r
 }
