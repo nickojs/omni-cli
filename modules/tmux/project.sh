@@ -43,8 +43,10 @@ start_project_in_tmux() {
         # First project: create below the main menu (vertical split)
         new_pane_id=$(tmux split-window -v -t "$SESSION_NAME:0.0" -c "$PWD/$folder_name" -P -F "#{pane_id}")
     else
-        # Subsequent projects: split horizontally with the main menu pane to ensure consistent positioning
-        new_pane_id=$(tmux split-window -v -t "$SESSION_NAME:0.0" -c "$PWD/$folder_name" -P -F "#{pane_id}")
+        # Subsequent projects: split horizontally from the last project pane
+        local last_project_pane
+        last_project_pane=$(tmux list-panes -t "$SESSION_NAME" -F "#{pane_id}" 2>/dev/null | grep -v "^%0$" | tail -n1)
+        new_pane_id=$(tmux split-window -h -t "$last_project_pane" -c "$PWD/$folder_name" -P -F "#{pane_id}")
     fi
 
     # Set pane title FIRST (important!)

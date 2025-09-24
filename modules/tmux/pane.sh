@@ -28,6 +28,18 @@ kill_project() {
     pane_id=$(get_project_pane "$display_name")
 
     if [[ -n "$pane_id" ]]; then
+        # Get the shell PID running in the pane
+        local pane_pid
+        pane_pid=$(tmux list-panes -t "$pane_id" -F "#{pane_pid}" 2>/dev/null)
+
+        if [[ -n "$pane_pid" ]]; then
+            # Kill the entire process group (graceful first, then force)
+            kill -TERM -"$pane_pid" 2>/dev/null
+            sleep 0.5
+            kill -KILL -"$pane_pid" 2>/dev/null
+        fi
+
+        # Kill the pane
         tmux kill-pane -t "$pane_id" 2>/dev/null
         return 0
     fi
@@ -45,6 +57,18 @@ kill_all_projects() {
     mapfile -t pane_ids < <(tmux list-panes -t "$SESSION_NAME" -F "#{pane_id}" 2>/dev/null | grep -v "^%0$")
 
     for pane_id in "${pane_ids[@]}"; do
+        # Get the shell PID running in the pane
+        local pane_pid
+        pane_pid=$(tmux list-panes -t "$pane_id" -F "#{pane_pid}" 2>/dev/null)
+
+        if [[ -n "$pane_pid" ]]; then
+            # Kill the entire process group (graceful first, then force)
+            kill -TERM -"$pane_pid" 2>/dev/null
+            sleep 0.2
+            kill -KILL -"$pane_pid" 2>/dev/null
+        fi
+
+        # Kill the pane
         tmux kill-pane -t "$pane_id" 2>/dev/null
     done
 }
