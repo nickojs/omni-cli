@@ -82,7 +82,7 @@ setup_config_paths() {
     # Set default values if not in .env
     SESSION_NAME="${SESSION_NAME:-fm-manager}"
     
-    # Set JSON_CONFIG_FILE based on installation type
+    # Set JSON_CONFIG_FOLDER based on installation type
     if [ "$IS_INSTALLED" = true ]; then
         # Installed: use user cache directory
         JSON_CONFIG_FOLDER="$HOME/.cache/fm-manager"
@@ -91,7 +91,6 @@ setup_config_paths() {
             echo "Please check permissions or try running: mkdir -p $JSON_CONFIG_FOLDER" >&2
             exit 1
         fi
-        JSON_CONFIG_FILE="$JSON_CONFIG_FOLDER/projects_output.json"
     else
         # Development: use relative to script directory
         JSON_CONFIG_FOLDER="$BASE_DIR/config"
@@ -99,6 +98,20 @@ setup_config_paths() {
             echo "Error: Failed to create config directory: $JSON_CONFIG_FOLDER" >&2
             exit 1
         fi
+    fi
+
+    # Determine active configuration from bulk_project_config.json or fallback to default
+    local bulk_config_file="$JSON_CONFIG_FOLDER/.bulk_project_config.json"
+    if [ -f "$bulk_config_file" ] && command -v jq >/dev/null 2>&1; then
+        local active_config=$(jq -r '.activeConfig // empty' "$bulk_config_file" 2>/dev/null)
+        if [ -n "$active_config" ] && [ -f "$JSON_CONFIG_FOLDER/$active_config" ]; then
+            JSON_CONFIG_FILE="$JSON_CONFIG_FOLDER/$active_config"
+        else
+            # Fallback to default if active config file doesn't exist
+            JSON_CONFIG_FILE="$JSON_CONFIG_FOLDER/projects_output.json"
+        fi
+    else
+        # Fallback to default if no bulk config file
         JSON_CONFIG_FILE="$JSON_CONFIG_FOLDER/projects_output.json"
     fi
     

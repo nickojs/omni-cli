@@ -15,7 +15,10 @@ show_settings_menu() {
         
         # Clean header
         print_header "Settings"
-        
+
+        # Display active configuration info
+        show_active_config_info
+
         # Display configuration directly in the menu
         display_config_table
         echo ""
@@ -31,7 +34,7 @@ show_settings_menu() {
         fi
         echo ""
 
-        echo -e "${BRIGHT_PURPLE}[b]${NC} back │ ${BRIGHT_PURPLE}[h]${NC} help"
+        echo -e "${BRIGHT_PURPLE}[p]${NC} projects │ ${BRIGHT_PURPLE}[b]${NC} back │ ${BRIGHT_PURPLE}[h]${NC} help"
         
         # Get user input with clean prompt
         echo ""
@@ -83,8 +86,6 @@ show_settings_menu() {
         if [ "$current_mode" != "edit" ] && [ "$current_mode" != "add" ]; then
             case "${choice,,}" in
                 "b")
-                    echo -e "${BRIGHT_YELLOW}Returning to main menu${NC}"
-                    sleep 0.5
                     break
                     ;;
                 "h")
@@ -602,4 +603,44 @@ configure_new_project() {
     echo ""
     echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
     read -r
+}
+
+# Function to display active configuration info
+show_active_config_info() {
+    # Check for bulk config file
+    local config_dir
+    if [ -d "config" ] && [ -f "startup.sh" ]; then
+        config_dir="config"
+    else
+        config_dir="$HOME/.cache/fm-manager"
+    fi
+
+    local bulk_config_file="$config_dir/.bulk_project_config.json"
+
+    if [ -f "$bulk_config_file" ] && command -v jq >/dev/null 2>&1; then
+        local display_name=$(jq -r '.displayName // empty' "$bulk_config_file" 2>/dev/null)
+        local active_config=$(jq -r '.activeConfig // empty' "$bulk_config_file" 2>/dev/null)
+        local projects_path=$(jq -r '.projectsPath // empty' "$bulk_config_file" 2>/dev/null)
+        local total_configs=$(jq -r '.availableConfigs | length' "$bulk_config_file" 2>/dev/null)
+
+        if [ -n "$display_name" ] && [ -n "$active_config" ] && [ -n "$total_configs" ]; then
+            if [ -n "$projects_path" ]; then
+                echo -e "${BRIGHT_GREEN}●${NC} ${BRIGHT_WHITE}Projects Folder:${NC} ${DIM}${display_name} - ${projects_path}${NC}"
+            else
+                echo -e "${BRIGHT_GREEN}●${NC} ${BRIGHT_WHITE}Projects Folder:${NC} ${DIM}${display_name}${NC}"
+            fi
+            echo ""
+            return
+        fi
+    fi
+
+    # Fallback display
+    local config_name="Default"
+    if [ -n "$JSON_CONFIG_FILE" ]; then
+        config_name=$(basename "$JSON_CONFIG_FILE" .json)
+        config_name=$(echo "$config_name" | sed 's/[_-]/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)} 1')
+    fi
+
+    echo -e "${BRIGHT_GREEN}●${NC} ${BRIGHT_WHITE}Projects Folder:${NC} ${DIM}${config_name}${NC}"
+    echo ""
 }

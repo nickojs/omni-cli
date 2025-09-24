@@ -29,9 +29,16 @@ handle_settings_choice() {
         return
     fi
 
+    # Handle projects management command
+    if [[ $choice =~ ^[Pp]$ ]]; then
+        show_projects_management_screen
+        return
+    fi
+
     # Invalid command
-    print_error "Invalid command. Use a (add), b (back) or h (help)"
-    sleep 2
+    print_error "Invalid command. Use a (add), p (projects), b (back) or h (help)"
+    echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+    read -r
 }
 
 # Function to handle edit config command (placeholder)

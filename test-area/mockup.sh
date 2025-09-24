@@ -114,7 +114,8 @@ generate_folder_json() {
            --arg projectName "$proj_name" \
            --arg relativePath "$proj_path" \
            --arg startupCmd "./start.sh" \
-           '. += [{"displayName": $displayName, "projectName": $projectName, "relativePath": $relativePath, "startupCmd": $startupCmd}]' \
+           --arg folderPath "test-area/$folder_name" \
+           '. += [{"displayName": $displayName, "projectName": $projectName, "relativePath": $relativePath, "startupCmd": $startupCmd, "folderPath": $folderPath}]' \
            "$temp_file" > "$temp_file.new" && mv "$temp_file.new" "$temp_file"
     done
 

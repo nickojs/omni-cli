@@ -202,11 +202,13 @@ add_project_to_config() {
           --arg project_name "$folder_name" \
           --arg relative_path "$relative_path" \
           --arg startup_cmd "$startup_cmd" \
+          --arg folder_path "$projects_root" \
           '. += [{
               "displayName": $display_name,
               "projectName": $project_name,
               "relativePath": $relative_path,
-              "startupCmd": $startup_cmd
+              "startupCmd": $startup_cmd,
+              "folderPath": $folder_path
           }]' \
           "$JSON_CONFIG_FILE" > "$temp_file"; then
 
