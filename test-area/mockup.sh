@@ -1,126 +1,386 @@
 #!/bin/bash
 
-# Function to generate JSON content
-generate_json() {
-    local num_projects=$1
-    local json_content="["
+# ========================================
+# Enhanced Mock Project Generator
+# ========================================
+# Generates realistic test projects with safety limits
+# Usage: mockup.sh <projects> [folders]
 
-    for i in $(seq 1 $num_projects); do
-        json_content+="\n  {"
-        json_content+="\n    \"displayName\": \"Test Project $i\","
-        json_content+="\n    \"projectName\": \"project-$i\","
-        json_content+="\n    \"relativePath\": \"test-area/project-$i\","
-        json_content+="\n    \"startupCmd\": \"./start.sh\""
-        json_content+="\n  }"
+# Bash safety settings
+set -euo pipefail
+IFS=$'\n\t'
 
-        if [ $i -lt $num_projects ]; then
-            json_content+=","
-        fi
+# Constants
+readonly MAX_PROJECTS_PER_FOLDER=5
+readonly MAX_FOLDERS=3
+readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Realistic project names
+readonly MOCK_PROJECTS=(
+    "frontend-app"
+    "backend-api"
+    "mobile-client"
+    "admin-dashboard"
+    "payment-service"
+    "user-service"
+    "notification-service"
+    "analytics-engine"
+    "file-processor"
+    "email-worker"
+    "blog-cms"
+    "e-commerce-shop"
+    "inventory-manager"
+    "chat-service"
+    "video-streamer"
+)
+
+# Folder category names
+readonly MOCK_FOLDERS=(
+    "microservices"
+    "web-apps"
+    "mobile-projects"
+    "data-services"
+    "client-work"
+    "experiments"
+    "legacy-systems"
+)
+
+# Cleanup on error (only for critical failures)
+cleanup_on_error() {
+    echo "❌ Critical error occurred during mockup generation"
+    echo "🧹 Cleaning up partial state..."
+    # Clean up any partial state if needed
+    rm -f "$SCRIPT_DIR"/*.json.tmp 2>/dev/null || true
+    exit 1
+}
+
+# Utility functions
+sanitize_name() {
+    local name="$1"
+    # Remove special chars, keep alphanumeric, hyphens, underscores
+    # Convert to lowercase for consistency
+    echo "$name" | tr -cd '[:alnum:]-_' | tr '[:upper:]' '[:lower:]'
+}
+
+# Function to escape string for JSON using jq
+escape_json_string() {
+    local str="$1"
+    # Use jq to properly escape JSON strings - much safer than manual escaping
+    printf '%s' "$str" | jq -R .
+}
+
+# Function to get random project name
+get_project_name() {
+    local index="$1"
+    local total_projects=${#MOCK_PROJECTS[@]}
+
+    if [ "$index" -le "$total_projects" ]; then
+        echo "${MOCK_PROJECTS[$((index - 1))]}"
+    else
+        # Fallback to numbered project if we exceed array
+        echo "project-$index"
+    fi
+}
+
+# Function to get random folder name
+get_folder_name() {
+    local index="$1"
+    local total_folders=${#MOCK_FOLDERS[@]}
+
+    if [ "$index" -le "$total_folders" ]; then
+        echo "${MOCK_FOLDERS[$((index - 1))]}"
+    else
+        # Fallback to numbered folder if we exceed array
+        echo "folder-$index"
+    fi
+}
+
+# Function to generate JSON for a specific folder using jq
+generate_folder_json() {
+    local folder_name="$1"
+    local folder_display="$2"
+    local -n projects_ref=$3
+    local temp_file="$SCRIPT_DIR/temp_$folder_name.json"
+
+    # Start with empty JSON array
+    echo "[]" > "$temp_file"
+
+    # Add each project to the JSON array
+    for project_data in "${projects_ref[@]}"; do
+        IFS='|' read -r proj_name proj_display proj_path <<< "$project_data"
+
+        # Use jq to safely add project to array
+        jq --arg displayName "$proj_display" \
+           --arg projectName "$proj_name" \
+           --arg relativePath "$proj_path" \
+           --arg startupCmd "./start.sh" \
+           '. += [{"displayName": $displayName, "projectName": $projectName, "relativePath": $relativePath, "startupCmd": $startupCmd}]' \
+           "$temp_file" > "$temp_file.new" && mv "$temp_file.new" "$temp_file"
     done
 
-    json_content+="\n]"
-    echo -e "$json_content"
+    # Move temp file to final location
+    local final_file="$SCRIPT_DIR/testing_data__$folder_name.json"
+    mv "$temp_file" "$final_file"
+
+    echo "📝 Generated: testing_data__$folder_name.json (${#projects_ref[@]} projects)"
 }
 
 # Function to clean up test projects
 clean_projects() {
-    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     echo "🧹 Cleaning up test projects..."
     echo "📍 Script directory: $SCRIPT_DIR"
 
     # Check what would be deleted
-    local has_projects=false
-    local has_json=false
+    local has_legacy_projects=false
+    local has_folder_projects=false
+    local has_configs=false
+    local found_items=()
 
+    # Check for legacy project-* folders (backward compatibility)
     if ls "$SCRIPT_DIR"/project-* >/dev/null 2>&1; then
+        echo "🗑️  Found legacy project folders:"
+        echo "$(ls -d "$SCRIPT_DIR"/project-* 2>/dev/null | xargs basename -a)"
+        has_legacy_projects=true
+        found_items+=("legacy project folders")
+    fi
+
+    # Check for new folder structure (microservices/, web-apps/, etc.)
+    local folder_dirs=()
+    for folder_name in "${MOCK_FOLDERS[@]}"; do
+        if [ -d "$SCRIPT_DIR/$folder_name" ]; then
+            folder_dirs+=("$folder_name")
+            has_folder_projects=true
+        fi
+    done
+
+    if [ "$has_folder_projects" = true ]; then
         echo "🗑️  Found project folders:"
-        echo "$(ls -d "$SCRIPT_DIR"/project-* | xargs basename -a)"
-        has_projects=true
+        printf '  %s\n' "${folder_dirs[@]}"
+        found_items+=("project folders")
     fi
 
-    if [ -f "$SCRIPT_DIR/projects_output__test_area.json" ]; then
-        echo "🗑️  Found JSON config: projects_output__test_area.json"
-        has_json=true
+    # Check for JSON configurations
+    local config_files=()
+    if ls "$SCRIPT_DIR"/testing_data__*.json >/dev/null 2>&1; then
+        mapfile -t config_files < <(ls "$SCRIPT_DIR"/testing_data__*.json 2>/dev/null | xargs basename -a)
+        echo "🗑️  Found configuration files:"
+        printf '  %s\n' "${config_files[@]}"
+        has_configs=true
+        found_items+=("configuration files")
     fi
 
-    if [ "$has_projects" = false ] && [ "$has_json" = false ]; then
-        echo "📂 Nothing to clean - no test projects or config found"
+    # Check for temporary files
+    if ls "$SCRIPT_DIR"/temp_*.json >/dev/null 2>&1; then
+        echo "🗑️  Found temporary files:"
+        ls "$SCRIPT_DIR"/temp_*.json 2>/dev/null | xargs basename -a
+        found_items+=("temporary files")
+    fi
+
+    if [ ${#found_items[@]} -eq 0 ]; then
+        echo "📂 Nothing to clean - no test projects or configs found"
         return
     fi
 
     # Ask for confirmation
-    echo -n "❓ Are you sure you want to delete these files? [y/N]: "
-    read -r confirmation
+    local items_text
+    if [ ${#found_items[@]} -eq 1 ]; then
+        items_text="${found_items[0]}"
+    else
+        # Join array elements with ", " and replace last ", " with " and "
+        items_text=$(IFS=", "; echo "${found_items[*]}" | sed 's/, \([^,]*\)$/ and \1/')
+    fi
 
-    if [[ ! "$confirmation" =~ ^[Yy]$ ]]; then
-        echo "❌ Cleanup cancelled"
-        return
+    # Skip confirmation if running non-interactively or if FORCE_CLEANUP is set
+    if [[ -t 0 ]] && [[ -z "${FORCE_CLEANUP:-}" ]]; then
+        echo -n "❓ Are you sure you want to delete these $items_text? [y/N]: "
+        read -r confirmation
+
+        if [[ ! "$confirmation" =~ ^[Yy]$ ]]; then
+            echo "❌ Cleanup cancelled"
+            return
+        fi
+    else
+        echo "🤖 Auto-cleanup enabled - proceeding with deletion"
     fi
 
     # Perform the deletion
-    if [ "$has_projects" = true ]; then
-        rm -rf "$SCRIPT_DIR"/project-*
-        echo "✅ Removed project folders"
+    if [ "$has_legacy_projects" = true ]; then
+        rm -rf "$SCRIPT_DIR"/project-* 2>/dev/null
+        echo "✅ Removed legacy project folders"
     fi
 
-    if [ "$has_json" = true ]; then
-        rm -f "$SCRIPT_DIR/projects_output__test_area.json"
-        echo "✅ Removed JSON config"
+    if [ "$has_folder_projects" = true ]; then
+        for folder_name in "${folder_dirs[@]}"; do
+            rm -rf "$SCRIPT_DIR/$folder_name"
+            echo "✅ Removed folder: $folder_name"
+        done
     fi
+
+    if [ "$has_configs" = true ]; then
+        rm -f "$SCRIPT_DIR"/testing_data__*.json 2>/dev/null
+        echo "✅ Removed configuration files"
+    fi
+
+    # Clean up any temporary files
+    rm -f "$SCRIPT_DIR"/temp_*.json 2>/dev/null
 
     echo "🎉 Cleanup complete!"
 }
 
+# Function to show usage
+show_usage() {
+    echo "Usage: $0 <folders> [projects-per-folder] | clean"
+    echo ""
+    echo "Arguments:"
+    echo "  folders            Number of folders to create (1-${MAX_FOLDERS})"
+    echo "  projects-per-folder Number of projects in each folder (1-${MAX_PROJECTS_PER_FOLDER}, default: 3)"
+    echo "  clean              Clean up all test projects and configurations"
+    echo ""
+    echo "Examples:"
+    echo "  $0 2         # Generate 2 folders with 3 projects each (total: 6 projects)"
+    echo "  $0 2 5       # Generate 2 folders with 5 projects each (total: 10 projects)"
+    echo "  $0 clean     # Clean up test projects"
+    echo ""
+    echo "Safety Limits:"
+    echo "  • Maximum ${MAX_PROJECTS_PER_FOLDER} projects per folder"
+    echo "  • Maximum ${MAX_FOLDERS} folders total"
+}
+
+# Function to validate inputs
+validate_inputs() {
+    local folders="$1"
+    local projects_per_folder="$2"
+
+    # Validate folders argument
+    if ! [[ "$folders" =~ ^[1-9][0-9]*$ ]]; then
+        echo "❌ Error: Folders must be a positive integer"
+        show_usage
+        exit 1
+    fi
+
+    # Validate projects per folder argument
+    if ! [[ "$projects_per_folder" =~ ^[1-9][0-9]*$ ]]; then
+        echo "❌ Error: Projects per folder must be a positive integer"
+        show_usage
+        exit 1
+    fi
+
+    # Check safety limits
+    if [ "$folders" -gt "$MAX_FOLDERS" ]; then
+        echo "❌ Error: Maximum $MAX_FOLDERS folders allowed (requested: $folders)"
+        show_usage
+        exit 1
+    fi
+
+    if [ "$projects_per_folder" -gt "$MAX_PROJECTS_PER_FOLDER" ]; then
+        echo "❌ Error: Maximum $MAX_PROJECTS_PER_FOLDER projects per folder (requested: $projects_per_folder)"
+        show_usage
+        exit 1
+    fi
+
+    echo "✅ Input validation passed: $folders folders with $projects_per_folder projects each"
+}
+
 # Handle clean flag
-if [ "$1" = "clean" ]; then
+if [ "${1:-}" = "clean" ]; then
     clean_projects
     exit 0
 fi
 
-# Default to 3 projects if no argument provided
-NUM_PROJECTS=${1:-3}
-
-# Validate input
-if ! [[ "$NUM_PROJECTS" =~ ^[1-9][0-9]*$ ]]; then
-    echo "❌ Error: Please provide a positive number or 'clean'"
-    echo "Usage: $0 <number-of-projects|clean>"
-    echo "Examples:"
-    echo "  $0 5      # Generate 5 projects"
-    echo "  $0 clean  # Clean up test projects"
+# Check if any arguments provided
+if [ $# -eq 0 ]; then
+    echo "❌ Error: No arguments provided"
+    show_usage
     exit 1
 fi
 
-echo "🎭 Generating $NUM_PROJECTS mock projects..."
+# Parse and validate arguments - FIXED LOGIC
+NUM_FOLDERS="$1"
+PROJECTS_PER_FOLDER="${2:-3}"
+NUM_PROJECTS=$((NUM_FOLDERS * PROJECTS_PER_FOLDER))
 
-# Clean up existing test projects first
-clean_projects
+validate_inputs "$NUM_FOLDERS" "$PROJECTS_PER_FOLDER"
 
-# Generate project directories and scripts
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-echo "📍 Script directory: $SCRIPT_DIR"
+echo "🎭 Generating $NUM_FOLDERS folders with $PROJECTS_PER_FOLDER projects each (total: $NUM_PROJECTS projects)..."
 
-for i in $(seq 1 $NUM_PROJECTS); do
-    project_name="project-$i"
-    project_dir="$SCRIPT_DIR/$project_name"
+# Simple logic: each folder gets the same number of projects
+# mockup.sh <folders> <projects> = <folders> folders with <projects> projects each
 
-    echo "📁 Creating $project_name..."
-    mkdir -p "$project_dir"
+# Function to create project directory and script
+create_project() {
+    local folder_name="$1"
+    local project_name="$2"
+    local project_display_name="$3"
+    local project_dir="$4"
 
-    # Create simple hanging script
-    cat > "$project_dir/start.sh" << 'EOF'
+    echo "  📁 Creating $project_name in $folder_name..."
+
+    # Create directory with proper permissions
+    if ! mkdir -p "$project_dir"; then
+        echo "❌ Failed to create directory: $project_dir"
+        exit 1
+    fi
+
+    # Create startup script with realistic content
+    cat > "$project_dir/start.sh" << EOF
 #!/bin/bash
-echo "Project $i is running..."
+echo "$project_display_name is running..."
 sleep 999999
 EOF
 
-    # Fix variable interpolation in the script
-    sed -i "s/\$i/$i/g" "$project_dir/start.sh"
+    # Set executable permissions
     chmod +x "$project_dir/start.sh"
+}
+
+# Clean up existing test projects first
+clean_projects
+echo "📍 Script directory: $SCRIPT_DIR"
+
+# Generate projects in folders - SIMPLE LOGIC
+project_counter=1
+for folder_idx in $(seq 1 "$NUM_FOLDERS"); do
+    # Get folder name from array or fallback
+    folder_name=$(get_folder_name "$folder_idx")
+    folder_name=$(sanitize_name "$folder_name")
+    folder_dir="$SCRIPT_DIR/$folder_name"
+
+    echo "📂 Creating folder: $folder_name ($PROJECTS_PER_FOLDER projects)"
+    mkdir -p "$folder_dir"
+
+    # Array to collect project data for this folder's JSON
+    declare -a folder_projects=()
+
+    for project_in_folder_idx in $(seq 1 "$PROJECTS_PER_FOLDER"); do
+        # Get project name from array
+        project_name=$(get_project_name "$project_counter")
+        project_name=$(sanitize_name "$project_name")
+
+        # Create display name (Folder Name - Project Name)
+        folder_display=$(get_folder_name "$folder_idx" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)} 1')
+        project_display=$(get_project_name "$project_counter" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)} 1')
+        project_display_name="$folder_display - $project_display"
+
+        project_dir="$folder_dir/$project_name"
+        project_relative_path="test-area/$folder_name/$project_name"
+
+        create_project "$folder_name" "$project_name" "$project_display_name" "$project_dir"
+
+        # Add project data to folder's project list (format: name|display|path)
+        folder_projects+=("$project_name|$project_display_name|$project_relative_path")
+
+        ((project_counter++))
+    done
+
+    # Generate JSON configuration for this folder
+    generate_folder_json "$folder_name" "$folder_display" folder_projects
+    echo ""
 done
 
-# Generate JSON configuration using function
-echo "📝 Generating configuration JSON..."
-generate_json "$NUM_PROJECTS" > "$SCRIPT_DIR/projects_output__test_area.json"
-
-echo "✅ Generated $NUM_PROJECTS mock projects successfully!"
-echo "🎯 Use: ./test-area/masquerade.sh enable"
+echo "✅ Generated $NUM_PROJECTS projects in $NUM_FOLDERS folder(s) successfully!"
+echo "📄 Created $NUM_FOLDERS configuration files:"
+for folder_idx in $(seq 1 "$NUM_FOLDERS"); do
+    folder_name=$(get_folder_name "$folder_idx")
+    folder_name=$(sanitize_name "$folder_name")
+    echo "  • testing_data__$folder_name.json"
+done
+echo "🎯 Use masquerade script to switch between configurations"
