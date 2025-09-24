@@ -29,6 +29,11 @@ setup_tmux_session() {
     # Create new session (detached) and start the menu in it
     show_loading "Creating tmux session" 1
     tmux new-session -d -s "$SESSION_NAME" "$0 --tmux-menu"
+
+    # Configure session for better scrolling and usability
+    tmux set-option -t "$SESSION_NAME" mouse on
+    tmux set-option -t "$SESSION_NAME" history-limit 10000
+    tmux set-option -t "$SESSION_NAME" mode-keys vi
     
     print_success "Created tmux session: $SESSION_NAME with project menu"
 }
