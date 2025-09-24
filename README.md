@@ -137,6 +137,35 @@ The application automatically creates and manages project configurations through
    sudo apt install jq
    ```
 
+## 🧪 Testing
+
+For development testing, use the included test environment:
+
+### Generate Mock Projects
+```bash
+# Generate 5 test projects (default: 3)
+./test-area/mockup.sh 5
+
+# Clean up test projects with confirmation
+./test-area/mockup.sh clean
+```
+
+### Test with Mock Configuration
+```bash
+# Switch to test configuration (backs up original, replaces with mock projects)
+./test-area/masquerade.sh enable
+
+# Run fm-manager to test functionality safely
+./startup.sh
+
+# Test starting/stopping projects without affecting real ones
+
+# Restore original configuration (restores backup)
+./test-area/masquerade.sh restore
+```
+
+The masquerade script safely swaps your `config/projects_output.json` with the generated mock configuration, backing up the original. Mock projects are simple hanging processes (`echo + sleep 999999`) perfect for testing process management, kill functionality, and UI behavior without interfering with actual projects.
+
 ## 📚 Documentation
 
 - [Styles Documentation](styles/README.md) - Complete styling guide

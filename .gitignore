@@ -1,6 +1,10 @@
 # Local projects_output.json file location
 config/
 
+# Test area generated files
+test-area/projects_output__test_area.json
+test-area/project-*
+
 # Ignore everything in build directory
 build/*
 
