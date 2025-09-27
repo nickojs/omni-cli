@@ -6,6 +6,28 @@
 # This module handles menu action implementations
 # Usage: source modules/menu/actions.sh
 
+# Helper function to temporarily switch workspace context for operations
+with_workspace_context() {
+    local workspace_file="$1"
+    local callback_function="$2"
+    shift 2  # Remove workspace_file and callback_function, rest are callback args
+
+    # Save current context
+    local original_json_config="$JSON_CONFIG_FILE"
+
+    # Switch to target workspace
+    export JSON_CONFIG_FILE="$workspace_file"
+
+    # Execute callback with remaining arguments
+    "$callback_function" "$@"
+    local result=$?
+
+    # Restore original context
+    export JSON_CONFIG_FILE="$original_json_config"
+
+    return $result
+}
+
 # Function to handle quit command
 handle_quit_command() {
     show_loading "bye bye!" 1
@@ -14,17 +36,20 @@ handle_quit_command() {
 }
 
 
-# Function to handle kill command
+# Function to handle kill command with global project array
 handle_kill_command() {
     local kill_choice="$1"
-    
+
     if [ "$kill_choice" -ge 1 ] && [ "$kill_choice" -le "${#projects[@]}" ]; then
         local project_index=$((kill_choice - 1))
         IFS=':' read -r display_name folder_name startup_command shutdown_command <<< "${projects[$project_index]}"
+        local workspace_file="${project_workspaces[$project_index]}"
 
         if is_project_running "$display_name"; then
             show_loading "Killing $display_name" 1
-            if kill_project "$display_name" "$shutdown_command"; then
+
+            # Kill project with workspace context (shutdown command execution needs proper context)
+            if with_workspace_context "$workspace_file" kill_project "$display_name" "$shutdown_command"; then
                 print_success "$display_name stopped successfully"
             else
                 print_error "Failed to stop $display_name"
@@ -40,14 +65,15 @@ handle_kill_command() {
     fi
 }
 
-# Function to handle start command
+# Function to handle start command with global project array
 handle_start_command() {
     local choice="$1"
-    
+
     if [ "$choice" -ge 1 ] && [ "$choice" -le "${#projects[@]}" ]; then
         local project_index=$((choice - 1))
         IFS=':' read -r display_name folder_name startup_command shutdown_command <<< "${projects[$project_index]}"
-        
+        local workspace_file="${project_workspaces[$project_index]}"
+
         # Check if project is already running
         if is_project_running "$display_name"; then
             echo ""
@@ -57,14 +83,16 @@ handle_start_command() {
             read -r
             return
         fi
-        
+
         print_separator
         echo -e "${BRIGHT_WHITE}Selected project:${NC} ${BRIGHT_GREEN}$display_name${NC}"
         echo -e "${BRIGHT_WHITE}Project folder:${NC} ${BRIGHT_BLUE}$folder_name${NC}"
         echo -e "${BRIGHT_WHITE}Startup command:${NC} ${BRIGHT_YELLOW}$startup_command${NC}"
+        echo -e "${BRIGHT_WHITE}Workspace:${NC} ${BRIGHT_CYAN}$(basename "$workspace_file" .json)${NC}"
         print_separator
-        
-        start_project_in_tmux "$display_name" "$folder_name" "$startup_command"
+
+        # Start project with workspace context
+        with_workspace_context "$workspace_file" start_project_in_tmux "$display_name" "$folder_name" "$startup_command"
 
         echo ""
         echo -ne "${BRIGHT_YELLOW}Press Enter to return to menu...${NC}"

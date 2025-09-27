@@ -8,18 +8,51 @@
 
 # Global projects array
 declare -g -a projects=()
+# Global workspace tracking array (parallel to projects array)
+declare -g -a project_workspaces=()
 
-# Function to load projects from JSON config
+# Function to load projects from all workspaces globally
 load_projects_from_json() {
-    local json_file="$JSON_CONFIG_FILE"
-    
+    # Clear global arrays
+    projects=()
+    project_workspaces=()
+
+    # Get config directory
+    local config_dir
+    if [ -d "config" ] && [ -f "startup.sh" ]; then
+        config_dir="config"
+    else
+        config_dir="$HOME/.cache/fm-manager"
+    fi
+
+    # Get all JSON workspace files (excluding hidden files)
+    local workspace_files
+    mapfile -t workspace_files < <(find "$config_dir" -name "*.json" -type f ! -name ".*" 2>/dev/null | sort)
+
+    if [ ${#workspace_files[@]} -eq 0 ]; then
+        return 1
+    fi
+
+    # Load projects from each workspace
+    for workspace_file in "${workspace_files[@]}"; do
+        load_projects_from_workspace "$workspace_file"
+    done
+
+    # Validate that we actually loaded some projects
+    if [ ${#projects[@]} -eq 0 ]; then
+        return 1
+    fi
+    return 0
+}
+
+# Helper function to load projects from a single workspace file
+load_projects_from_workspace() {
+    local json_file="$1"
+
     if [ ! -f "$json_file" ]; then
         return 1
     fi
-    
-    # Parse JSON and create the projects array
-    projects=()
-    
+
     # Read each project object from JSON - use safer approach
     local json_content
     json_content=$(cat "$json_file" 2>/dev/null)
@@ -63,16 +96,13 @@ load_projects_from_json() {
         # If no shutdown command, use empty string
         [ -z "$shutdown_cmd" ] && shutdown_cmd=""
 
-        # Add to projects array in the extended format (using relativePath as folder_name)
+        # Add to global projects array (using relativePath as folder_name)
         if [ -n "$display_name" ] && [ -n "$relative_path" ] && [ -n "$startup_cmd" ]; then
             projects+=("$display_name:$relative_path:$startup_cmd:$shutdown_cmd")
+            project_workspaces+=("$json_file")
         fi
     done <<< "$parsed_objects"
 
-    # Validate that we actually loaded some projects
-    if [ ${#projects[@]} -eq 0 ]; then
-        return 1
-    fi
     return 0
 }
 
