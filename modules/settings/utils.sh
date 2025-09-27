@@ -50,7 +50,7 @@ get_project_count() {
 
 # Function to iterate through projects with a callback
 # Parameters: callback_function [additional_args...]
-# Callback receives: counter, display_name, project_name, relative_path, startup_cmd, [additional_args...]
+# Callback receives: counter, display_name, project_name, relative_path, startup_cmd, shutdown_cmd, [additional_args...]
 iterate_projects() {
     local callback_function="$1"
     shift  # Remove callback function from arguments, rest are passed to callback
@@ -74,9 +74,10 @@ iterate_projects() {
         local project_name=$(jq -r ".[$index].projectName" "$JSON_CONFIG_FILE")
         local relative_path=$(jq -r ".[$index].relativePath" "$JSON_CONFIG_FILE")
         local startup_cmd=$(jq -r ".[$index].startupCmd" "$JSON_CONFIG_FILE")
+        local shutdown_cmd=$(jq -r ".[$index].shutdownCmd // empty" "$JSON_CONFIG_FILE")
 
         # Call the callback function with project data and additional arguments
-        "$callback_function" "$counter" "$display_name" "$project_name" "$relative_path" "$startup_cmd" "$@"
+        "$callback_function" "$counter" "$display_name" "$project_name" "$relative_path" "$startup_cmd" "$shutdown_cmd" "$@"
 
         counter=$((counter + 1))
     done
@@ -171,13 +172,14 @@ is_folder_managed() {
 }
 
 # Function to append new project to JSON config
-# Parameters: display_name, folder_name, projects_root, startup_cmd
+# Parameters: display_name, folder_name, projects_root, startup_cmd, shutdown_cmd
 # Returns: 0 if successful, 1 if error
 add_project_to_config() {
     local display_name="$1"
     local folder_name="$2"
     local projects_root="$3"
     local startup_cmd="$4"
+    local shutdown_cmd="$5"
 
     if ! validate_json_config; then
         print_error "Configuration file not found: $JSON_CONFIG_FILE"
@@ -202,12 +204,14 @@ add_project_to_config() {
           --arg project_name "$folder_name" \
           --arg relative_path "$relative_path" \
           --arg startup_cmd "$startup_cmd" \
+          --arg shutdown_cmd "$shutdown_cmd" \
           --arg folder_path "$projects_root" \
           '. += [{
               "displayName": $display_name,
               "projectName": $project_name,
               "relativePath": $relative_path,
               "startupCmd": $startup_cmd,
+              "shutdownCmd": $shutdown_cmd,
               "folderPath": $folder_path
           }]' \
           "$JSON_CONFIG_FILE" > "$temp_file"; then
@@ -235,12 +239,13 @@ add_project_to_config() {
 }
 
 # Function to update a project in JSON configuration
-# Parameters: project_index (1-based), new_display_name, new_startup_cmd
+# Parameters: project_index (1-based), new_display_name, new_startup_cmd, new_shutdown_cmd
 # Returns: 0 if successful, 1 if error
 update_project_in_config() {
     local project_index="$1"
     local new_display_name="$2"
     local new_startup_cmd="$3"
+    local new_shutdown_cmd="$4"
 
     if ! validate_json_config; then
         print_error "Configuration file not found: $JSON_CONFIG_FILE"
@@ -269,7 +274,8 @@ update_project_in_config() {
 
     if jq --arg display_name "$new_display_name" \
           --arg startup_cmd "$new_startup_cmd" \
-          ".[$index].displayName = \$display_name | .[$index].startupCmd = \$startup_cmd" \
+          --arg shutdown_cmd "$new_shutdown_cmd" \
+          ".[$index].displayName = \$display_name | .[$index].startupCmd = \$startup_cmd | .[$index].shutdownCmd = \$shutdown_cmd" \
           "$JSON_CONFIG_FILE" > "$temp_file"; then
 
         # Move the temporary file to replace the original

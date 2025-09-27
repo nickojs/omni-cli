@@ -25,7 +25,7 @@ show_project_menu_tmux() {
         
         # Display numbered menu with project info
         for i in "${!projects[@]}"; do
-            IFS=':' read -r display_name folder_name startup_cmd <<< "${projects[i]}"
+            IFS=':' read -r display_name folder_name startup_cmd shutdown_cmd <<< "${projects[i]}"
             display_project_status "$i" "$display_name" "$folder_name" "$startup_cmd"
         done
         echo ""

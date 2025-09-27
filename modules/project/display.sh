@@ -35,7 +35,7 @@ list_project_statuses() {
     echo ""
 
     for i in "${!projects[@]}"; do
-        IFS=':' read -r display_name folder_name startup_cmd <<< "${projects[i]}"
+        IFS=':' read -r display_name folder_name startup_cmd shutdown_cmd <<< "${projects[i]}"
 
         if is_project_running "$display_name"; then
             echo -e "  ${BRIGHT_CYAN}$((i + 1))${NC}  ${BRIGHT_WHITE}${display_name}${NC}  ${BRIGHT_GREEN}●${NC} ${BRIGHT_GREEN}running${NC}"

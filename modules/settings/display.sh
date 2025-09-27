@@ -161,10 +161,12 @@ show_settings_menu() {
                             # Get current values
                             local current_display_name=$(get_project_field "$choice" "displayName")
                             local current_startup_cmd=$(get_project_field "$choice" "startupCmd")
+                            local current_shutdown_cmd=$(get_project_field "$choice" "shutdownCmd")
 
                             echo -e "${BRIGHT_WHITE}Current values:${NC}"
-                            echo -e "  Display Name: ${BRIGHT_CYAN}$current_display_name${NC}"
-                            echo -e "  Startup Cmd:  ${BRIGHT_CYAN}$current_startup_cmd${NC}"
+                            echo -e "  Display Name:  ${BRIGHT_CYAN}$current_display_name${NC}"
+                            echo -e "  Startup Cmd:   ${BRIGHT_CYAN}$current_startup_cmd${NC}"
+                            echo -e "  Shutdown Cmd:  ${BRIGHT_CYAN}$current_shutdown_cmd${NC}"
                             echo ""
 
                             # Get new display name
@@ -183,18 +185,27 @@ show_settings_menu() {
                                 new_startup_cmd="$current_startup_cmd"
                             fi
 
+                            # Get new shutdown command
+                            echo -e "${BRIGHT_WHITE}Enter new shutdown command (press Enter to keep current):${NC}"
+                            echo -ne "${BRIGHT_CYAN}>${NC} "
+                            read -r new_shutdown_cmd
+                            if [ -z "$new_shutdown_cmd" ]; then
+                                new_shutdown_cmd="$current_shutdown_cmd"
+                            fi
+
                             # Check if any changes were made
-                            if [ "$new_display_name" = "$current_display_name" ] && [ "$new_startup_cmd" = "$current_startup_cmd" ]; then
+                            if [ "$new_display_name" = "$current_display_name" ] && [ "$new_startup_cmd" = "$current_startup_cmd" ] && [ "$new_shutdown_cmd" = "$current_shutdown_cmd" ]; then
                                 echo -e "${BRIGHT_YELLOW}No changes made${NC}"
                             else
                                 echo ""
                                 echo -e "${BRIGHT_WHITE}Updating project with:${NC}"
-                                echo -e "  Display Name: ${BRIGHT_GREEN}$new_display_name${NC}"
-                                echo -e "  Startup Cmd:  ${BRIGHT_GREEN}$new_startup_cmd${NC}"
+                                echo -e "  Display Name:  ${BRIGHT_GREEN}$new_display_name${NC}"
+                                echo -e "  Startup Cmd:   ${BRIGHT_GREEN}$new_startup_cmd${NC}"
+                                echo -e "  Shutdown Cmd:  ${BRIGHT_GREEN}$new_shutdown_cmd${NC}"
                                 echo ""
 
                                 # Update the project
-                                if update_project_in_config "$choice" "$new_display_name" "$new_startup_cmd"; then
+                                if update_project_in_config "$choice" "$new_display_name" "$new_startup_cmd" "$new_shutdown_cmd"; then
                                     echo ""
                                     print_color "$BRIGHT_GREEN" "🎉 Project '$current_display_name' has been successfully updated"
                                 else
@@ -341,18 +352,21 @@ _display_table_row() {
     local project_name="$3"
     local relative_path="$4"
     local startup_cmd="$5"
-    local highlight_number="$6"
-    local current_mode="$7"
+    local shutdown_cmd="$6"
+    local highlight_number="$7"
+    local current_mode="$8"
 
     # Truncate long values for better display
-    local truncated_display_name=$(printf "%.18s" "$display_name")
-    local truncated_project_name=$(printf "%.15s" "$project_name")
-    local truncated_startup_cmd=$(printf "%.20s" "$startup_cmd")
+    local truncated_display_name=$(printf "%.15s" "$display_name")
+    local truncated_project_name=$(printf "%.12s" "$project_name")
+    local truncated_startup_cmd=$(printf "%.15s" "$startup_cmd")
+    local truncated_shutdown_cmd=$(printf "%.15s" "$shutdown_cmd")
 
     # Add ellipsis if truncated
-    [ ${#display_name} -gt 18 ] && truncated_display_name="${truncated_display_name}.."
-    [ ${#project_name} -gt 15 ] && truncated_project_name="${truncated_project_name}.."
-    [ ${#startup_cmd} -gt 20 ] && truncated_startup_cmd="${truncated_startup_cmd}.."
+    [ ${#display_name} -gt 15 ] && truncated_display_name="${truncated_display_name}.."
+    [ ${#project_name} -gt 12 ] && truncated_project_name="${truncated_project_name}.."
+    [ ${#startup_cmd} -gt 15 ] && truncated_startup_cmd="${truncated_startup_cmd}.."
+    [ ${#shutdown_cmd} -gt 15 ] && truncated_shutdown_cmd="${truncated_shutdown_cmd}.."
 
     # Check if this is the highlighted row
     if [ -n "$highlight_number" ] && [ "$counter" = "$highlight_number" ]; then
@@ -365,11 +379,11 @@ _display_table_row() {
             local text_color="\033[1;37m"  # Bright white text
         fi
 
-        # Display highlighted row with 4 columns
-        printf "${bg_color}${text_color}  %-2s  %-18s  %-15s  %-20s${NC}\n" "$counter" "$truncated_display_name" "$truncated_project_name" "$truncated_startup_cmd"
+        # Display highlighted row with 5 columns
+        printf "${bg_color}${text_color}  %-2s  %-15s  %-12s  %-15s  %-15s${NC}\n" "$counter" "$truncated_display_name" "$truncated_project_name" "$truncated_startup_cmd" "$truncated_shutdown_cmd"
     else
-        # Display normal row with 4 columns
-        printf "  ${BRIGHT_CYAN}%-2s${NC}  ${BRIGHT_WHITE}%-18s${NC}  ${DIM}%-15s${NC}  ${DIM}%-20s${NC}\n" "$counter" "$truncated_display_name" "$truncated_project_name" "$truncated_startup_cmd"
+        # Display normal row with 5 columns
+        printf "  ${BRIGHT_CYAN}%-2s${NC}  ${BRIGHT_WHITE}%-15s${NC}  ${DIM}%-12s${NC}  ${DIM}%-15s${NC}  ${DIM}%-15s${NC}\n" "$counter" "$truncated_display_name" "$truncated_project_name" "$truncated_startup_cmd" "$truncated_shutdown_cmd"
     fi
 }
 
@@ -398,8 +412,8 @@ display_config_table() {
     echo ""
 
     # Display table header
-    printf "  ${BRIGHT_WHITE}%-2s  %-18s  %-15s  %-20s${NC}\n" "#" "Project Name" "Project Dir" "Startup Command"
-    printf "  ${DIM}%-2s  %-18s  %-15s  %-20s${NC}\n" "─" "──────────────────" "─────────────" "────────────────────"
+    printf "  ${BRIGHT_WHITE}%-2s  %-15s  %-12s  %-15s  %-15s${NC}\n" "#" "Project Name" "Project Dir" "Startup Cmd" "Shutdown Cmd"
+    printf "  ${DIM}%-2s  %-15s  %-12s  %-15s  %-15s${NC}\n" "─" "───────────────" "────────────" "───────────────" "────────────────"
 
     # Use utility function to iterate and display projects
     iterate_projects _display_table_row "$highlight_number" "$current_mode"
@@ -566,13 +580,24 @@ configure_new_project() {
         startup_cmd="echo 'No startup command configured'"
     fi
 
+    # Get shutdown command
+    echo ""
+    echo -e "${BRIGHT_WHITE}Enter shutdown command:${NC}"
+    echo -ne "${DIM}(e.g., 'npm run stop', 'pkill -f node')${NC} ${BRIGHT_CYAN}>${NC} "
+    read -r shutdown_cmd
+
+    if [ -z "$shutdown_cmd" ]; then
+        shutdown_cmd="echo 'No shutdown command configured'"
+    fi
+
     # Show confirmation
     echo ""
     echo -e "${BRIGHT_WHITE}Project Configuration:${NC}"
-    echo -e "  Display Name: ${BRIGHT_GREEN}$display_name${NC}"
-    echo -e "  Folder Name:  ${BRIGHT_CYAN}$folder_name${NC}"
-    echo -e "  Location:     ${DIM}${projects_root%/}/$folder_name${NC}"
-    echo -e "  Startup Cmd:  ${BRIGHT_YELLOW}$startup_cmd${NC}"
+    echo -e "  Display Name:  ${BRIGHT_GREEN}$display_name${NC}"
+    echo -e "  Folder Name:   ${BRIGHT_CYAN}$folder_name${NC}"
+    echo -e "  Location:      ${DIM}${projects_root%/}/$folder_name${NC}"
+    echo -e "  Startup Cmd:   ${BRIGHT_YELLOW}$startup_cmd${NC}"
+    echo -e "  Shutdown Cmd:  ${BRIGHT_YELLOW}$shutdown_cmd${NC}"
     echo ""
 
     echo -e "${BRIGHT_WHITE}Add this project to configuration? (y/n):${NC}"
@@ -582,7 +607,7 @@ configure_new_project() {
     case "${confirm_add,,}" in
         "y"|"yes")
             echo ""
-            if add_project_to_config "$display_name" "$folder_name" "$projects_root" "$startup_cmd"; then
+            if add_project_to_config "$display_name" "$folder_name" "$projects_root" "$startup_cmd" "$shutdown_cmd"; then
                 echo ""
                 print_color "$BRIGHT_GREEN" "🎉 Project '$display_name' has been successfully added to configuration"
             else

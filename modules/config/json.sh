@@ -53,14 +53,19 @@ load_projects_from_json() {
         local display_name
         local relative_path
         local startup_cmd
+        local shutdown_cmd
 
         display_name=$(echo "$line" | sed -n 's/.*"displayName"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
         relative_path=$(echo "$line" | sed -n 's/.*"relativePath"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
         startup_cmd=$(echo "$line" | sed -n 's/.*"startupCmd"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+        shutdown_cmd=$(echo "$line" | sed -n 's/.*"shutdownCmd"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
 
-        # Add to projects array in the original format (using relativePath as folder_name)
+        # If no shutdown command, use empty string
+        [ -z "$shutdown_cmd" ] && shutdown_cmd=""
+
+        # Add to projects array in the extended format (using relativePath as folder_name)
         if [ -n "$display_name" ] && [ -n "$relative_path" ] && [ -n "$startup_cmd" ]; then
-            projects+=("$display_name:$relative_path:$startup_cmd")
+            projects+=("$display_name:$relative_path:$startup_cmd:$shutdown_cmd")
         fi
     done <<< "$parsed_objects"
 

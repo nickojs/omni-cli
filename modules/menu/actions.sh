@@ -20,11 +20,11 @@ handle_kill_command() {
     
     if [ "$kill_choice" -ge 1 ] && [ "$kill_choice" -le "${#projects[@]}" ]; then
         local project_index=$((kill_choice - 1))
-        IFS=':' read -r display_name folder_name startup_command <<< "${projects[$project_index]}"
-        
+        IFS=':' read -r display_name folder_name startup_command shutdown_command <<< "${projects[$project_index]}"
+
         if is_project_running "$display_name"; then
             show_loading "Killing $display_name" 1
-            if kill_project "$display_name"; then
+            if kill_project "$display_name" "$shutdown_command"; then
                 print_success "$display_name stopped successfully"
             else
                 print_error "Failed to stop $display_name"
@@ -46,7 +46,7 @@ handle_start_command() {
     
     if [ "$choice" -ge 1 ] && [ "$choice" -le "${#projects[@]}" ]; then
         local project_index=$((choice - 1))
-        IFS=':' read -r display_name folder_name startup_command <<< "${projects[$project_index]}"
+        IFS=':' read -r display_name folder_name startup_command shutdown_command <<< "${projects[$project_index]}"
         
         # Check if project is already running
         if is_project_running "$display_name"; then
