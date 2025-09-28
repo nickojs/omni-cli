@@ -8,435 +8,277 @@
 
 # Alternative implementation using a more responsive approach
 show_settings_menu() {
-    local current_mode=""  # Can be "delete", "edit", or "manage"
-    
     while true; do
         clear
-        
+
         # Clean header
         print_header "Settings"
 
-        # Display configuration directly in the menu
-        display_config_table "" "$current_mode"
+        # Display configuration with numbered workspaces for direct selection
+        display_workspace_selector_table
 
-        if [ "$current_mode" = "delete" ]; then
-            echo -e "${BRIGHT_RED}●${NC} delete mode"
-        elif [ "$current_mode" = "edit" ]; then
-            echo -e "${BRIGHT_BLUE}●${NC} edit mode"
-        elif [ "$current_mode" = "add" ]; then
-            echo -e "${BRIGHT_GREEN}●${NC} add mode"
-        elif [ "$current_mode" = "manage" ]; then
-            echo -e "${BRIGHT_PURPLE}●${NC} manage workspaces mode"
+        # Check if workspace management is blocked due to running projects
+        local running_count=$(count_running_projects)
+        if [ "$running_count" -gt 0 ]; then
+            echo ""
+            echo -e "${BRIGHT_YELLOW}⚠ Workspace management blocked: ${running_count} project(s) running${NC}"
+            echo -e "${BRIGHT_RED}[s]${NC} select workspace │ ${BRIGHT_RED}[m]${NC} manage workspace │ ${BRIGHT_PURPLE}[b]${NC} back │ ${BRIGHT_PURPLE}[h]${NC} help"
         else
-            echo -e "${DIM}○${NC} no mode selected │ ${BRIGHT_RED}[d]${NC} delete │ ${BRIGHT_BLUE}[e]${NC} edit │ ${BRIGHT_GREEN}[a]${NC} add │ ${BRIGHT_PURPLE}[m]${NC} manage"
+            echo ""
+            echo -e "${BRIGHT_GREEN}[s]${NC} select workspace │ ${BRIGHT_PURPLE}[m]${NC} manage workspace │ ${BRIGHT_PURPLE}[b]${NC} back │ ${BRIGHT_PURPLE}[h]${NC} help"
         fi
-        echo ""
-
-        echo -e "${BRIGHT_PURPLE}[b]${NC} back │ ${BRIGHT_PURPLE}[h]${NC} help"
         
         # Get user input with clean prompt
         echo ""
-        if [ "$current_mode" = "delete" ]; then
-            echo -ne "${DIM}Select project to ${BRIGHT_RED}delete${NC} ${DIM}(Enter to return)${NC} ${BRIGHT_CYAN}>${NC} "
-        elif [ "$current_mode" = "edit" ]; then
-            echo -ne "${DIM}Select project to ${BRIGHT_BLUE}edit${NC} ${DIM}(Enter to return)${NC} ${BRIGHT_CYAN}>${NC} "
-        elif [ "$current_mode" = "add" ]; then
-            echo -ne "${DIM}${BRIGHT_GREEN}Add mode${NC} ${DIM}activated${NC} ${BRIGHT_CYAN}>${NC} "
-        elif [ "$current_mode" = "manage" ]; then
-            echo -ne "${DIM}Select workspace to ${BRIGHT_PURPLE}activate${NC} or ${BRIGHT_PURPLE}inactivate${NC} ${DIM}(Enter to return)${NC} ${BRIGHT_CYAN}>${NC} "
-        else
-            echo -ne "${BRIGHT_CYAN}>${NC} "
-        fi
-        
-        if [ "$current_mode" = "manage" ]; then
-            IFS= read -r choice
-        else
-            IFS= read -r -n1 -s choice
-        fi
+        echo -ne "${BRIGHT_CYAN}>${NC} "
 
-        # Handle Enter key in delete/edit/add/manage mode - return to normal settings menu
-        if [[ "$choice" == $'\n' || "$choice" == $'\r' || -z "$choice" ]] && ([ "$current_mode" = "delete" ] || [ "$current_mode" = "edit" ] || [ "$current_mode" = "add" ] || [ "$current_mode" = "manage" ]); then
-            current_mode=""
-            echo -e "${BRIGHT_YELLOW}Returned to Settings menu${NC}"
-            sleep 0.5
-            continue
-        fi
+        read -r choice
 
-        # Handle direct mode selection
-        if [[ $choice =~ ^[Dd]$ ]]; then
-            current_mode="delete"
-            echo -e "${BRIGHT_RED}✓ Delete mode activated${NC}"
-            sleep 0.5
-            continue
-        fi
-
-        if [[ $choice =~ ^[Ee]$ ]]; then
-            current_mode="edit"
-            echo -e "${BRIGHT_BLUE}✓ Edit mode activated${NC}"
-            sleep 0.5
-            continue
-        fi
-
-        if [[ $choice =~ ^[Aa]$ ]]; then
-            current_mode="add"
-            echo -e "${BRIGHT_GREEN}✓ Add mode activated${NC}"
-            sleep 0.5
-            show_add_project_screen
-            current_mode=""
-            continue
-        fi
-
-        if [[ $choice =~ ^[Mm]$ ]]; then
-            current_mode="manage"
-            echo -e "${BRIGHT_PURPLE}✓ Manage workspaces mode activated${NC}"
-            sleep 0.5
-            continue
-        fi
-        
-        # Handle navigation commands (disabled in edit/add/manage mode)
-        if [ "$current_mode" != "edit" ] && [ "$current_mode" != "add" ] && [ "$current_mode" != "manage" ]; then
-            case "${choice,,}" in
-                "b")
-                    break
-                    ;;
-                "h")
-                    clear
-                    show_settings_help
+        # Handle command selection
+        case "${choice,,}" in
+            "s")
+                # Check if any projects are currently running
+                local running_count=$(count_running_projects)
+                if [ "$running_count" -gt 0 ]; then
+                    echo ""
+                    print_error "Cannot manage workspaces while projects are running!"
+                    print_info "Currently running projects: $running_count"
+                    print_info "Stop all projects first, then manage workspaces."
+                    echo ""
+                    echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+                    read -r
                     continue
-                    ;;
-            esac
-        fi
-        
-        # Handle workspace selection when in manage mode
-        if [ "$current_mode" = "manage" ]; then
-            # Check if input is a number for workspace activation/inactivation
-            if [[ $choice =~ ^[0-9]+$ ]]; then
-                handle_workspace_toggle "$choice"
-                continue
-            fi
+                fi
 
-            # Check if input is empty (handled above for returning to menu)
-            if [ -n "$choice" ]; then
-                # Invalid input in manage mode
+                # Select workspace - prompt for workspace number
                 echo ""
-                print_error "In manage mode: enter workspace number to activate/inactivate, or Enter to exit manage mode"
-                echo -e "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
-                read -r
-            fi
-            continue
-        fi
+                echo -e "${BRIGHT_WHITE}Select workspace to activate or inactivate:${NC}"
+                echo -ne "${BRIGHT_CYAN}>${NC} "
+                read -r workspace_choice
 
-        # Handle project selection when in delete/edit mode
-        if [ "$current_mode" = "delete" ] || [ "$current_mode" = "edit" ]; then
-            # Check if input is a number
-            if [[ $choice =~ ^[0-9]+$ ]]; then
-                # Validate project selection
-                if validate_json_config; then
-                    local project_count=$(get_project_count)
-                    
-                    if [ "$choice" -ge 1 ] && [ "$choice" -le "$project_count" ]; then
-                        # Clear screen and show highlighted selection
-                        clear
-                        print_header "Settings"
-                        
-                        # Display configuration with highlighted selection
-                        display_config_table "$choice" "$current_mode"
+                if [[ $workspace_choice =~ ^[0-9]+$ ]]; then
+                    # Get config directory for workspace files
+                    local config_dir
+                    if [ -d "config" ] && [ -f "startup.sh" ]; then
+                        config_dir="config"
+                    else
+                        config_dir="$HOME/.cache/fm-manager"
+                    fi
 
-                        # Get project data
-                        local display_name=$(get_project_field "$choice" "displayName")
-                        local project_name=$(get_project_field "$choice" "projectName")
+                    # Get workspace files to validate selection
+                    local workspace_files
+                    mapfile -t workspace_files < <(find "$config_dir" -name "*.json" -type f ! -name ".*" 2>/dev/null | sort)
 
-                        echo ""
-                        if [ "$current_mode" = "delete" ]; then
-                            # Show confirmation prompt for deletion
-                            echo -e "${BRIGHT_RED}⚠️  CONFIRM DELETION${NC}"
-                            echo -e "Are you sure you want to ${BRIGHT_RED}DELETE${NC} project: ${BRIGHT_YELLOW}$display_name${NC} (${BRIGHT_CYAN}$project_name${NC})?"
-                            echo -e "${BRIGHT_WHITE}Type [y] to confirm deletion, [n] to cancel${NC}"
-
-                            echo -ne "${BRIGHT_CYAN}>>${NC} "
-                            read -r confirm_choice
-
-                            case "${confirm_choice,,}" in
-                                "y"|"yes")
-                                    echo -e "${BRIGHT_RED}✓ Project deletion confirmed${NC}"
-                                    echo ""
-
-                                    # Extract full project data for deletion
-                                    local relative_path=$(get_project_field "$choice" "relativePath")
-
-                                    # Call the removal function
-                                    if remove_project_from_config "$display_name" "$project_name" "$relative_path"; then
-                                        echo ""
-                                        print_color "$BRIGHT_GREEN" "🗑️  Project '$display_name' has been successfully removed from configuration"
-                                    else
-                                        echo ""
-                                        print_color "$BRIGHT_RED" "❌ Failed to remove project from configuration"
-                                    fi
-                                    ;;
-                                "n"|"no")
-                                    echo -e "${BRIGHT_YELLOW}Deletion cancelled${NC}"
-                                    sleep 0.5
-                                    ;;
-                                *)
-                                    echo -e "${BRIGHT_RED}Invalid choice. Deletion cancelled${NC}"
-                                    sleep 0.5
-                                    ;;
-                            esac
-                        else
-                            # Edit mode - go directly to editing without confirmation
-                            echo -e "${BRIGHT_BLUE}📝  EDIT PROJECT${NC}"
-                            echo -e "${BRIGHT_YELLOW}$display_name${NC} (${BRIGHT_CYAN}$project_name${NC})"
-                            echo ""
-
-                            # Get current values
-                            local current_display_name=$(get_project_field "$choice" "displayName")
-                            local current_startup_cmd=$(get_project_field "$choice" "startupCmd")
-                            local current_shutdown_cmd=$(get_project_field "$choice" "shutdownCmd")
-
-                            echo -e "${BRIGHT_WHITE}Current values:${NC}"
-                            echo -e "  Display Name:  ${BRIGHT_CYAN}$current_display_name${NC}"
-                            echo -e "  Startup Cmd:   ${BRIGHT_CYAN}$current_startup_cmd${NC}"
-                            echo -e "  Shutdown Cmd:  ${BRIGHT_CYAN}$current_shutdown_cmd${NC}"
-                            echo ""
-
-                            # Get new display name
-                            echo -e "${BRIGHT_WHITE}Enter new display name (press Enter to keep current):${NC}"
-                            echo -ne "${BRIGHT_CYAN}>${NC} "
-                            read -r new_display_name
-                            if [ -z "$new_display_name" ]; then
-                                new_display_name="$current_display_name"
-                            fi
-
-                            # Get new startup command
-                            echo -e "${BRIGHT_WHITE}Enter new startup command (press Enter to keep current):${NC}"
-                            echo -ne "${BRIGHT_CYAN}>${NC} "
-                            read -r new_startup_cmd
-                            if [ -z "$new_startup_cmd" ]; then
-                                new_startup_cmd="$current_startup_cmd"
-                            fi
-
-                            # Get new shutdown command
-                            echo -e "${BRIGHT_WHITE}Enter new shutdown command (press Enter to keep current):${NC}"
-                            echo -ne "${BRIGHT_CYAN}>${NC} "
-                            read -r new_shutdown_cmd
-                            if [ -z "$new_shutdown_cmd" ]; then
-                                new_shutdown_cmd="$current_shutdown_cmd"
-                            fi
-
-                            # Check if any changes were made
-                            if [ "$new_display_name" = "$current_display_name" ] && [ "$new_startup_cmd" = "$current_startup_cmd" ] && [ "$new_shutdown_cmd" = "$current_shutdown_cmd" ]; then
-                                echo -e "${BRIGHT_YELLOW}No changes made${NC}"
-                            else
-                                echo ""
-                                echo -e "${BRIGHT_WHITE}Updating project with:${NC}"
-                                echo -e "  Display Name:  ${BRIGHT_GREEN}$new_display_name${NC}"
-                                echo -e "  Startup Cmd:   ${BRIGHT_GREEN}$new_startup_cmd${NC}"
-                                echo -e "  Shutdown Cmd:  ${BRIGHT_GREEN}$new_shutdown_cmd${NC}"
-                                echo ""
-
-                                # Update the project
-                                if update_project_in_config "$choice" "$new_display_name" "$new_startup_cmd" "$new_shutdown_cmd"; then
-                                    echo ""
-                                    print_color "$BRIGHT_GREEN" "🎉 Project '$current_display_name' has been successfully updated"
-                                else
-                                    echo ""
-                                    print_color "$BRIGHT_RED" "❌ Failed to update project"
-                                fi
-                            fi
-                        fi
-                        echo ""
-                        echo -e "${BRIGHT_WHITE}Press Enter to continue...${NC}"
-                        read -r
-                        # Return to main settings menu after operation
-                        current_mode=""
+                    if [ "$workspace_choice" -ge 1 ] && [ "$workspace_choice" -le "${#workspace_files[@]}" ]; then
+                        handle_workspace_toggle "$workspace_choice" "${workspace_files[@]}"
                     else
                         echo ""
-                        print_error "Invalid project number. Please select a number between 1 and $project_count."
-                        echo -e "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
-                        read -r
-                        # Return to main settings menu after error
-                        current_mode=""
+                        print_error "Invalid workspace number. Please select between 1 and ${#workspace_files[@]}."
+                        sleep 1
                     fi
                 else
-                    print_error "Unable to validate project selection. Configuration may be missing or invalid."
-                    echo -e "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
-                    read -r
-                    # Return to main settings menu after error
-                    current_mode=""
+                    echo ""
+                    print_error "Please enter a valid workspace number."
+                    sleep 1
                 fi
-            else
+                ;;
+            "m")
+                # Check if any projects are currently running
+                local running_count=$(count_running_projects)
+                if [ "$running_count" -gt 0 ]; then
+                    echo ""
+                    print_error "Cannot manage workspaces while projects are running!"
+                    print_info "Currently running projects: $running_count"
+                    print_info "Stop all projects first, then manage workspaces."
+                    echo ""
+                    echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+                    read -r
+                    continue
+                fi
+
+                # Manage button - currently disabled
                 echo ""
-                print_error "Please enter a valid project number or use [m] to change mode, [b] to go back."
-                echo -e "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
-                read -r
-                # Return to main settings menu after error
-                current_mode=""
-            fi
-        else
-            # No mode selected, handle as regular command
-            if ! handle_settings_choice "$choice" "$current_mode"; then
+                print_color "$BRIGHT_YELLOW" "Manage functionality coming soon..."
+                sleep 1
+                ;;
+            "b")
                 break
-            fi
-        fi
+                ;;
+            "h")
+                clear
+                show_settings_help
+                ;;
+            *)
+                # Invalid command
+                echo ""
+                print_error "Invalid command. Use s (select workspace), m (manage workspace), b (back) or h (help)"
+                echo ""
+                echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+                read -r
+                ;;
+        esac
     done
 }
 
-# Function to remove a project from JSON configuration
-remove_project_from_config() {
-    local target_display_name="$1"
-    local target_project_name="$2"
-    local target_relative_path="$3"
-
-    # Validate configuration using shared utility
-    if ! validate_json_config; then
-        print_error "Configuration file not found: $JSON_CONFIG_FILE"
-        return 1
-    fi
-
-    # Get current project count using shared utility
-    local project_count=$(get_project_count)
-    if [ -z "$project_count" ]; then
-        return 1
-    fi
-
-    # Create a backup of the original file (if enabled)
-    local backup_file=""
-    if [ "$BACKUP_JSON" = true ]; then
-        backup_file="${JSON_CONFIG_FILE}.backup.$(date +%Y%m%d_%H%M%S)"
-        if ! cp "$JSON_CONFIG_FILE" "$backup_file"; then
-            print_error "Failed to create backup file"
-            return 1
-        fi
-    fi
-
-    # Check if there's only one project - if so, remove the entire JSON file
-    if [ "$project_count" -eq 1 ]; then
-        # Remove the entire JSON file since this is the last project
-        if rm "$JSON_CONFIG_FILE"; then
-            print_color "$BRIGHT_GREEN" "✓ Last project removed - JSON configuration file deleted"
-            if [ "$BACKUP_JSON" = true ] && [ -n "$backup_file" ]; then
-                print_color "$BRIGHT_CYAN" "Backup created: $backup_file"
-            fi
-            print_color "$BRIGHT_WHITE" "Configuration file removed (was the last project)"
-            return 0
-        else
-            print_error "Failed to remove configuration file"
-            return 1
-        fi
-    fi
-
-    # Remove the matching project using jq
-    # Using negation that works with all jq versions
-    local temp_file=$(mktemp)
-    if jq --arg display_name "$target_display_name" \
-          --arg project_name "$target_project_name" \
-          --arg relative_path "$target_relative_path" \
-          'map(select(.displayName != $display_name or .projectName != $project_name or .relativePath != $relative_path))' \
-          "$JSON_CONFIG_FILE" > "$temp_file"; then
-
-        # Check if the operation actually removed something
-        local original_count="$project_count"
-        local new_count=$(jq length "$temp_file")
-
-        if [ "$new_count" -lt "$original_count" ]; then
-            # Move the temporary file to replace the original
-            if mv "$temp_file" "$JSON_CONFIG_FILE"; then
-                print_color "$BRIGHT_GREEN" "✓ Project removed successfully"
-                if [ "$BACKUP_JSON" = true ] && [ -n "$backup_file" ]; then
-                    print_color "$BRIGHT_CYAN" "Backup created: $backup_file"
-                fi
-                print_color "$BRIGHT_WHITE" "Projects before: $original_count → Projects after: $new_count"
-                return 0
-            else
-                print_error "Failed to update configuration file"
-                rm -f "$temp_file"
-                return 1
-            fi
-        else
-            print_error "No matching project found to remove"
-            print_color "$BRIGHT_YELLOW" "Searched for:"
-            print_color "$BRIGHT_YELLOW" "  Display Name: $target_display_name"
-            print_color "$BRIGHT_YELLOW" "  Folder Name: $target_project_name"
-            print_color "$BRIGHT_YELLOW" "  Path: $target_relative_path"
-            rm -f "$temp_file"
-            if [ "$BACKUP_JSON" = true ] && [ -n "$backup_file" ]; then
-                rm -f "$backup_file"  # Remove backup since no changes were made
-            fi
-            return 1
-        fi
+# Function to display workspace selector table (numbered workspaces with full tree)
+display_workspace_selector_table() {
+    # Get config directory
+    local config_dir
+    if [ -d "config" ] && [ -f "startup.sh" ]; then
+        config_dir="config"
     else
-        print_error "Failed to process JSON with jq"
-        rm -f "$temp_file"
-        if [ "$BACKUP_JSON" = true ] && [ -n "$backup_file" ]; then
-            rm -f "$backup_file"
-        fi
+        config_dir="$HOME/.cache/fm-manager"
+    fi
+
+    # Get all JSON files (workspaces) to maintain display order
+    local workspace_files
+    mapfile -t workspace_files < <(find "$config_dir" -name "*.json" -type f ! -name ".*" 2>/dev/null | sort)
+
+    if [ ${#workspace_files[@]} -eq 0 ]; then
+        print_color "$BRIGHT_YELLOW" "No workspaces configured."
+        echo ""
         return 1
     fi
+
+    local workspace_counter=1
+
+    # Get active workspaces list
+    local active_workspaces=()
+    local bulk_config_file="$config_dir/.bulk_project_config.json"
+    if [ -f "$bulk_config_file" ] && command -v jq >/dev/null 2>&1; then
+        while IFS= read -r active_workspace; do
+            active_workspaces+=("$active_workspace")
+        done < <(jq -r '.activeConfig[]? // empty' "$bulk_config_file" 2>/dev/null)
+    fi
+
+    # Display each workspace with workspace numbering and full tree structure
+    for workspace_file in "${workspace_files[@]}"; do
+        local workspace_name=$(basename "$workspace_file" .json)
+        local display_name=$(echo "$workspace_name" | sed 's/[_-]/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)} 1')
+
+        # Check if this workspace is active
+        local is_workspace_active=false
+        for active_ws in "${active_workspaces[@]}"; do
+            if [ "$workspace_file" = "$active_ws" ]; then
+                is_workspace_active=true
+                break
+            fi
+        done
+
+        # Display workspace header with color-coded status and numbering
+        local workspace_color=""
+        if [ "$is_workspace_active" = true ]; then
+            workspace_color="$BRIGHT_GREEN"  # Light green for active
+        else
+            workspace_color="$LIGHT_RED"     # Light red for inactive
+        fi
+
+        printf "${BRIGHT_CYAN}[%s] Workspace:${NC} ${workspace_color}%s${NC}\n" "$workspace_counter" "$display_name"
+
+        # Parse projects from this workspace file
+        local workspace_projects=()
+        if command -v jq >/dev/null 2>&1 && [ -f "$workspace_file" ]; then
+            while IFS= read -r line; do
+                workspace_projects+=("$line")
+            done < <(jq -r '.[] | "\(.displayName):\(.projectName):\(.startupCmd):\(.shutdownCmd)"' "$workspace_file" 2>/dev/null)
+        fi
+
+        # Display projects for this workspace
+        if [ ${#workspace_projects[@]} -eq 0 ]; then
+            echo -e "  ${BRIGHT_CYAN}│${NC}  ${DIM}No projects configured${NC}"
+        else
+            for j in "${!workspace_projects[@]}"; do
+                IFS=':' read -r project_display_name folder_name startup_cmd shutdown_cmd <<< "${workspace_projects[j]}"
+
+                # Check if this is the last project in this workspace AND if it's the last workspace
+                local prefix="${BRIGHT_CYAN}●${NC}"
+
+                # Format data with fixed column widths: 32 | 30 | 32 | 32
+                local col1="$project_display_name"
+                local col2="$folder_name"
+                local col3="$startup_cmd"
+                local col4="$shutdown_cmd"
+
+                # Truncate if longer than max width
+                [ ${#col1} -gt 32 ] && col1=$(printf "%.29s..." "$col1")
+                [ ${#col2} -gt 30 ] && col2=$(printf "%.27s..." "$col2")
+                [ ${#col3} -gt 32 ] && col3=$(printf "%.29s..." "$col3")
+                [ ${#col4} -gt 32 ] && col4=$(printf "%.29s..." "$col4")
+
+                # Ensure fixed width with padding to exact column sizes
+                col1=$(printf "%-32.32s" "$col1")
+                col2=$(printf "%-30.30s" "$col2")
+                col3=$(printf "%-32.32s" "$col3")
+                col4=$(printf "%-32.32s" "$col4")
+
+                # Display normal row with fixed table format - white text for col1, dim for col2-4
+                echo -e "  $prefix ${BRIGHT_WHITE}${col1}${NC} | ${DIM}${col2}${NC} | ${DIM}${col3}${NC} | ${DIM}${col4}${NC}"
+            done
+        fi
+        echo ""
+        workspace_counter=$((workspace_counter + 1))
+    done
 }
 
 
-# Callback function for displaying table rows
-_display_table_row() {
-    local counter="$1"
-    local display_name="$2"
-    local project_name="$3"
-    local relative_path="$4"
-    local startup_cmd="$5"
-    local shutdown_cmd="$6"
-    local highlight_number="$7"
-    local current_mode="$8"
+# Updated workspace toggle function
+handle_workspace_toggle() {
+    local workspace_choice="$1"
+    shift
+    local workspace_files=("$@")
 
-    # Truncate long values for better display
-    local truncated_display_name=$(printf "%.15s" "$display_name")
-    local truncated_project_name=$(printf "%.12s" "$project_name")
-    local truncated_startup_cmd=$(printf "%.15s" "$startup_cmd")
-    local truncated_shutdown_cmd=$(printf "%.15s" "$shutdown_cmd")
-
-    # Add ellipsis if truncated
-    [ ${#display_name} -gt 15 ] && truncated_display_name="${truncated_display_name}.."
-    [ ${#project_name} -gt 12 ] && truncated_project_name="${truncated_project_name}.."
-    [ ${#startup_cmd} -gt 15 ] && truncated_startup_cmd="${truncated_startup_cmd}.."
-    [ ${#shutdown_cmd} -gt 15 ] && truncated_shutdown_cmd="${truncated_shutdown_cmd}.."
-
-    # Check if this is the highlighted row
-    if [ -n "$highlight_number" ] && [ "$counter" = "$highlight_number" ]; then
-        # Set background color based on mode
-        if [ "$current_mode" = "delete" ]; then
-            local bg_color="\033[41m"  # Red background
-            local text_color="\033[1;37m"  # Bright white text
-        else
-            local bg_color="\033[44m"  # Blue background
-            local text_color="\033[1;37m"  # Bright white text
-        fi
-
-        # Display highlighted row with 5 columns
-        printf "${bg_color}${text_color}  %-2s  %-15s  %-12s  %-15s  %-15s${NC}\n" "$counter" "$truncated_display_name" "$truncated_project_name" "$truncated_startup_cmd" "$truncated_shutdown_cmd"
+    # Get config directory
+    local config_dir
+    if [ -d "config" ] && [ -f "startup.sh" ]; then
+        config_dir="config"
     else
-        # Display normal row with 5 columns
-        printf "  ${BRIGHT_CYAN}%-2s${NC}  ${BRIGHT_WHITE}%-15s${NC}  ${DIM}%-12s${NC}  ${DIM}%-15s${NC}  ${DIM}%-15s${NC}\n" "$counter" "$truncated_display_name" "$truncated_project_name" "$truncated_startup_cmd" "$truncated_shutdown_cmd"
+        config_dir="$HOME/.cache/fm-manager"
     fi
+
+    local selected_index=$((workspace_choice - 1))
+    local selected_file="${workspace_files[selected_index]}"
+    local workspace_name=$(basename "$selected_file" .json)
+    local display_name=$(echo "$workspace_name" | sed 's/[_-]/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)} 1')
+
+    # Check if this workspace is currently active
+    local bulk_config_file="$config_dir/.bulk_project_config.json"
+    local is_active=false
+
+    if [ -f "$bulk_config_file" ] && command -v jq >/dev/null 2>&1; then
+        # Check if the workspace is in the activeConfig array
+        is_active=$(jq -r --arg workspace_file "$selected_file" \
+                   'if (.activeConfig // []) | contains([$workspace_file]) then "true" else "false" end' \
+                   "$bulk_config_file" 2>/dev/null)
+    fi
+
+    if [ "$is_active" = "true" ]; then
+        # Workspace is currently active, inactivate it
+        if remove_workspace_from_bulk_config "$selected_file"; then
+            echo ""
+            print_color "$BRIGHT_YELLOW" "🔘 Workspace '$display_name' inactivated"
+        else
+            echo ""
+            print_color "$BRIGHT_RED" "❌ Failed to inactivate workspace"
+        fi
+    else
+        # Workspace is not active, activate it
+        if add_workspace_to_bulk_config "$selected_file"; then
+            echo ""
+            print_color "$BRIGHT_GREEN" "✓ Workspace '$display_name' activated successfully"
+        else
+            echo ""
+            print_color "$BRIGHT_RED" "❌ Failed to activate workspace"
+        fi
+    fi
+    echo ""
+    echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+    read -r
 }
 
 # Function to display configuration in workspace-style table format
 display_config_table() {
     local highlight_number="${1:-}"  # Optional row to highlight
     local current_mode="${2:-}"      # Optional mode for highlight color
-
-    # Validate configuration
-    if ! validate_json_config; then
-        echo ""
-        print_color "$BRIGHT_YELLOW" "Run the wizard (w) to create your first configuration."
-        return 1
-    fi
-
-    # Get project count
-    local project_count=$(get_project_count)
-    if [ -z "$project_count" ] || [ "$project_count" -eq 0 ]; then
-        print_color "$BRIGHT_YELLOW" "No projects configured."
-        echo ""
-        print_color "$BLUE" "Run the wizard (w) to add projects to your configuration."
-        return 0
-    fi
 
     # Get config directory
     local config_dir
@@ -449,6 +291,12 @@ display_config_table() {
     # Get all JSON files (workspaces) to maintain display order
     local workspace_files
     mapfile -t workspace_files < <(find "$config_dir" -name "*.json" -type f ! -name ".*" 2>/dev/null | sort)
+
+    if [ ${#workspace_files[@]} -eq 0 ]; then
+        print_color "$BRIGHT_YELLOW" "No workspaces configured."
+        echo ""
+        return 1
+    fi
 
     local global_counter=1
     local workspace_counter=1
@@ -484,11 +332,7 @@ display_config_table() {
             workspace_color="$LIGHT_RED"     # Light red for inactive
         fi
 
-        if [ "$current_mode" = "manage" ]; then
-            printf "  ${BRIGHT_CYAN}┌─ [${BRIGHT_WHITE}%s${BRIGHT_CYAN}] Workspace: ${workspace_color}%s${NC}\n" "$workspace_counter" "$display_name"
-        else
-            printf "  ${BRIGHT_CYAN}┌─ Workspace: ${workspace_color}%s${NC}\n" "$display_name"
-        fi
+        printf "  ${BRIGHT_CYAN}┌─ Workspace: ${workspace_color}%s${NC}\n" "$display_name"
 
         # Parse projects from this workspace file
         local workspace_projects=()
@@ -506,17 +350,7 @@ display_config_table() {
                 IFS=':' read -r project_display_name folder_name startup_cmd shutdown_cmd <<< "${workspace_projects[j]}"
 
                 # Check if this is the last project in this workspace AND if it's the last workspace
-                local prefix="${BRIGHT_CYAN}├─${NC}"
-                if [ $((j + 1)) -eq ${#workspace_projects[@]} ]; then
-                    # This is the last project in this workspace
-                    if [ $((workspace_counter)) -eq ${#workspace_files[@]} ]; then
-                        # This is also the last workspace, use └─
-                        prefix="${BRIGHT_CYAN}└─${NC}"
-                    else
-                        # More workspaces follow, use ├─ to continue the line
-                        prefix="${BRIGHT_CYAN}├─${NC}"
-                    fi
-                fi
+                local prefix="${BRIGHT_CYAN}●${NC}"
 
                 # Format data with fixed column widths: 32 | 30 | 32 | 32
                 local col1="$project_display_name"
@@ -536,23 +370,8 @@ display_config_table() {
                 col3=$(printf "%-32.32s" "$col3")
                 col4=$(printf "%-32.32s" "$col4")
 
-                # Check if this is the highlighted row
-                if [ -n "$highlight_number" ] && [ "$global_counter" = "$highlight_number" ]; then
-                    # Set background color based on mode
-                    if [ "$current_mode" = "delete" ]; then
-                        local bg_color="\033[41m"  # Red background
-                        local text_color="\033[1;37m"  # Bright white text
-                    else
-                        local bg_color="\033[44m"  # Blue background
-                        local text_color="\033[1;37m"  # Bright white text
-                    fi
-
-                    # Display highlighted row with fixed table format
-                    echo -e "  $prefix ${bg_color}${text_color}${col1} | ${col2} | ${col3} | ${col4}${NC}"
-                else
-                    # Display normal row with fixed table format - white text for col1, dim for col2-4
-                    echo -e "  $prefix ${BRIGHT_WHITE}${col1}${NC} | ${DIM}${col2}${NC} | ${DIM}${col3}${NC} | ${DIM}${col4}${NC}"
-                fi
+                # Display normal row with fixed table format - white text for col1, dim for col2-4
+                echo -e "  $prefix ${BRIGHT_WHITE}${col1}${NC} | ${DIM}${col2}${NC} | ${DIM}${col3}${NC} | ${DIM}${col4}${NC}"
 
                 global_counter=$((global_counter + 1))
             done
@@ -561,7 +380,6 @@ display_config_table() {
         workspace_counter=$((workspace_counter + 1))
     done
 }
-
 
 # Function to show add project screen
 show_add_project_screen() {
@@ -773,68 +591,6 @@ configure_new_project() {
     read -r
 }
 
-# Function to handle workspace toggle (activate/inactivate)
-handle_workspace_toggle() {
-    local workspace_choice="$1"
-
-    # Get config directory
-    local config_dir
-    if [ -d "config" ] && [ -f "startup.sh" ]; then
-        config_dir="config"
-    else
-        config_dir="$HOME/.cache/fm-manager"
-    fi
-
-    # Get all JSON files (workspaces)
-    local workspace_files
-    mapfile -t workspace_files < <(find "$config_dir" -name "*.json" -type f ! -name ".*" 2>/dev/null | sort)
-
-    if [ "$workspace_choice" -ge 1 ] && [ "$workspace_choice" -le "${#workspace_files[@]}" ]; then
-        local selected_index=$((workspace_choice - 1))
-        local selected_file="${workspace_files[selected_index]}"
-        local workspace_name=$(basename "$selected_file" .json)
-        local display_name=$(echo "$workspace_name" | sed 's/[_-]/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)} 1')
-
-        # Check if this workspace is currently active
-        local bulk_config_file="$config_dir/.bulk_project_config.json"
-        local is_active=false
-
-        if [ -f "$bulk_config_file" ] && command -v jq >/dev/null 2>&1; then
-            # Check if the workspace is in the activeConfig array
-            is_active=$(jq -r --arg workspace_file "$selected_file" \
-                       'if (.activeConfig // []) | contains([$workspace_file]) then "true" else "false" end' \
-                       "$bulk_config_file" 2>/dev/null)
-        fi
-
-        if [ "$is_active" = "true" ]; then
-            # Workspace is currently active, inactivate it
-            if remove_workspace_from_bulk_config "$selected_file"; then
-                echo ""
-                print_color "$BRIGHT_YELLOW" "🔘 Workspace '$display_name' inactivated"
-            else
-                echo ""
-                print_color "$BRIGHT_RED" "❌ Failed to inactivate workspace"
-            fi
-        else
-            # Workspace is not active, activate it
-            if add_workspace_to_bulk_config "$selected_file"; then
-                echo ""
-                print_color "$BRIGHT_GREEN" "✓ Workspace '$display_name' activated successfully"
-            else
-                echo ""
-                print_color "$BRIGHT_RED" "❌ Failed to activate workspace"
-            fi
-        fi
-        echo ""
-        echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
-        read -r
-    else
-        echo ""
-        print_error "Invalid workspace number. Please select between 1 and ${#workspace_files[@]}."
-        echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
-        read -r
-    fi
-}
 
 
 # Function to display active configuration info

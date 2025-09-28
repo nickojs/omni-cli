@@ -389,23 +389,12 @@ remove_workspace_from_bulk_config() {
 
     local temp_file=$(mktemp)
 
-    # Remove workspace from both activeConfig and availableConfigs arrays
+    # Remove workspace ONLY from activeConfig array, keep it in availableConfigs
     if jq --arg workspace_file "$workspace_file" \
-       '.activeConfig = (.activeConfig - [$workspace_file]) |
-        .availableConfigs = (.availableConfigs - [$workspace_file])' \
+       '.activeConfig = (.activeConfig - [$workspace_file])' \
        "$bulk_config_file" > "$temp_file"; then
 
-        # Check if there are any active configs left
-        local active_count=$(jq '.activeConfig | length' "$temp_file")
-        local available_count=$(jq '.availableConfigs | length' "$temp_file")
-
-        if [ "$available_count" -eq 0 ]; then
-            # No workspaces left, remove the bulk config file
-            rm -f "$bulk_config_file" "$temp_file"
-            return 0
-        fi
-
-        # Move the updated file
+        # Move the updated file (always keep the bulk config file)
         if mv "$temp_file" "$bulk_config_file"; then
             return 0
         else

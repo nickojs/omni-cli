@@ -61,6 +61,11 @@ show_active_config_info() {
             fi
             echo ""
             return
+        elif [ -f "$bulk_config_file" ] && [ -n "$total_configs" ] && [ "$total_configs" -gt 0 ]; then
+            # Bulk config exists but no active configs
+            echo -e "${BRIGHT_YELLOW}⚠${NC} ${BRIGHT_WHITE}No Active Workspaces:${NC} ${DIM}Configure workspaces in Settings${NC}"
+            echo ""
+            return
         fi
     fi
 
@@ -79,7 +84,7 @@ show_active_config_info() {
 display_workspaces() {
     # Check if any projects are loaded globally
     if [ ${#projects[@]} -eq 0 ]; then
-        print_error "No workspaces configured."
+        print_error "No active workspaces configured. Use Settings to activate workspaces."
         exit 1
     fi
 
@@ -91,13 +96,27 @@ display_workspaces() {
         config_dir="$HOME/.cache/fm-manager"
     fi
 
-    # Get all JSON files (workspaces) to maintain display order
-    local workspace_files
-    mapfile -t workspace_files < <(find "$config_dir" -name "*.json" -type f ! -name ".*" 2>/dev/null | sort)
+    # Get only active workspaces from bulk config
+    local workspace_files=()
+    local bulk_config_file="$config_dir/.bulk_project_config.json"
+
+    if [ -f "$bulk_config_file" ] && command -v jq >/dev/null 2>&1; then
+        # Get active workspaces from bulk config
+        while IFS= read -r active_workspace; do
+            if [ -f "$active_workspace" ]; then
+                workspace_files+=("$active_workspace")
+            fi
+        done < <(jq -r '.activeConfig[]? // empty' "$bulk_config_file" 2>/dev/null)
+    fi
+
+    # If no active workspaces found, show all workspaces (fallback for backward compatibility)
+    if [ ${#workspace_files[@]} -eq 0 ]; then
+        mapfile -t workspace_files < <(find "$config_dir" -name "*.json" -type f ! -name ".*" 2>/dev/null | sort)
+    fi
 
     local global_counter=1
 
-    # Display each workspace with its projects using global numbering
+    # Display each active workspace with its projects using global numbering
     for workspace_file in "${workspace_files[@]}"; do
         local workspace_name=$(basename "$workspace_file" .json)
         local display_name=$(echo "$workspace_name" | sed 's/[_-]/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)} 1')
