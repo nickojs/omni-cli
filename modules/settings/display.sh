@@ -96,10 +96,37 @@ show_settings_menu() {
                     continue
                 fi
 
-                # Manage button - currently disabled
+                # Manage workspace - prompt for workspace number
                 echo ""
-                print_color "$BRIGHT_YELLOW" "Manage functionality coming soon..."
-                sleep 1
+                echo -e "${BRIGHT_WHITE}Select workspace to manage:${NC}"
+                echo -ne "${BRIGHT_CYAN}>${NC} "
+                read -r workspace_choice
+
+                if [[ $workspace_choice =~ ^[0-9]+$ ]]; then
+                    # Get config directory for workspace files
+                    local config_dir
+                    if [ -d "config" ] && [ -f "startup.sh" ]; then
+                        config_dir="config"
+                    else
+                        config_dir="$HOME/.cache/fm-manager"
+                    fi
+
+                    # Get workspace files to validate selection
+                    local workspace_files
+                    mapfile -t workspace_files < <(find "$config_dir" -name "*.json" -type f ! -name ".*" 2>/dev/null | sort)
+
+                    if [ "$workspace_choice" -ge 1 ] && [ "$workspace_choice" -le "${#workspace_files[@]}" ]; then
+                        show_workspace_management_screen "$workspace_choice" "${workspace_files[@]}"
+                    else
+                        echo ""
+                        print_error "Invalid workspace number. Please select between 1 and ${#workspace_files[@]}."
+                        sleep 1
+                    fi
+                else
+                    echo ""
+                    print_error "Please enter a valid workspace number."
+                    sleep 1
+                fi
                 ;;
             "b")
                 break
@@ -632,4 +659,375 @@ show_active_config_info() {
 
     echo -e "${BRIGHT_GREEN}●${NC} ${BRIGHT_WHITE}Projects Folder:${NC} ${DIM}${config_name}${NC}"
     echo ""
+}
+
+# Function to show workspace management screen with project folders
+show_workspace_management_screen() {
+    local workspace_choice="$1"
+    shift
+    local workspace_files=("$@")
+
+    # Get config directory
+    local config_dir
+    if [ -d "config" ] && [ -f "startup.sh" ]; then
+        config_dir="config"
+    else
+        config_dir="$HOME/.cache/fm-manager"
+    fi
+
+    local selected_index=$((workspace_choice - 1))
+    local selected_file="${workspace_files[selected_index]}"
+    local workspace_name=$(basename "$selected_file" .json)
+    local display_name=$(echo "$workspace_name" | sed 's/[_-]/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)} 1')
+
+    while true; do
+        clear
+        print_header "Manage Workspace: $display_name"
+
+        # Parse projects from this workspace file
+        local workspace_projects=()
+        if command -v jq >/dev/null 2>&1 && [ -f "$selected_file" ]; then
+            while IFS= read -r line; do
+                workspace_projects+=("$line")
+            done < <(jq -r '.[] | "\(.displayName):\(.projectName):\(.startupCmd):\(.shutdownCmd)"' "$selected_file" 2>/dev/null)
+        fi
+
+        # Get projects root directory to show full paths
+        local projects_root
+        projects_root=$(get_projects_root_directory)
+        if [ $? -ne 0 ] || [ -z "$projects_root" ]; then
+            projects_root="<unknown>"
+        fi
+
+        echo ""
+        echo -e "${BRIGHT_CYAN}Workspace Location:${NC} ${DIM}$selected_file${NC}"
+        echo -e "${BRIGHT_CYAN}Projects Root:${NC} ${DIM}$projects_root${NC}"
+        echo ""
+
+        # Display project folders table
+        if [ ${#workspace_projects[@]} -eq 0 ]; then
+            echo -e "${BRIGHT_YELLOW}No projects configured in this workspace${NC}"
+            echo ""
+            echo -e "${DIM}This workspace is empty and can be deleted if no longer needed.${NC}"
+        else
+            # Display table header
+            printf "  ${BRIGHT_WHITE}%-3s  %-25s  %-30s${NC}\n" "#" "Display Name" "Project Folder"
+            printf "  ${DIM}%-3s  %-25s  %-30s${NC}\n" "─" "────────────────────────" "──────────────────────────────"
+
+            # Display each project with folder information
+            for i in "${!workspace_projects[@]}"; do
+                IFS=':' read -r project_display_name folder_name startup_cmd shutdown_cmd <<< "${workspace_projects[i]}"
+
+                local counter=$((i + 1))
+
+                # Truncate long names for display
+                local truncated_display=$(printf "%.25s" "$project_display_name")
+                [ ${#project_display_name} -gt 25 ] && truncated_display="${truncated_display}.."
+
+                local truncated_folder=$(printf "%.30s" "$folder_name")
+                [ ${#folder_name} -gt 30 ] && truncated_folder="${truncated_folder}.."
+
+                # Check if folder exists
+                local folder_exists=false
+                if [ "$projects_root" != "<unknown>" ] && [ -d "${projects_root%/}/$folder_name" ]; then
+                    folder_exists=true
+                fi
+
+                # Color coding: green if folder exists, red if not
+                if [ "$folder_exists" = true ]; then
+                    printf "  ${BRIGHT_CYAN}%-3s${NC}  ${BRIGHT_WHITE}%-25s${NC}  ${BRIGHT_GREEN}%s${NC}\n" "$counter" "$truncated_display" "$truncated_folder"
+                else
+                    printf "  ${BRIGHT_CYAN}%-3s${NC}  ${BRIGHT_WHITE}%-25s${NC}  ${BRIGHT_RED}%s (missing)${NC}\n" "$counter" "$truncated_display" "$truncated_folder"
+                fi
+            done
+        fi
+
+        echo ""
+        if [ ${#workspace_projects[@]} -gt 0 ]; then
+            echo -e "${BRIGHT_RED}[d]${NC} delete project │ ${BRIGHT_PURPLE}[b]${NC} back │ ${BRIGHT_PURPLE}[h]${NC} help"
+        else
+            echo -e "${BRIGHT_RED}[d]${NC} delete workspace │ ${BRIGHT_PURPLE}[b]${NC} back │ ${BRIGHT_PURPLE}[h]${NC} help"
+        fi
+        echo ""
+        echo -ne "${BRIGHT_CYAN}>${NC} "
+
+        read -r choice
+
+        case "${choice,,}" in
+            "d")
+                if [ ${#workspace_projects[@]} -gt 0 ]; then
+                    delete_project_from_workspace "$selected_file" "${workspace_projects[@]}"
+                else
+                    delete_workspace "$selected_file" "$display_name"
+                    if [ $? -eq 0 ]; then
+                        # Workspace was deleted successfully, exit this screen
+                        break
+                    fi
+                fi
+                ;;
+            "b")
+                break
+                ;;
+            "h")
+                clear
+                show_workspace_management_help
+                ;;
+            *)
+                # Invalid command
+                local available_commands="b (back) or h (help)"
+                if [ ${#workspace_projects[@]} -gt 0 ]; then
+                    available_commands="d (delete project), b (back) or h (help)"
+                else
+                    available_commands="d (delete workspace), b (back) or h (help)"
+                fi
+                echo ""
+                print_error "Invalid command. Use $available_commands"
+                echo ""
+                echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+                read -r
+                ;;
+        esac
+    done
+}
+
+# Function to show workspace management help
+show_workspace_management_help() {
+    print_header "Workspace Management Help"
+    echo ""
+    echo -e "${BRIGHT_WHITE}This screen shows the project folders in the selected workspace.${NC}"
+    echo ""
+    echo -e "${BRIGHT_CYAN}Folder Status:${NC}"
+    echo -e "  ${BRIGHT_GREEN}Green${NC}   - Folder exists in the projects directory"
+    echo -e "  ${BRIGHT_RED}Red${NC}     - Folder is missing from the projects directory"
+    echo ""
+    echo -e "${BRIGHT_CYAN}Available Commands:${NC}"
+    echo -e "  ${BRIGHT_RED}d${NC} - Delete a project from this workspace (or delete empty workspace)"
+    echo -e "  ${BRIGHT_PURPLE}b${NC} - Go back to settings menu"
+    echo -e "  ${BRIGHT_PURPLE}h${NC} - Show this help screen"
+    echo ""
+    echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+    read -r
+}
+
+# Function to delete a project from workspace
+delete_project_from_workspace() {
+    local workspace_file="$1"
+    shift
+    local workspace_projects=("$@")
+
+    echo ""
+    echo -e "${BRIGHT_WHITE}Select project to delete (enter number):${NC}"
+    echo -ne "${BRIGHT_CYAN}>${NC} "
+    read -r project_choice
+
+    # Validate choice is a number
+    if ! [[ "$project_choice" =~ ^[0-9]+$ ]]; then
+        echo ""
+        print_error "Invalid choice. Please enter a project number."
+        echo ""
+        echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+        read -r
+        return 1
+    fi
+
+    # Validate choice is in range
+    if [ "$project_choice" -lt 1 ] || [ "$project_choice" -gt "${#workspace_projects[@]}" ]; then
+        echo ""
+        print_error "Invalid choice. Please select a number between 1 and ${#workspace_projects[@]}."
+        echo ""
+        echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+        read -r
+        return 1
+    fi
+
+    # Get selected project info
+    local selected_index=$((project_choice - 1))
+    local selected_project="${workspace_projects[selected_index]}"
+    IFS=':' read -r project_display_name folder_name startup_cmd shutdown_cmd <<< "$selected_project"
+
+    # Show confirmation dialog
+    echo ""
+    echo -e "${BRIGHT_YELLOW}⚠ WARNING: You are about to delete the following project:${NC}"
+    echo ""
+    echo -e "  ${BRIGHT_WHITE}Display Name:${NC} ${BRIGHT_CYAN}$project_display_name${NC}"
+    echo -e "  ${BRIGHT_WHITE}Folder Name:${NC}  ${BRIGHT_CYAN}$folder_name${NC}"
+    echo -e "  ${BRIGHT_WHITE}Startup Cmd:${NC}  ${DIM}$startup_cmd${NC}"
+    echo -e "  ${BRIGHT_WHITE}Shutdown Cmd:${NC} ${DIM}$shutdown_cmd${NC}"
+    echo ""
+    echo -e "${BRIGHT_RED}This will remove the project from the workspace configuration.${NC}"
+    echo -e "${BRIGHT_WHITE}The actual project folder will NOT be deleted.${NC}"
+    echo ""
+    echo -e "${BRIGHT_WHITE}Are you sure you want to delete this project? (y/N):${NC}"
+    echo -ne "${BRIGHT_CYAN}>${NC} "
+    read -r confirm_delete
+
+    case "${confirm_delete,,}" in
+        "y"|"yes")
+            # Perform the deletion
+            if delete_project_from_json "$workspace_file" "$project_display_name" "$folder_name"; then
+                echo ""
+                print_color "$BRIGHT_GREEN" "✓ Project '$project_display_name' has been successfully removed from workspace"
+            else
+                echo ""
+                print_color "$BRIGHT_RED" "❌ Failed to remove project from workspace"
+            fi
+            ;;
+        *)
+            echo ""
+            print_color "$BRIGHT_YELLOW" "Project deletion cancelled"
+            ;;
+    esac
+
+    echo ""
+    echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+    read -r
+}
+
+# Function to delete project from JSON file
+delete_project_from_json() {
+    local workspace_file="$1"
+    local project_display_name="$2"
+    local folder_name="$3"
+
+    # Check if jq is available
+    if ! command -v jq >/dev/null 2>&1; then
+        print_error "jq is required for JSON manipulation but not found"
+        return 1
+    fi
+
+    # Check if workspace file exists
+    if [ ! -f "$workspace_file" ]; then
+        print_error "Workspace file not found: $workspace_file"
+        return 1
+    fi
+
+    # Create a backup of the original file
+    local backup_file="${workspace_file}.backup.$(date +%s)"
+    if ! cp "$workspace_file" "$backup_file"; then
+        print_error "Failed to create backup of workspace file"
+        return 1
+    fi
+
+    # Remove the project from the JSON array
+    # We'll match on both displayName and projectName to ensure we delete the right project
+    local temp_file="${workspace_file}.tmp"
+    if jq --arg display_name "$project_display_name" --arg project_name "$folder_name" \
+          'map(select(.displayName != $display_name or .projectName != $project_name))' \
+          "$workspace_file" > "$temp_file"; then
+
+        # Replace the original file with the modified version
+        if mv "$temp_file" "$workspace_file"; then
+            # Remove backup file on success
+            rm -f "$backup_file"
+            return 0
+        else
+            print_error "Failed to update workspace file"
+            # Restore from backup
+            mv "$backup_file" "$workspace_file"
+            rm -f "$temp_file"
+            return 1
+        fi
+    else
+        print_error "Failed to process JSON file"
+        # Restore from backup
+        mv "$backup_file" "$workspace_file"
+        rm -f "$temp_file"
+        return 1
+    fi
+}
+
+# Function to delete an entire workspace
+delete_workspace() {
+    local workspace_file="$1"
+    local display_name="$2"
+
+    echo ""
+    echo -e "${BRIGHT_YELLOW}⚠ WARNING: You are about to delete the entire workspace:${NC}"
+    echo ""
+    echo -e "  ${BRIGHT_WHITE}Workspace Name:${NC} ${BRIGHT_CYAN}$display_name${NC}"
+    echo -e "  ${BRIGHT_WHITE}File Location:${NC}  ${DIM}$workspace_file${NC}"
+    echo ""
+    echo -e "${BRIGHT_RED}This will permanently delete the workspace configuration file.${NC}"
+    echo -e "${BRIGHT_WHITE}All project configurations in this workspace will be lost.${NC}"
+    echo -e "${BRIGHT_WHITE}The actual project folders will NOT be deleted.${NC}"
+    echo ""
+
+    # Check if this workspace is currently active
+    local config_dir
+    if [ -d "config" ] && [ -f "startup.sh" ]; then
+        config_dir="config"
+    else
+        config_dir="$HOME/.cache/fm-manager"
+    fi
+
+    local bulk_config_file="$config_dir/.bulk_project_config.json"
+    local is_active=false
+
+    if [ -f "$bulk_config_file" ] && command -v jq >/dev/null 2>&1; then
+        # Check if the workspace is in the activeConfig array
+        is_active=$(jq -r --arg workspace_file "$workspace_file" \
+                   'if (.activeConfig // []) | contains([$workspace_file]) then "true" else "false" end' \
+                   "$bulk_config_file" 2>/dev/null)
+    fi
+
+    if [ "$is_active" = "true" ]; then
+        echo -e "${BRIGHT_YELLOW}⚠ This workspace is currently ACTIVE and will be deactivated.${NC}"
+        echo ""
+    fi
+
+    echo -e "${BRIGHT_WHITE}Are you sure you want to delete this workspace? (y/N):${NC}"
+    echo -ne "${BRIGHT_CYAN}>${NC} "
+    read -r confirm_delete
+
+    case "${confirm_delete,,}" in
+        "y"|"yes")
+            # If workspace is active, remove it from bulk config first
+            if [ "$is_active" = "true" ]; then
+                echo ""
+                print_color "$BRIGHT_YELLOW" "Deactivating workspace..."
+                if ! remove_workspace_from_bulk_config "$workspace_file"; then
+                    print_color "$BRIGHT_RED" "❌ Failed to deactivate workspace, deletion cancelled"
+                    echo ""
+                    echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+                    read -r
+                    return 1
+                fi
+            fi
+
+            # Create a backup before deletion
+            local backup_file="${workspace_file}.deleted.$(date +%s)"
+            if cp "$workspace_file" "$backup_file" 2>/dev/null; then
+                # Delete the workspace file
+                if rm -f "$workspace_file"; then
+                    echo ""
+                    print_color "$BRIGHT_GREEN" "✓ Workspace '$display_name' has been successfully deleted"
+                    print_color "$DIM" "Backup saved as: $backup_file"
+                    echo ""
+                    echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+                    read -r
+                    return 0
+                else
+                    print_color "$BRIGHT_RED" "❌ Failed to delete workspace file"
+                    echo ""
+                    echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+                    read -r
+                    return 1
+                fi
+            else
+                print_color "$BRIGHT_RED" "❌ Failed to create backup, deletion cancelled"
+                echo ""
+                echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+                read -r
+                return 1
+            fi
+            ;;
+        *)
+            echo ""
+            print_color "$BRIGHT_YELLOW" "Workspace deletion cancelled"
+            echo ""
+            echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+            read -r
+            return 1
+            ;;
+    esac
 }
