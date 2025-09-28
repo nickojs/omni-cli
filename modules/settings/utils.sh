@@ -300,3 +300,120 @@ update_project_in_config() {
     fi
 }
 
+
+# Function to add workspace to bulk configuration
+# Parameters: workspace_file_path
+# Returns: 0 if successful, 1 if error
+add_workspace_to_bulk_config() {
+    local workspace_file="$1"
+
+    if [ ! -f "$workspace_file" ]; then
+        print_error "Workspace file not found: $workspace_file"
+        return 1
+    fi
+
+    # Get config directory
+    local config_dir
+    if [ -d "config" ] && [ -f "startup.sh" ]; then
+        config_dir="config"
+    else
+        config_dir="$HOME/.cache/fm-manager"
+    fi
+
+    local bulk_config_file="$config_dir/.bulk_project_config.json"
+    local projects_path=$(dirname "$workspace_file")
+
+    # Check if bulk config file already exists
+    if [ -f "$bulk_config_file" ]; then
+        # Update existing bulk config
+        local temp_file=$(mktemp)
+        if jq --arg workspace_file "$workspace_file" \
+           --arg projects_path "$projects_path" \
+           '.activeConfig = (.activeConfig + [$workspace_file] | unique) |
+            .projectsPath = $projects_path |
+            .availableConfigs = (.availableConfigs + [$workspace_file] | unique)' \
+           "$bulk_config_file" > "$temp_file"; then
+
+            if mv "$temp_file" "$bulk_config_file"; then
+                return 0
+            else
+                rm -f "$temp_file"
+                return 1
+            fi
+        else
+            rm -f "$temp_file"
+            return 1
+        fi
+    else
+        # Create new bulk config file
+        local bulk_config='{
+            "activeConfig": ["'$workspace_file'"],
+            "projectsPath": "'$projects_path'",
+            "availableConfigs": ["'$workspace_file'"]
+        }'
+
+        if echo "$bulk_config" | jq . > "$bulk_config_file"; then
+            return 0
+        else
+            return 1
+        fi
+    fi
+}
+
+# Function to remove workspace from bulk configuration
+# Parameters: workspace_file_path
+# Returns: 0 if successful, 1 if error
+remove_workspace_from_bulk_config() {
+    local workspace_file="$1"
+
+    # Get config directory
+    local config_dir
+    if [ -d "config" ] && [ -f "startup.sh" ]; then
+        config_dir="config"
+    else
+        config_dir="$HOME/.cache/fm-manager"
+    fi
+
+    local bulk_config_file="$config_dir/.bulk_project_config.json"
+
+    if [ ! -f "$bulk_config_file" ]; then
+        print_error "Bulk configuration file not found"
+        return 1
+    fi
+
+    # Check if jq is available
+    if ! command -v jq >/dev/null 2>&1; then
+        print_error "jq is required for JSON manipulation but is not installed"
+        return 1
+    fi
+
+    local temp_file=$(mktemp)
+
+    # Remove workspace from both activeConfig and availableConfigs arrays
+    if jq --arg workspace_file "$workspace_file" \
+       '.activeConfig = (.activeConfig - [$workspace_file]) |
+        .availableConfigs = (.availableConfigs - [$workspace_file])' \
+       "$bulk_config_file" > "$temp_file"; then
+
+        # Check if there are any active configs left
+        local active_count=$(jq '.activeConfig | length' "$temp_file")
+        local available_count=$(jq '.availableConfigs | length' "$temp_file")
+
+        if [ "$available_count" -eq 0 ]; then
+            # No workspaces left, remove the bulk config file
+            rm -f "$bulk_config_file" "$temp_file"
+            return 0
+        fi
+
+        # Move the updated file
+        if mv "$temp_file" "$bulk_config_file"; then
+            return 0
+        else
+            rm -f "$temp_file"
+            return 1
+        fi
+    else
+        rm -f "$temp_file"
+        return 1
+    fi
+}

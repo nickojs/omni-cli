@@ -29,14 +29,11 @@ handle_settings_choice() {
         return
     fi
 
-    # Handle projects management command
-    if [[ $choice =~ ^[Pp]$ ]]; then
-        show_projects_management_screen
-        return
-    fi
+    # Handle manage workspaces command - this is handled in the main menu loop
+    # [m] manage mode is processed in the main settings display function
 
     # Invalid command
-    print_error "Invalid command. Use a (add), p (projects), b (back) or h (help)"
+    print_error "Invalid command. Use m (manage), a (add), b (back) or h (help)"
     echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
     read -r
 }

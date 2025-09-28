@@ -47,12 +47,13 @@ show_active_config_info() {
     local bulk_config_file="$config_dir/.bulk_project_config.json"
 
     if [ -f "$bulk_config_file" ] && command -v jq >/dev/null 2>&1; then
-        local display_name=$(jq -r '.displayName // empty' "$bulk_config_file" 2>/dev/null)
-        local active_config=$(jq -r '.activeConfig // empty' "$bulk_config_file" 2>/dev/null)
+        local active_configs=$(jq -r '.activeConfig[]? // empty' "$bulk_config_file" 2>/dev/null)
         local projects_path=$(jq -r '.projectsPath // empty' "$bulk_config_file" 2>/dev/null)
         local total_configs=$(jq -r '.availableConfigs | length' "$bulk_config_file" 2>/dev/null)
 
-        if [ -n "$display_name" ] && [ -n "$active_config" ] && [ -n "$total_configs" ]; then
+        if [ -n "$active_configs" ] && [ -n "$total_configs" ]; then
+            # Generate display name from active configs
+            local display_name="Active Workspaces"
             if [ -n "$projects_path" ]; then
                 echo -e "${BRIGHT_GREEN}●${NC} ${BRIGHT_WHITE}Projects Folder:${NC} ${DIM}${display_name} - ${projects_path}${NC}"
             else

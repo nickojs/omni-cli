@@ -14,7 +14,6 @@ SETTINGS_DIR="$(dirname "${BASH_SOURCE[0]}")"
 source "$SETTINGS_DIR/utils.sh"     # Configuration utilities (shared functions)
 source "$SETTINGS_DIR/display.sh"   # Settings menu display
 source "$SETTINGS_DIR/commands.sh"  # Settings command handling
-source "$SETTINGS_DIR/projects.sh"  # Projects configuration management
 
 # Export a function to verify settings modules are loaded
 settings_modules_loaded() {
