@@ -1,38 +1,43 @@
 #!/bin/bash
 
 # ========================================
-# Setup and Wizard Module
+# Setup Module
 # ========================================
-# This module handles setup and wizard functionality
+# This module handles initial setup for new installations
 # Usage: source modules/config/setup.sh
 
 # Get the script directory to make paths relative to script location
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Function to check config and run wizard if needed
+# Function to check config and guide user through first-time setup
 check_and_setup_config() {
-    if [ ! -f "$JSON_CONFIG_FILE" ]; then
-        print_header "SETUP REQUIRED"
-        print_warning "Project configuration not found."
-        print_info "Running setup wizard to configure your projects..."
+    # Check if bulk config exists
+    local config_dir
+    if [ -d "config" ] && [ -f "startup.sh" ]; then
+        config_dir="config"
+    else
+        config_dir="$HOME/.cache/fm-manager"
+    fi
+
+    local bulk_config_file="$config_dir/.bulk_project_config.json"
+
+    # If no bulk config exists, this is first-time setup
+    if [ ! -f "$bulk_config_file" ]; then
+        print_header "WELCOME TO FM-MANAGER"
         echo ""
-
-        # Check if wizard exists
-        if [ ! -f "$SCRIPT_DIR/../wizard/index.sh" ]; then
-            print_error "wizard/index.sh not found."
-            print_error "Please ensure the setup wizard script is available."
-            exit 1
-        fi
-
-        # Run the wizard
-        show_loading "Launching setup wizard" 1
-        (
-            source "$SCRIPT_DIR/../wizard/index.sh"
-            main
-        )
-
-        print_success "Configuration created successfully!"
-        show_loading "Starting project manager" 1
+        print_info "This appears to be your first time running fm-manager."
+        print_info "You'll need to create at least one workspace to get started."
         echo ""
+        print_color "$BRIGHT_CYAN" "The manager will now start. Use Settings [s] to:"
+        echo "  1. Create a new workspace"
+        echo "  2. Add projects to your workspace"
+        echo "  3. Activate the workspace"
+        echo ""
+        print_color "$BRIGHT_YELLOW" "Press Enter to continue..."
+        read -r
+
+        # Create empty bulk config to prevent this message from showing again
+        mkdir -p "$config_dir"
+        echo '{"activeConfig": [], "projectsPath": "", "availableConfigs": []}' > "$bulk_config_file"
     fi
 }

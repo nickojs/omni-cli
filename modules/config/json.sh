@@ -130,7 +130,6 @@ load_projects_from_workspace() {
     return 0
 }
 
-# Function to reload configuration (used after wizard re-run)
 reload_config() {
     if load_projects_from_json; then
         return 0

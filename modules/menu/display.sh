@@ -18,7 +18,9 @@ show_project_menu_tmux() {
         display_workspaces
         
         # Commands section with better formatting
-        if [ ${#projects[@]} -eq 1 ]; then
+        if [ ${#projects[@]} -eq 0 ]; then
+            echo -e "${BRIGHT_PURPLE}[s]${NC} settings │ ${BRIGHT_PURPLE}[h]${NC} help │ ${BRIGHT_PURPLE}[q]${NC} quit"
+        elif [ ${#projects[@]} -eq 1 ]; then
             echo -e "${BRIGHT_GREEN}[1]${NC} start │ ${BRIGHT_RED}[k1, ka]${NC} kill / kill all │ ${BRIGHT_PURPLE}[s]${NC} settings │ ${BRIGHT_PURPLE}[h]${NC} help │ ${BRIGHT_PURPLE}[q]${NC} quit"
         else
             echo -e "${BRIGHT_GREEN}[1-${#projects[@]}]${NC} start │ ${BRIGHT_RED}[k1-${#projects[@]}, ka]${NC} kill / kill all │ ${BRIGHT_PURPLE}[s]${NC} settings │ ${BRIGHT_PURPLE}[h]${NC} help │ ${BRIGHT_PURPLE}[q]${NC} quit"
@@ -84,8 +86,9 @@ show_active_config_info() {
 display_workspaces() {
     # Check if any projects are loaded globally
     if [ ${#projects[@]} -eq 0 ]; then
-        print_error "No active workspaces configured. Use Settings to activate workspaces."
-        exit 1
+        echo -e "${BRIGHT_YELLOW}⚠${NC} ${BRIGHT_WHITE}No Active Workspaces:${NC} ${DIM}Configure workspaces in Settings${NC}"
+        echo ""
+        return 0
     fi
 
     # Get config directory

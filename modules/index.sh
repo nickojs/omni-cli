@@ -17,7 +17,6 @@ source "$MODULES_DIR/project/index.sh"    # Project status and management
 source "$MODULES_DIR/navigator/index.sh"  # Filesystem navigation
 source "$MODULES_DIR/menu/index.sh"       # Interactive menu system
 source "$MODULES_DIR/settings/index.sh"   # Settings menu and configuration management
-source "$MODULES_DIR/wizard/index.sh"       # Wizard installation and setup
 
 # Export a function to verify modules are loaded
 modules_loaded() {
@@ -28,7 +27,6 @@ modules_loaded() {
     echo "  - Navigator: $(type show_path_selector &>/dev/null && echo "✓" || echo "✗")"
     echo "  - Menu: $(type show_project_menu_tmux &>/dev/null && echo "✓" || echo "✗")"
     echo "  - Settings: $(type show_settings_menu &>/dev/null && echo "✓" || echo "✗")"
-    echo "  - Wizard: $(type run_wizard &>/dev/null && echo "✓" || echo "✗")"
 
     # Also check config sub-modules
     if type config_modules_loaded &>/dev/null; then

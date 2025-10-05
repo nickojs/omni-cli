@@ -7,7 +7,7 @@ A powerful terminal-based project manager with tmux integration and modular arch
 - **🚀 Project Management**: Create, configure, and monitor multiple projects
 - **📱 Tmux Integration**: Seamless tmux session management with smart pane layouts
 - **🎨 Beautiful UI**: Rich terminal interface with colors, animations, and responsive layouts
-- **⚙️ Interactive Setup**: Guided project wizard for easy configuration
+- **⚙️ Interactive Setup**: Guided project config
 - **�🔧 Modular Design**: Clean architecture with reusable components
 - **📊 Status Monitoring**: Real-time project status tracking and validation
 - **🏠 Flexible Deployment**: Run locally for development or install system-wide
@@ -96,7 +96,6 @@ fm-manager/
     ├── tmux.sh           # Tmux session management
     ├── project.sh        # Project operations
     ├── menu.sh           # Interactive menus
-    └── wizard.sh         # Setup wizard
 ```
 
 ## ⚙️ Configuration
@@ -108,7 +107,7 @@ JSON_CONFIG_FILE=projects_output.json
 ```
 
 ### Project Configuration (projects_output.json)
-The application automatically creates and manages project configurations through the interactive wizard. Projects are stored in:
+The application automatically creates and manages project configurations. Projects are stored in:
 - **Local development**: `./config/projects_output.json`
 - **System installation**: `~/.cache/fm-manager/projects_output.json`
 

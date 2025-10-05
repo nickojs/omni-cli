@@ -72,7 +72,6 @@ show_manual_path_entry() {
         break
     done
 
-    # Export the selected path for the wizard to use
     export SELECTED_PROJECTS_DIR="$projects_dir"
 }
 

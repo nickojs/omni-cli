@@ -17,12 +17,6 @@ handle_menu_choice() {
     fi
     
     
-    # Handle wizard command
-    if [[ $choice =~ ^[Ww]$ ]]; then
-        handle_wizard_command
-        return
-    fi
-    
     # Handle settings command
     if [[ $choice =~ ^[Ss]$ ]]; then
         handle_settings_command

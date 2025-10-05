@@ -13,7 +13,7 @@ CONFIG_DIR="$(dirname "${BASH_SOURCE[0]}")"
 # Import all configuration modules in dependency order
 source "$CONFIG_DIR/json.sh"     # JSON parsing and data loading
 source "$CONFIG_DIR/validation.sh"      # Configuration validation
-source "$CONFIG_DIR/setup.sh"          # Setup and wizard functions
+source "$CONFIG_DIR/setup.sh"          # Setup functions
 source "$CONFIG_DIR/loader.sh"         # Main configuration loading logic
 
 # Export a function to verify config modules are loaded
