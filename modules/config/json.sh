@@ -11,7 +11,7 @@ declare -g -a projects=()
 # Global workspace tracking array (parallel to projects array)
 declare -g -a project_workspaces=()
 
-# Function to load projects from all workspaces globally
+# Function to load projects from active workspaces only
 load_projects_from_json() {
     # Clear global arrays
     projects=()
@@ -25,15 +25,27 @@ load_projects_from_json() {
         config_dir="$HOME/.cache/fm-manager"
     fi
 
-    # Get all JSON workspace files (excluding hidden files)
-    local workspace_files
-    mapfile -t workspace_files < <(find "$config_dir" -name "*.json" -type f ! -name ".*" 2>/dev/null | sort)
+    # Check for bulk configuration file
+    local bulk_config_file="$config_dir/.bulk_project_config.json"
+    local workspace_files=()
+
+    if [ -f "$bulk_config_file" ] && command -v jq >/dev/null 2>&1; then
+        # Load only active workspaces from bulk configuration
+        while IFS= read -r active_workspace; do
+            if [ -f "$active_workspace" ]; then
+                workspace_files+=("$active_workspace")
+            fi
+        done < <(jq -r '.activeConfig[]? // empty' "$bulk_config_file" 2>/dev/null)
+    else
+        # Fallback: load all JSON workspace files (excluding hidden files) for backward compatibility
+        mapfile -t workspace_files < <(find "$config_dir" -name "*.json" -type f ! -name ".*" 2>/dev/null | sort)
+    fi
 
     if [ ${#workspace_files[@]} -eq 0 ]; then
         return 1
     fi
 
-    # Load projects from each workspace
+    # Load projects from each active workspace
     for workspace_file in "${workspace_files[@]}"; do
         load_projects_from_workspace "$workspace_file"
     done
@@ -84,11 +96,13 @@ load_projects_from_workspace() {
 
         # Extract values using more robust regex patterns
         local display_name
+        local project_name
         local relative_path
         local startup_cmd
         local shutdown_cmd
 
         display_name=$(echo "$line" | sed -n 's/.*"displayName"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+        project_name=$(echo "$line" | sed -n 's/.*"projectName"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
         relative_path=$(echo "$line" | sed -n 's/.*"relativePath"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
         startup_cmd=$(echo "$line" | sed -n 's/.*"startupCmd"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
         shutdown_cmd=$(echo "$line" | sed -n 's/.*"shutdownCmd"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
@@ -96,9 +110,19 @@ load_projects_from_workspace() {
         # If no shutdown command, use empty string
         [ -z "$shutdown_cmd" ] && shutdown_cmd=""
 
-        # Add to global projects array (using relativePath as folder_name)
-        if [ -n "$display_name" ] && [ -n "$relative_path" ] && [ -n "$startup_cmd" ]; then
-            projects+=("$display_name:$relative_path:$startup_cmd:$shutdown_cmd")
+        # Determine the folder path - prefer relativePath, fallback to projectName
+        local folder_path
+        if [ -n "$relative_path" ]; then
+            folder_path="$relative_path"
+        elif [ -n "$project_name" ]; then
+            folder_path="$project_name"
+        else
+            continue  # Skip if neither field is available
+        fi
+
+        # Add to global projects array
+        if [ -n "$display_name" ] && [ -n "$folder_path" ] && [ -n "$startup_cmd" ]; then
+            projects+=("$display_name:$folder_path:$startup_cmd:$shutdown_cmd")
             project_workspaces+=("$json_file")
         fi
     done <<< "$parsed_objects"

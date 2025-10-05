@@ -103,9 +103,10 @@ setup_config_paths() {
     # Determine active configuration from bulk_project_config.json or fallback to default
     local bulk_config_file="$JSON_CONFIG_FOLDER/.bulk_project_config.json"
     if [ -f "$bulk_config_file" ] && command -v jq >/dev/null 2>&1; then
-        local active_config=$(jq -r '.activeConfig // empty' "$bulk_config_file" 2>/dev/null)
-        if [ -n "$active_config" ] && [ -f "$JSON_CONFIG_FOLDER/$active_config" ]; then
-            JSON_CONFIG_FILE="$JSON_CONFIG_FOLDER/$active_config"
+        # Get the first active workspace from the activeConfig array
+        local active_config=$(jq -r '.activeConfig[0] // empty' "$bulk_config_file" 2>/dev/null)
+        if [ -n "$active_config" ] && [ -f "$active_config" ]; then
+            JSON_CONFIG_FILE="$active_config"
         else
             # Fallback to default if active config file doesn't exist
             JSON_CONFIG_FILE="$JSON_CONFIG_FOLDER/projects_output.json"

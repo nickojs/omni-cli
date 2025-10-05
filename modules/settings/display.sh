@@ -22,17 +22,18 @@ show_settings_menu() {
         if [ "$running_count" -gt 0 ]; then
             echo ""
             echo -e "${BRIGHT_YELLOW}⚠ Workspace management blocked: ${running_count} project(s) running${NC}"
-            echo -e "${BRIGHT_RED}[s]${NC} select workspace │ ${BRIGHT_RED}[m]${NC} manage workspace │ ${BRIGHT_PURPLE}[b]${NC} back │ ${BRIGHT_PURPLE}[h]${NC} help"
+            echo -e "${BRIGHT_RED}[s]${NC} select workspace │ ${BRIGHT_PURPLE}[b]${NC} back │ ${BRIGHT_PURPLE}[h]${NC} help"
         else
             echo ""
-            echo -e "${BRIGHT_GREEN}[s]${NC} select workspace │ ${BRIGHT_PURPLE}[m]${NC} manage workspace │ ${BRIGHT_PURPLE}[b]${NC} back │ ${BRIGHT_PURPLE}[h]${NC} help"
+            echo -e "${BRIGHT_GREEN}[s]${NC} select workspace │ ${BRIGHT_PURPLE}[b]${NC} back │ ${BRIGHT_PURPLE}[h]${NC} help"
         fi
         
-        # Get user input with clean prompt
+        # Get user input with instant selection
         echo ""
         echo -ne "${BRIGHT_CYAN}>${NC} "
 
-        read -r choice
+        read -n 1 -r choice
+        echo # Add newline after instant selection
 
         # Handle command selection
         case "${choice,,}" in
@@ -50,73 +51,26 @@ show_settings_menu() {
                     continue
                 fi
 
-                # Select workspace - prompt for workspace number
-                echo ""
-                echo -e "${BRIGHT_WHITE}Select workspace to activate or inactivate:${NC}"
-                echo -ne "${BRIGHT_CYAN}>${NC} "
-                read -r workspace_choice
-
-                if [[ $workspace_choice =~ ^[0-9]+$ ]]; then
-                    # Get config directory for workspace files
-                    local config_dir
-                    if [ -d "config" ] && [ -f "startup.sh" ]; then
-                        config_dir="config"
-                    else
-                        config_dir="$HOME/.cache/fm-manager"
-                    fi
-
-                    # Get workspace files to validate selection
-                    local workspace_files
-                    mapfile -t workspace_files < <(find "$config_dir" -name "*.json" -type f ! -name ".*" 2>/dev/null | sort)
-
-                    if [ "$workspace_choice" -ge 1 ] && [ "$workspace_choice" -le "${#workspace_files[@]}" ]; then
-                        handle_workspace_toggle "$workspace_choice" "${workspace_files[@]}"
-                    else
-                        echo ""
-                        print_error "Invalid workspace number. Please select between 1 and ${#workspace_files[@]}."
-                        sleep 1
-                    fi
+                # Get workspace files for validation
+                local config_dir
+                if [ -d "config" ] && [ -f "startup.sh" ]; then
+                    config_dir="config"
                 else
-                    echo ""
-                    print_error "Please enter a valid workspace number."
-                    sleep 1
-                fi
-                ;;
-            "m")
-                # Check if any projects are currently running
-                local running_count=$(count_running_projects)
-                if [ "$running_count" -gt 0 ]; then
-                    echo ""
-                    print_error "Cannot manage workspaces while projects are running!"
-                    print_info "Currently running projects: $running_count"
-                    print_info "Stop all projects first, then manage workspaces."
-                    echo ""
-                    echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
-                    read -r
-                    continue
+                    config_dir="$HOME/.cache/fm-manager"
                 fi
 
-                # Manage workspace - prompt for workspace number
+                local workspace_files
+                mapfile -t workspace_files < <(find "$config_dir" -name "*.json" -type f ! -name ".*" 2>/dev/null | sort)
+
+                # Go directly to workspace selection prompt
                 echo ""
-                echo -e "${BRIGHT_WHITE}Select workspace to manage:${NC}"
-                echo -ne "${BRIGHT_CYAN}>${NC} "
+                echo -ne "${BRIGHT_WHITE}Select workspace: ${BRIGHT_CYAN}"
                 read -r workspace_choice
+                echo -ne "${NC}" # Reset color
 
                 if [[ $workspace_choice =~ ^[0-9]+$ ]]; then
-                    # Get config directory for workspace files
-                    local config_dir
-                    if [ -d "config" ] && [ -f "startup.sh" ]; then
-                        config_dir="config"
-                    else
-                        config_dir="$HOME/.cache/fm-manager"
-                    fi
-
-                    # Get workspace files to validate selection
-                    local workspace_files
-                    mapfile -t workspace_files < <(find "$config_dir" -name "*.json" -type f ! -name ".*" 2>/dev/null | sort)
-
                     if [ "$workspace_choice" -ge 1 ] && [ "$workspace_choice" -le "${#workspace_files[@]}" ]; then
-                        show_workspace_management_screen "$workspace_choice" "${workspace_files[@]}"
+                        handle_workspace_action_selection "$workspace_choice" "${workspace_files[@]}"
                     else
                         echo ""
                         print_error "Invalid workspace number. Please select between 1 and ${#workspace_files[@]}."
@@ -138,7 +92,7 @@ show_settings_menu() {
             *)
                 # Invalid command
                 echo ""
-                print_error "Invalid command. Use s (select workspace), m (manage workspace), b (back) or h (help)"
+                print_error "Invalid command. Use s (select workspace), b (back) or h (help)"
                 echo ""
                 echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
                 read -r
@@ -661,6 +615,126 @@ show_active_config_info() {
     echo ""
 }
 
+# Function to handle workspace action selection (toggle or manage)
+handle_workspace_action_selection() {
+    local workspace_choice="$1"
+    shift
+    local workspace_files=("$@")
+
+    # Get config directory
+    local config_dir
+    if [ -d "config" ] && [ -f "startup.sh" ]; then
+        config_dir="config"
+    else
+        config_dir="$HOME/.cache/fm-manager"
+    fi
+
+    local selected_index=$((workspace_choice - 1))
+    local selected_file="${workspace_files[selected_index]}"
+    local workspace_name=$(basename "$selected_file" .json)
+    local display_name=$(echo "$workspace_name" | sed 's/[_-]/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)} 1')
+
+    # Check if this workspace is currently active
+    local bulk_config_file="$config_dir/.bulk_project_config.json"
+    local is_active=false
+
+    if [ -f "$bulk_config_file" ] && command -v jq >/dev/null 2>&1; then
+        # Check if the workspace is in the activeConfig array
+        is_active=$(jq -r --arg workspace_file "$selected_file" \
+                   'if (.activeConfig // []) | contains([$workspace_file]) then "true" else "false" end' \
+                   "$bulk_config_file" 2>/dev/null)
+    fi
+
+    while true; do
+        clear
+        print_header "Workspace: $display_name"
+
+        # Parse projects from this workspace file
+        local workspace_projects=()
+        if command -v jq >/dev/null 2>&1 && [ -f "$selected_file" ]; then
+            while IFS= read -r line; do
+                workspace_projects+=("$line")
+            done < <(jq -r '.[] | "\(.displayName):\(.projectName):\(.startupCmd):\(.shutdownCmd)"' "$selected_file" 2>/dev/null)
+        fi
+
+        # Get projects root directory to show full paths
+        local projects_root
+        projects_root=$(get_projects_root_directory)
+        if [ $? -ne 0 ] || [ -z "$projects_root" ]; then
+            projects_root="<unknown>"
+        fi
+
+        echo ""
+        echo -e "${BRIGHT_CYAN}Workspace Location:${NC} ${DIM}$selected_file${NC}"
+        echo -e "${BRIGHT_CYAN}Projects Root:${NC} ${DIM}$projects_root${NC}"
+
+        # Show workspace status
+        echo -e "${BRIGHT_CYAN}Status:${NC} $([ "$is_active" = "true" ] && echo "${BRIGHT_GREEN}Active${NC}" || echo "${LIGHT_RED}Inactive${NC}")"
+        echo ""
+
+        # Display project summary
+        if [ ${#workspace_projects[@]} -eq 0 ]; then
+            echo -e "${BRIGHT_YELLOW}No projects configured in this workspace${NC}"
+        else
+            echo -e "${BRIGHT_WHITE}Projects in this workspace (${#workspace_projects[@]}):${NC}"
+            echo ""
+
+            # Display projects in a compact format
+            for i in "${!workspace_projects[@]}"; do
+                IFS=':' read -r project_display_name folder_name startup_cmd shutdown_cmd <<< "${workspace_projects[i]}"
+
+                local counter=$((i + 1))
+
+                # Check if folder exists
+                local folder_exists=false
+                if [ "$projects_root" != "<unknown>" ] && [ -d "${projects_root%/}/$folder_name" ]; then
+                    folder_exists=true
+                fi
+
+                # Show project with status indicator
+                if [ "$folder_exists" = true ]; then
+                    echo -e "  ${BRIGHT_CYAN}${counter}.${NC} ${BRIGHT_WHITE}${project_display_name}${NC} ${DIM}(${folder_name})${NC}"
+                else
+                    echo -e "  ${BRIGHT_CYAN}${counter}.${NC} ${BRIGHT_WHITE}${project_display_name}${NC} ${DIM}(${folder_name})${NC} ${BRIGHT_RED}[missing]${NC}"
+                fi
+            done
+        fi
+
+        echo ""
+        echo -e "${BRIGHT_GREEN}[t]${NC} toggle active/inactive │ ${BRIGHT_PURPLE}[m]${NC} manage workspace │ ${BRIGHT_PURPLE}[b]${NC} back"
+        echo ""
+        echo -ne "${BRIGHT_CYAN}>${NC} "
+
+        # Use instant selection for action choice
+        read -n 1 -r action_choice
+        echo # Add newline after instant selection
+
+        case "${action_choice,,}" in
+            "t")
+                handle_workspace_toggle "$workspace_choice" "${workspace_files[@]}"
+                # Auto return to settings after toggle
+                return
+                ;;
+            "m")
+                show_workspace_management_screen "$workspace_choice" "${workspace_files[@]}"
+                # Auto return to settings after management
+                return
+                ;;
+            "b")
+                return
+                ;;
+            *)
+                echo ""
+                print_error "Invalid command. Use t (toggle), m (manage) or b (back)"
+                echo ""
+                echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+                read -r
+                # Continue loop to show options again
+                ;;
+        esac
+    done
+}
+
 # Function to show workspace management screen with project folders
 show_workspace_management_screen() {
     local workspace_choice="$1"
@@ -744,9 +818,9 @@ show_workspace_management_screen() {
 
         echo ""
         if [ ${#workspace_projects[@]} -gt 0 ]; then
-            echo -e "${BRIGHT_RED}[d]${NC} delete project │ ${BRIGHT_PURPLE}[b]${NC} back │ ${BRIGHT_PURPLE}[h]${NC} help"
+            echo -e "${BRIGHT_GREEN}[a]${NC} add project │ ${BRIGHT_RED}[d]${NC} delete project │ ${BRIGHT_PURPLE}[b]${NC} back │ ${BRIGHT_PURPLE}[h]${NC} help"
         else
-            echo -e "${BRIGHT_RED}[d]${NC} delete workspace │ ${BRIGHT_PURPLE}[b]${NC} back │ ${BRIGHT_PURPLE}[h]${NC} help"
+            echo -e "${BRIGHT_GREEN}[a]${NC} add project │ ${BRIGHT_RED}[d]${NC} delete workspace │ ${BRIGHT_PURPLE}[b]${NC} back │ ${BRIGHT_PURPLE}[h]${NC} help"
         fi
         echo ""
         echo -ne "${BRIGHT_CYAN}>${NC} "
@@ -754,6 +828,9 @@ show_workspace_management_screen() {
         read -r choice
 
         case "${choice,,}" in
+            "a")
+                show_workspace_add_project_screen "$selected_file" "$display_name"
+                ;;
             "d")
                 if [ ${#workspace_projects[@]} -gt 0 ]; then
                     delete_project_from_workspace "$selected_file" "${workspace_projects[@]}"
@@ -774,11 +851,11 @@ show_workspace_management_screen() {
                 ;;
             *)
                 # Invalid command
-                local available_commands="b (back) or h (help)"
+                local available_commands="a (add project), b (back) or h (help)"
                 if [ ${#workspace_projects[@]} -gt 0 ]; then
-                    available_commands="d (delete project), b (back) or h (help)"
+                    available_commands="a (add project), d (delete project), b (back) or h (help)"
                 else
-                    available_commands="d (delete workspace), b (back) or h (help)"
+                    available_commands="a (add project), d (delete workspace), b (back) or h (help)"
                 fi
                 echo ""
                 print_error "Invalid command. Use $available_commands"
@@ -801,12 +878,327 @@ show_workspace_management_help() {
     echo -e "  ${BRIGHT_RED}Red${NC}     - Folder is missing from the projects directory"
     echo ""
     echo -e "${BRIGHT_CYAN}Available Commands:${NC}"
+    echo -e "  ${BRIGHT_GREEN}a${NC} - Add a new project to this workspace"
     echo -e "  ${BRIGHT_RED}d${NC} - Delete a project from this workspace (or delete empty workspace)"
     echo -e "  ${BRIGHT_PURPLE}b${NC} - Go back to settings menu"
     echo -e "  ${BRIGHT_PURPLE}h${NC} - Show this help screen"
     echo ""
     echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
     read -r
+}
+
+# Function to show add project screen for a specific workspace
+show_workspace_add_project_screen() {
+    local workspace_file="$1"
+    local workspace_display_name="$2"
+
+    clear
+    print_header "Add Project to Workspace: $workspace_display_name"
+
+    # Get projects root directory
+    local projects_root
+    projects_root=$(get_projects_root_directory)
+    if [ $? -ne 0 ] || [ -z "$projects_root" ]; then
+        echo ""
+        print_error "Cannot determine projects directory from existing configuration"
+        echo "Please make sure you have at least one project configured"
+        echo ""
+        echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+        read -r
+        return 1
+    fi
+
+    echo ""
+    print_color "$BRIGHT_CYAN" "Scanning projects directory: $projects_root"
+    echo ""
+
+    # Check if directory exists
+    if [ ! -d "$projects_root" ]; then
+        print_error "Projects directory does not exist: $projects_root"
+        echo ""
+        echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+        read -r
+        return 1
+    fi
+
+    # Find all subdirectories
+    local -a available_folders=()
+    local -a managed_status=()
+
+    while IFS= read -r -d '' dir; do
+        local folder_name=$(basename "$dir")
+
+        # Skip hidden directories and fm-manager itself
+        if [[ ! "$folder_name" =~ ^\. ]] && [[ "$folder_name" != "fm-manager" ]]; then
+            available_folders+=("$folder_name")
+
+            # Check if this folder is already managed in THIS workspace
+            if is_folder_managed_in_workspace "$folder_name" "$workspace_file"; then
+                managed_status+=("configured")
+            else
+                managed_status+=("available")
+            fi
+        fi
+    done < <(find "$projects_root" -mindepth 1 -maxdepth 1 -type d -print0 | sort -z)
+
+    if [ ${#available_folders[@]} -eq 0 ]; then
+        print_error "No folders found in projects directory: $projects_root"
+        echo ""
+        echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+        read -r
+        return 1
+    fi
+
+    # Display table header
+    printf "  ${BRIGHT_WHITE}%-3s  %-25s  %-12s${NC}\n" "#" "Folder Name" "Status"
+    printf "  ${DIM}%-3s  %-25s  %-12s${NC}\n" "─" "─────────────────────────" "────────────"
+
+    # Display all folders with their managed status
+    for i in "${!available_folders[@]}"; do
+        local counter=$((i + 1))
+        local folder="${available_folders[i]}"
+        local status="${managed_status[i]}"
+
+        # Truncate long folder names
+        local truncated_folder=$(printf "%.25s" "$folder")
+        [ ${#folder} -gt 25 ] && truncated_folder="${truncated_folder}.."
+
+        if [ "$status" = "configured" ]; then
+            # Already configured - show in dim
+            printf "  ${DIM}%-3s  %-25s  %s${NC}\n" "$counter" "$truncated_folder" "$status"
+        else
+            # Available to add - show in light green
+            printf "  ${BRIGHT_CYAN}%-3s${NC}  ${BRIGHT_WHITE}%-25s${NC}  ${GREEN}%s${NC}\n" "$counter" "$truncated_folder" "$status"
+        fi
+    done
+
+    echo ""
+    echo -ne "${BRIGHT_WHITE}Select a folder to add (enter number), or press Enter to go back: ${NC}"
+
+    read -r folder_choice
+
+    # Handle empty input (go back)
+    if [ -z "$folder_choice" ]; then
+        return 0
+    fi
+
+    # Validate choice is a number
+    if ! [[ "$folder_choice" =~ ^[0-9]+$ ]]; then
+        print_error "Invalid choice. Please enter a number."
+        echo ""
+        echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+        read -r
+        return 1
+    fi
+
+    # Validate choice is in range
+    if [ "$folder_choice" -lt 1 ] || [ "$folder_choice" -gt "${#available_folders[@]}" ]; then
+        print_error "Invalid choice. Please select a number between 1 and ${#available_folders[@]}."
+        echo ""
+        echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+        read -r
+        return 1
+    fi
+
+    # Get selected folder
+    local selected_index=$((folder_choice - 1))
+    local selected_folder="${available_folders[selected_index]}"
+    local selected_status="${managed_status[selected_index]}"
+
+    # Check if folder is already configured in this workspace
+    if [ "$selected_status" = "configured" ]; then
+        print_error "Folder '$selected_folder' is already configured in this workspace."
+        echo ""
+        echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+        read -r
+        return 1
+    fi
+
+    # Show configuration screen for selected folder
+    configure_new_workspace_project "$selected_folder" "$projects_root" "$workspace_file" "$workspace_display_name"
+}
+
+# Function to check if a folder is already managed in a specific workspace
+# Parameters: folder_name, workspace_file
+# Returns: 0 if managed, 1 if not managed
+is_folder_managed_in_workspace() {
+    local folder_name="$1"
+    local workspace_file="$2"
+
+    if [ ! -f "$workspace_file" ]; then
+        return 1
+    fi
+
+    # Check if jq is available
+    if ! command -v jq >/dev/null 2>&1; then
+        return 1
+    fi
+
+    # Check if any project in this workspace has this folder as projectName
+    local managed_count=$(jq --arg folder "$folder_name" \
+        '[.[] | select(.projectName == $folder)] | length' \
+        "$workspace_file" 2>/dev/null)
+
+    [ "$managed_count" -gt 0 ]
+}
+
+# Function to configure a new project for a specific workspace
+configure_new_workspace_project() {
+    local folder_name="$1"
+    local projects_root="$2"
+    local workspace_file="$3"
+    local workspace_display_name="$4"
+
+    clear
+    print_header "Configure New Project for Workspace: $workspace_display_name"
+    echo ""
+    print_color "$BRIGHT_CYAN" "Adding project: $folder_name"
+    print_color "$DIM" "Location: ${projects_root%/}/$folder_name"
+    echo ""
+
+    # Get display name
+    echo -e "${BRIGHT_WHITE}Enter display name for this project:${NC}"
+    echo -ne "${DIM}(press Enter to use '$folder_name')${NC} ${BRIGHT_CYAN}>${NC} "
+    read -r display_name
+
+    if [ -z "$display_name" ]; then
+        display_name="$folder_name"
+    fi
+
+    # Get startup command
+    echo ""
+    echo -e "${BRIGHT_WHITE}Enter startup command:${NC}"
+    echo -ne "${DIM}(e.g., 'npm start', 'yarn dev')${NC} ${BRIGHT_CYAN}>${NC} "
+    read -r startup_cmd
+
+    if [ -z "$startup_cmd" ]; then
+        startup_cmd="echo 'No startup command configured'"
+    fi
+
+    # Get shutdown command
+    echo ""
+    echo -e "${BRIGHT_WHITE}Enter shutdown command:${NC}"
+    echo -ne "${DIM}(e.g., 'npm run stop', 'pkill -f node')${NC} ${BRIGHT_CYAN}>${NC} "
+    read -r shutdown_cmd
+
+    if [ -z "$shutdown_cmd" ]; then
+        shutdown_cmd="echo 'No shutdown command configured'"
+    fi
+
+    # Show confirmation
+    echo ""
+    echo -e "${BRIGHT_WHITE}Project Configuration:${NC}"
+    echo -e "  Display Name:  ${BRIGHT_GREEN}$display_name${NC}"
+    echo -e "  Folder Name:   ${BRIGHT_CYAN}$folder_name${NC}"
+    echo -e "  Location:      ${DIM}${projects_root%/}/$folder_name${NC}"
+    echo -e "  Startup Cmd:   ${BRIGHT_YELLOW}$startup_cmd${NC}"
+    echo -e "  Shutdown Cmd:  ${BRIGHT_YELLOW}$shutdown_cmd${NC}"
+    echo -e "  Workspace:     ${BRIGHT_PURPLE}$workspace_display_name${NC}"
+    echo ""
+
+    echo -ne "${BRIGHT_WHITE}Add this project to workspace? (y/n): ${NC}"
+    read -r confirm_add
+
+    case "${confirm_add,,}" in
+        "y"|"yes")
+            echo ""
+            if add_project_to_workspace "$display_name" "$folder_name" "$startup_cmd" "$shutdown_cmd" "$workspace_file"; then
+                echo ""
+                print_color "$BRIGHT_GREEN" "🎉 Project '$display_name' has been successfully added to workspace '$workspace_display_name'"
+            else
+                echo ""
+                print_color "$BRIGHT_RED" "❌ Failed to add project to workspace"
+            fi
+            ;;
+        "n"|"no")
+            echo ""
+            print_color "$BRIGHT_YELLOW" "Project addition cancelled"
+            ;;
+        *)
+            echo ""
+            print_color "$BRIGHT_RED" "Invalid choice. Project addition cancelled"
+            ;;
+    esac
+
+    echo ""
+    echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+    read -r
+}
+
+# Function to add project to a specific workspace JSON file
+add_project_to_workspace() {
+    local display_name="$1"
+    local folder_name="$2"
+    local startup_cmd="$3"
+    local shutdown_cmd="$4"
+    local workspace_file="$5"
+
+    # Check if jq is available
+    if ! command -v jq >/dev/null 2>&1; then
+        print_error "jq is required for JSON manipulation but not found"
+        return 1
+    fi
+
+    # Check if workspace file exists
+    if [ ! -f "$workspace_file" ]; then
+        print_error "Workspace file not found: $workspace_file"
+        return 1
+    fi
+
+    # Create a backup of the original file
+    local backup_file="${workspace_file}.backup.$(date +%s)"
+    if ! cp "$workspace_file" "$backup_file"; then
+        print_error "Failed to create backup of workspace file"
+        return 1
+    fi
+
+    # Add the project to the JSON array
+    local temp_file="${workspace_file}.tmp"
+
+    # Get projects root directory to construct the full path
+    local projects_root
+    projects_root=$(get_projects_root_directory)
+    if [ $? -ne 0 ] || [ -z "$projects_root" ]; then
+        print_error "Cannot determine projects directory"
+        return 1
+    fi
+
+    # Construct the full path (we call it relativePath but it's actually absolute)
+    local full_path="${projects_root%/}/$folder_name"
+
+    if jq --arg display_name "$display_name" \
+          --arg project_name "$folder_name" \
+          --arg relative_path "$full_path" \
+          --arg startup_cmd "$startup_cmd" \
+          --arg shutdown_cmd "$shutdown_cmd" \
+          '. += [{
+              "displayName": $display_name,
+              "projectName": $project_name,
+              "startupCmd": $startup_cmd,
+              "shutdownCmd": $shutdown_cmd,
+              "relativePath": $relative_path
+          }]' \
+          "$workspace_file" > "$temp_file"; then
+
+        # Replace the original file with the modified version
+        if mv "$temp_file" "$workspace_file"; then
+            # Remove backup file on success
+            rm -f "$backup_file"
+            return 0
+        else
+            print_error "Failed to update workspace file"
+            # Restore from backup
+            mv "$backup_file" "$workspace_file"
+            rm -f "$temp_file"
+            return 1
+        fi
+    else
+        print_error "Failed to process JSON file"
+        # Restore from backup
+        mv "$backup_file" "$workspace_file"
+        rm -f "$temp_file"
+        return 1
+    fi
 }
 
 # Function to delete a project from workspace
@@ -816,8 +1208,7 @@ delete_project_from_workspace() {
     local workspace_projects=("$@")
 
     echo ""
-    echo -e "${BRIGHT_WHITE}Select project to delete (enter number):${NC}"
-    echo -ne "${BRIGHT_CYAN}>${NC} "
+    echo -ne "${BRIGHT_WHITE}Select project to delete (enter number): ${NC}"
     read -r project_choice
 
     # Validate choice is a number
@@ -845,7 +1236,21 @@ delete_project_from_workspace() {
     local selected_project="${workspace_projects[selected_index]}"
     IFS=':' read -r project_display_name folder_name startup_cmd shutdown_cmd <<< "$selected_project"
 
-    # Show confirmation dialog
+    # Show confirmation screen (new screen)
+    show_delete_project_confirmation "$workspace_file" "$project_display_name" "$folder_name" "$startup_cmd" "$shutdown_cmd"
+}
+
+# Function to show delete project confirmation screen
+show_delete_project_confirmation() {
+    local workspace_file="$1"
+    local project_display_name="$2"
+    local folder_name="$3"
+    local startup_cmd="$4"
+    local shutdown_cmd="$5"
+
+    clear
+    print_header "Delete Project Confirmation"
+
     echo ""
     echo -e "${BRIGHT_YELLOW}⚠ WARNING: You are about to delete the following project:${NC}"
     echo ""

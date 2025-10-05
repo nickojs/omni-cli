@@ -155,8 +155,18 @@ display_workspaces() {
                     status_display="  ${BRIGHT_RED}✗${NC} ${BRIGHT_RED}not found${NC}"
                 fi
 
-                # Display with global counter
-                echo -e "$prefix  ${BRIGHT_CYAN}$global_counter${NC}  ${BRIGHT_WHITE}${project_display_name}${NC}$status_display"
+                # Format project name with minimum 32 characters for alignment
+                local formatted_name
+                if [ ${#project_display_name} -gt 32 ]; then
+                    # Truncate long names
+                    formatted_name=$(printf "%.29s..." "$project_display_name")
+                else
+                    # Pad short names to 32 characters
+                    formatted_name=$(printf "%-32s" "$project_display_name")
+                fi
+
+                # Display with pretty table formatting - using echo to avoid printf issues
+                echo -e "$prefix  ${BRIGHT_CYAN}$global_counter${NC}  ${BRIGHT_WHITE}${formatted_name}${NC}$status_display"
                 global_counter=$((global_counter + 1))
             done
         fi
