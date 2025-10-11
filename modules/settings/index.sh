@@ -13,6 +13,7 @@ SETTINGS_DIR="$(dirname "${BASH_SOURCE[0]}")"
 # Import all settings modules
 source "$SETTINGS_DIR/utils.sh"      # Configuration utilities (shared functions)
 source "$SETTINGS_DIR/ui_helpers.sh" # UI interaction helpers
+source "$SETTINGS_DIR/state.sh"      # Workspace state management
 source "$SETTINGS_DIR/display.sh"    # Settings menu display
 source "$SETTINGS_DIR/commands.sh"   # Settings command handling
 

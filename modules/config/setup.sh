@@ -9,9 +9,8 @@
 # Get the script directory to make paths relative to script location
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Function to check config and guide user through first-time setup
-check_and_setup_config() {
-    # Check if bulk config exists
+# Function to check if this is first-time setup (just checks, doesn't show UI)
+is_first_time_setup() {
     local config_dir
     if [ -d "config" ] && [ -f "startup.sh" ]; then
         config_dir="config"
@@ -19,25 +18,50 @@ check_and_setup_config() {
         config_dir="$HOME/.cache/fm-manager"
     fi
 
-    local bulk_config_file="$config_dir/.bulk_project_config.json"
+    local workspaces_file="$config_dir/.workspaces.json"
 
-    # If no bulk config exists, this is first-time setup
-    if [ ! -f "$bulk_config_file" ]; then
-        print_header "WELCOME TO FM-MANAGER"
-        echo ""
-        print_info "This appears to be your first time running fm-manager."
-        print_info "You'll need to create at least one workspace to get started."
-        echo ""
-        print_color "$BRIGHT_CYAN" "The manager will now start. Use Settings [s] to:"
-        echo "  1. Create a new workspace"
-        echo "  2. Add projects to your workspace"
-        echo "  3. Activate the workspace"
-        echo ""
-        print_color "$BRIGHT_YELLOW" "Press Enter to continue..."
-        read -r
-
-        # Create empty bulk config to prevent this message from showing again
-        mkdir -p "$config_dir"
-        echo '{"activeConfig": [], "projectsPath": "", "availableConfigs": []}' > "$bulk_config_file"
+    # Return 0 (true) if first time, 1 (false) if not
+    if [ ! -f "$workspaces_file" ]; then
+        return 0
+    else
+        return 1
     fi
+}
+
+# Function to initialize config for first-time setup
+initialize_first_time_config() {
+    local config_dir
+    if [ -d "config" ] && [ -f "startup.sh" ]; then
+        config_dir="config"
+    else
+        config_dir="$HOME/.cache/fm-manager"
+    fi
+
+    local workspaces_file="$config_dir/.workspaces.json"
+
+    # Create empty workspaces config
+    mkdir -p "$config_dir"
+    echo '{"activeConfig": [], "projectsPath": "", "availableConfigs": [], "workspacePaths": {}}' > "$workspaces_file"
+}
+
+# Function to show first-time welcome screen (for use inside tmux)
+show_first_time_welcome() {
+    clear
+    print_header "WELCOME TO FM-MANAGER"
+    echo ""
+    print_info "This appears to be your first time running fm-manager."
+    print_info "You'll need to create at least one workspace to get started."
+    echo ""
+    print_color "$BRIGHT_CYAN" "Quick Start Guide:"
+    echo "  ${BRIGHT_WHITE}1.${NC} Press ${BRIGHT_PURPLE}[s]${NC} to open Settings"
+    echo "  ${BRIGHT_WHITE}2.${NC} Press ${BRIGHT_GREEN}[a]${NC} to Add a new workspace"
+    echo "  ${BRIGHT_WHITE}3.${NC} Select the projects folder for your workspace"
+    echo "  ${BRIGHT_WHITE}4.${NC} Add projects to your workspace"
+    echo "  ${BRIGHT_WHITE}5.${NC} Start managing your projects!"
+    echo ""
+    print_color "$BRIGHT_YELLOW" "Press Enter to continue to the main menu..."
+    read -r
+
+    # Initialize config
+    initialize_first_time_config
 }

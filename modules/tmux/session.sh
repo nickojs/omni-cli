@@ -13,29 +13,17 @@ SESSION_NAME="${SESSION_NAME:-fm-session}"
 setup_tmux_session() {
     # Check if session already exists
     if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
-        print_warning "Tmux session '$SESSION_NAME' already exists."
-        print_color "$BRIGHT_YELLOW" "Do you want to attach to existing session? ${BOLD}(y/n)${NC}: "
-        read -r attach_choice
-        if [[ $attach_choice =~ ^[Yy]$ ]]; then
-            show_loading "Attaching to existing session" 1
-            tmux attach-session -t "$SESSION_NAME"
-            exit 0
-        else
-            show_loading "Killing existing session" 1
-            tmux kill-session -t "$SESSION_NAME"
-        fi
+        # Session exists, just return (will attach in main)
+        return 0
     fi
-    
+
     # Create new session (detached) and start the menu in it
-    show_loading "Creating tmux session" 1
     tmux new-session -d -s "$SESSION_NAME" "$0 --tmux-menu"
 
     # Configure session for better scrolling and usability
     tmux set-option -t "$SESSION_NAME" mouse on
     tmux set-option -t "$SESSION_NAME" history-limit 10000
     tmux set-option -t "$SESSION_NAME" mode-keys vi
-    
-    print_success "Created tmux session: $SESSION_NAME with project menu"
 }
 
 # Function to attach to existing session

@@ -177,19 +177,19 @@ handle_workspace_toggle() {
     local display_name=$(format_workspace_display_name "$selected_file")
 
     # Check if this workspace is currently active
-    local bulk_config_file="$config_dir/.bulk_project_config.json"
+    local workspaces_file="$config_dir/.workspaces.json"
     local is_active=false
 
-    if [ -f "$bulk_config_file" ] && command -v jq >/dev/null 2>&1; then
+    if [ -f "$workspaces_file" ] && command -v jq >/dev/null 2>&1; then
         # Check if the workspace is in the activeConfig array
         is_active=$(jq -r --arg workspace_file "$selected_file" \
                    'if (.activeConfig // []) | contains([$workspace_file]) then "true" else "false" end' \
-                   "$bulk_config_file" 2>/dev/null)
+                   "$workspaces_file" 2>/dev/null)
     fi
 
     if [ "$is_active" = "true" ]; then
         # Workspace is currently active, inactivate it
-        if remove_workspace_from_bulk_config "$selected_file"; then
+        if deactivate_workspace "$selected_file"; then
             echo ""
             print_color "$BRIGHT_YELLOW" "🔘 Workspace '$display_name' inactivated"
         else
@@ -198,7 +198,7 @@ handle_workspace_toggle() {
         fi
     else
         # Workspace is not active, activate it
-        if add_workspace_to_bulk_config "$selected_file"; then
+        if activate_workspace "$selected_file"; then
             echo ""
             print_color "$BRIGHT_GREEN" "✓ Workspace '$display_name' activated successfully"
         else
@@ -362,12 +362,12 @@ show_active_config_info() {
     # Check for bulk config file
     local config_dir=$(get_config_directory)
 
-    local bulk_config_file="$config_dir/.bulk_project_config.json"
+    local workspaces_file="$config_dir/.workspaces.json"
 
-    if [ -f "$bulk_config_file" ] && command -v jq >/dev/null 2>&1; then
-        local active_configs=$(jq -r '.activeConfig[]? // empty' "$bulk_config_file" 2>/dev/null)
-        local projects_path=$(jq -r '.projectsPath // empty' "$bulk_config_file" 2>/dev/null)
-        local total_configs=$(jq -r '.availableConfigs | length' "$bulk_config_file" 2>/dev/null)
+    if [ -f "$workspaces_file" ] && command -v jq >/dev/null 2>&1; then
+        local active_configs=$(jq -r '.activeConfig[]? // empty' "$workspaces_file" 2>/dev/null)
+        local projects_path=$(jq -r '.projectsPath // empty' "$workspaces_file" 2>/dev/null)
+        local total_configs=$(jq -r '.availableConfigs | length' "$workspaces_file" 2>/dev/null)
 
         if [ -n "$active_configs" ] && [ -n "$total_configs" ]; then
             # Generate display name from active configs
@@ -407,14 +407,14 @@ handle_workspace_action_selection() {
     local display_name=$(format_workspace_display_name "$selected_file")
 
     # Check if this workspace is currently active
-    local bulk_config_file="$config_dir/.bulk_project_config.json"
+    local workspaces_file="$config_dir/.workspaces.json"
     local is_active=false
 
-    if [ -f "$bulk_config_file" ] && command -v jq >/dev/null 2>&1; then
+    if [ -f "$workspaces_file" ] && command -v jq >/dev/null 2>&1; then
         # Check if the workspace is in the activeConfig array
         is_active=$(jq -r --arg workspace_file "$selected_file" \
                    'if (.activeConfig // []) | contains([$workspace_file]) then "true" else "false" end' \
-                   "$bulk_config_file" 2>/dev/null)
+                   "$workspaces_file" 2>/dev/null)
     fi
 
     while true; do
@@ -902,14 +902,14 @@ delete_workspace() {
     # Check if this workspace is currently active
     local config_dir=$(get_config_directory)
 
-    local bulk_config_file="$config_dir/.bulk_project_config.json"
+    local workspaces_file="$config_dir/.workspaces.json"
     local is_active=false
 
-    if [ -f "$bulk_config_file" ] && command -v jq >/dev/null 2>&1; then
+    if [ -f "$workspaces_file" ] && command -v jq >/dev/null 2>&1; then
         # Check if the workspace is in the activeConfig array
         is_active=$(jq -r --arg workspace_file "$workspace_file" \
                    'if (.activeConfig // []) | contains([$workspace_file]) then "true" else "false" end' \
-                   "$bulk_config_file" 2>/dev/null)
+                   "$workspaces_file" 2>/dev/null)
     fi
 
     if [ "$is_active" = "true" ]; then
@@ -927,7 +927,7 @@ delete_workspace() {
             if [ "$is_active" = "true" ]; then
                 echo ""
                 print_color "$BRIGHT_YELLOW" "Deactivating workspace..."
-                if ! remove_workspace_from_bulk_config "$workspace_file"; then
+                if ! deactivate_workspace "$workspace_file"; then
                     print_color "$BRIGHT_RED" "❌ Failed to deactivate workspace, deletion cancelled"
                     wait_for_enter
                     return 1
@@ -1040,7 +1040,7 @@ show_add_workspace_screen() {
 
         case "${activate_choice,,}" in
             "y"|"yes")
-                if add_workspace_to_bulk_config "$workspace_file" "$workspace_folder"; then
+                if activate_workspace "$workspace_file" "$workspace_folder"; then
                     echo ""
                     print_color "$BRIGHT_GREEN" "✓ Workspace activated successfully"
                 else
@@ -1051,7 +1051,7 @@ show_add_workspace_screen() {
             *)
                 echo ""
                 print_color "$BRIGHT_YELLOW" "Workspace created but not activated"
-                print_color "$DIM" "Note: You'll need to add this workspace to bulk config manually"
+                print_color "$DIM" "Note: You can activate it later from the settings menu"
                 ;;
         esac
     else

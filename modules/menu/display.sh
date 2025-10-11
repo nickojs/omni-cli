@@ -8,9 +8,14 @@
 
 # Function to display menu and start project (for tmux session)
 show_project_menu_tmux() {
+    # Check if this is first-time setup and show welcome screen
+    if is_first_time_setup; then
+        show_first_time_welcome
+    fi
+
     while true; do
         clear
-        
+
         # Clean header
         print_header "Project Manager"
 
@@ -31,7 +36,7 @@ show_project_menu_tmux() {
         echo ""
         echo -ne "${BRIGHT_CYAN}>${NC} "
         read -r choice
-        
+
         # Handle user input
         handle_menu_choice "$choice"
     done
@@ -47,12 +52,12 @@ show_active_config_info() {
         config_dir="$HOME/.cache/fm-manager"
     fi
 
-    local bulk_config_file="$config_dir/.bulk_project_config.json"
+    local workspaces_file="$config_dir/.workspaces.json"
 
-    if [ -f "$bulk_config_file" ] && command -v jq >/dev/null 2>&1; then
-        local active_configs=$(jq -r '.activeConfig[]? // empty' "$bulk_config_file" 2>/dev/null)
-        local projects_path=$(jq -r '.projectsPath // empty' "$bulk_config_file" 2>/dev/null)
-        local total_configs=$(jq -r '.availableConfigs | length' "$bulk_config_file" 2>/dev/null)
+    if [ -f "$workspaces_file" ] && command -v jq >/dev/null 2>&1; then
+        local active_configs=$(jq -r '.activeConfig[]? // empty' "$workspaces_file" 2>/dev/null)
+        local projects_path=$(jq -r '.projectsPath // empty' "$workspaces_file" 2>/dev/null)
+        local total_configs=$(jq -r '.availableConfigs | length' "$workspaces_file" 2>/dev/null)
 
         if [ -n "$active_configs" ] && [ -n "$total_configs" ]; then
             # Generate display name from active configs
@@ -64,8 +69,8 @@ show_active_config_info() {
             fi
             echo ""
             return
-        elif [ -f "$bulk_config_file" ] && [ -n "$total_configs" ] && [ "$total_configs" -gt 0 ]; then
-            # Bulk config exists but no active configs
+        elif [ -f "$workspaces_file" ] && [ -n "$total_configs" ] && [ "$total_configs" -gt 0 ]; then
+            # Workspaces config exists but no active configs
             echo -e "${BRIGHT_YELLOW}⚠${NC} ${BRIGHT_WHITE}No Active Workspaces:${NC} ${DIM}Configure workspaces in Settings${NC}"
             echo ""
             return
@@ -100,17 +105,17 @@ display_workspaces() {
         config_dir="$HOME/.cache/fm-manager"
     fi
 
-    # Get only active workspaces from bulk config
+    # Get only active workspaces from workspaces config
     local workspace_files=()
-    local bulk_config_file="$config_dir/.bulk_project_config.json"
+    local workspaces_file="$config_dir/.workspaces.json"
 
-    if [ -f "$bulk_config_file" ] && command -v jq >/dev/null 2>&1; then
-        # Get active workspaces from bulk config
+    if [ -f "$workspaces_file" ] && command -v jq >/dev/null 2>&1; then
+        # Get active workspaces from workspaces config
         while IFS= read -r active_workspace; do
             if [ -f "$active_workspace" ]; then
                 workspace_files+=("$active_workspace")
             fi
-        done < <(jq -r '.activeConfig[]? // empty' "$bulk_config_file" 2>/dev/null)
+        done < <(jq -r '.activeConfig[]? // empty' "$workspaces_file" 2>/dev/null)
     fi
 
     # If no active workspaces found, show all workspaces (fallback for backward compatibility)

@@ -25,17 +25,17 @@ load_projects_from_json() {
         config_dir="$HOME/.cache/fm-manager"
     fi
 
-    # Check for bulk configuration file
-    local bulk_config_file="$config_dir/.bulk_project_config.json"
+    # Check for workspaces configuration file
+    local workspaces_file="$config_dir/.workspaces.json"
     local workspace_files=()
 
-    if [ -f "$bulk_config_file" ] && command -v jq >/dev/null 2>&1; then
-        # Load only active workspaces from bulk configuration
+    if [ -f "$workspaces_file" ] && command -v jq >/dev/null 2>&1; then
+        # Load only active workspaces from workspaces configuration
         while IFS= read -r active_workspace; do
             if [ -f "$active_workspace" ]; then
                 workspace_files+=("$active_workspace")
             fi
-        done < <(jq -r '.activeConfig[]? // empty' "$bulk_config_file" 2>/dev/null)
+        done < <(jq -r '.activeConfig[]? // empty' "$workspaces_file" 2>/dev/null)
     else
         # Fallback: load all JSON workspace files (excluding hidden files) for backward compatibility
         mapfile -t workspace_files < <(find "$config_dir" -name "*.json" -type f ! -name ".*" 2>/dev/null | sort)

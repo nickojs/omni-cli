@@ -3,11 +3,11 @@
 # ========================================
 # Enhanced Masquerade Script
 # ========================================
-# Handles multiple test configurations with bulk_project_config marker
+# Handles multiple test configurations with workspaces config marker
 
 CONFIG_DIR="config"
 BACKUP_DIR="$CONFIG_DIR/.bkp"
-MARKER_FILE="$CONFIG_DIR/.bulk_project_config.json"
+MARKER_FILE="$CONFIG_DIR/.workspaces.json"
 TEST_AREA="test-area"
 
 # Function to show usage
@@ -41,11 +41,11 @@ enable_masquerade() {
     echo "📦 Creating backup directory..."
     mkdir -p "$BACKUP_DIR"
 
-    # Backup all existing JSON configs (except bulk_project_config.json and projects_output.json)
+    # Backup all existing JSON configs (except workspaces config.json and projects_output.json)
     echo "💾 Backing up original configurations..."
     if ls "$CONFIG_DIR"/*.json >/dev/null 2>&1; then
-        # Move all JSON files except .bulk_project_config.json and projects_output.json (keep for compatibility)
-        find "$CONFIG_DIR" -name "*.json" ! -name ".bulk_project_config.json" ! -name "projects_output.json" -exec mv {} "$BACKUP_DIR/" \;
+        # Move all JSON files except .workspaces.json and projects_output.json (keep for compatibility)
+        find "$CONFIG_DIR" -name "*.json" ! -name ".workspaces.json" ! -name "projects_output.json" -exec mv {} "$BACKUP_DIR/" \;
         if ls "$BACKUP_DIR"/*.json >/dev/null 2>&1; then
             echo "   Backed up: $(ls "$BACKUP_DIR"/*.json | xargs basename -a)"
         fi
@@ -62,8 +62,8 @@ enable_masquerade() {
         fi
     done
 
-    # Create bulk_project_config tracker
-    echo "🏷️  Creating bulk_project_config tracker..."
+    # Create workspaces config tracker
+    echo "🏷️  Creating workspaces config tracker..."
 
     # Build available configs array using jq (include test configs + projects_output for compatibility)
     local available_configs_json='["projects_output"]'
@@ -116,13 +116,13 @@ restore_masquerade() {
     # Remove backup directory
     rmdir "$BACKUP_DIR"
 
-    # Update bulk_project_config tracker
-    echo "🏷️  Updating bulk_project_config tracker..."
+    # Update workspaces config tracker
+    echo "🏷️  Updating workspaces config tracker..."
 
-    # Get restored configs (excluding .bulk_project_config.json itself)
+    # Get restored configs (excluding .workspaces.json itself)
     local restored_configs=()
     if ls "$CONFIG_DIR"/*.json >/dev/null 2>&1; then
-        mapfile -t restored_configs < <(ls "$CONFIG_DIR"/*.json | grep -v ".bulk_project_config.json" | xargs basename -a)
+        mapfile -t restored_configs < <(ls "$CONFIG_DIR"/*.json | grep -v ".workspaces.json" | xargs basename -a)
     fi
 
     # Build configs array using jq

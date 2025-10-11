@@ -249,12 +249,12 @@ get_active_workspaces_list() {
 
     result_array=()
     local config_dir=$(get_config_directory)
-    local bulk_config_file="$config_dir/.bulk_project_config.json"
+    local workspaces_file="$config_dir/.workspaces.json"
 
-    if [ -f "$bulk_config_file" ] && command -v jq >/dev/null 2>&1; then
+    if [ -f "$workspaces_file" ] && command -v jq >/dev/null 2>&1; then
         while IFS= read -r active_workspace; do
             result_array+=("$active_workspace")
-        done < <(jq -r '.activeConfig[]? // empty' "$bulk_config_file" 2>/dev/null)
+        done < <(jq -r '.activeConfig[]? // empty' "$workspaces_file" 2>/dev/null)
     fi
 }
 

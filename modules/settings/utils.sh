@@ -166,12 +166,12 @@ get_workspace_projects_root() {
         config_dir="$HOME/.cache/fm-manager"
     fi
 
-    local bulk_config_file="$config_dir/.bulk_project_config.json"
+    local workspaces_file="$config_dir/.workspaces.json"
 
-    # First, try to get from bulk config workspacePaths mapping
-    if [ -f "$bulk_config_file" ] && command -v jq >/dev/null 2>&1; then
+    # First, try to get from workspaces config workspacePaths mapping
+    if [ -f "$workspaces_file" ] && command -v jq >/dev/null 2>&1; then
         local workspace_path=$(jq -r --arg workspace_file "$workspace_file" \
-            '.workspacePaths[$workspace_file] // empty' "$bulk_config_file" 2>/dev/null)
+            '.workspacePaths[$workspace_file] // empty' "$workspaces_file" 2>/dev/null)
 
         if [ -n "$workspace_path" ] && [ "$workspace_path" != "null" ]; then
             echo "$workspace_path"
@@ -365,16 +365,16 @@ add_workspace_to_bulk_config() {
         config_dir="$HOME/.cache/fm-manager"
     fi
 
-    local bulk_config_file="$config_dir/.bulk_project_config.json"
+    local workspaces_file="$config_dir/.workspaces.json"
 
     # If projects_folder not provided, try to get from existing config or use dirname
     if [ -z "$projects_folder" ]; then
         projects_folder=$(dirname "$workspace_file")
     fi
 
-    # Check if bulk config file already exists
-    if [ -f "$bulk_config_file" ]; then
-        # Update existing bulk config
+    # Check if workspaces config file already exists
+    if [ -f "$workspaces_file" ]; then
+        # Update existing workspaces config
         local temp_file=$(mktemp)
         if jq --arg workspace_file "$workspace_file" \
            --arg projects_path "$projects_folder" \
@@ -382,9 +382,9 @@ add_workspace_to_bulk_config() {
             .projectsPath = $projects_path |
             .availableConfigs = (.availableConfigs + [$workspace_file] | unique) |
             .workspacePaths = (.workspacePaths // {} | . + {($workspace_file): $projects_path})' \
-           "$bulk_config_file" > "$temp_file"; then
+           "$workspaces_file" > "$temp_file"; then
 
-            if mv "$temp_file" "$bulk_config_file"; then
+            if mv "$temp_file" "$workspaces_file"; then
                 return 0
             else
                 rm -f "$temp_file"
@@ -395,7 +395,7 @@ add_workspace_to_bulk_config() {
             return 1
         fi
     else
-        # Create new bulk config file with workspacePaths mapping
+        # Create new workspaces config file with workspacePaths mapping
         local temp_file=$(mktemp)
         if jq -n --arg workspace_file "$workspace_file" \
            --arg projects_path "$projects_folder" \
@@ -406,7 +406,7 @@ add_workspace_to_bulk_config() {
                 "workspacePaths": {($workspace_file): $projects_path}
            }' > "$temp_file"; then
 
-            if mv "$temp_file" "$bulk_config_file"; then
+            if mv "$temp_file" "$workspaces_file"; then
                 return 0
             else
                 rm -f "$temp_file"
@@ -433,10 +433,10 @@ remove_workspace_from_bulk_config() {
         config_dir="$HOME/.cache/fm-manager"
     fi
 
-    local bulk_config_file="$config_dir/.bulk_project_config.json"
+    local workspaces_file="$config_dir/.workspaces.json"
 
-    if [ ! -f "$bulk_config_file" ]; then
-        print_error "Bulk configuration file not found"
+    if [ ! -f "$workspaces_file" ]; then
+        print_error "Workspaces configuration file not found"
         return 1
     fi
 
@@ -451,10 +451,10 @@ remove_workspace_from_bulk_config() {
     # Remove workspace ONLY from activeConfig array, keep it in availableConfigs
     if jq --arg workspace_file "$workspace_file" \
        '.activeConfig = (.activeConfig - [$workspace_file])' \
-       "$bulk_config_file" > "$temp_file"; then
+       "$workspaces_file" > "$temp_file"; then
 
-        # Move the updated file (always keep the bulk config file)
-        if mv "$temp_file" "$bulk_config_file"; then
+        # Move the updated file (always keep the workspaces config file)
+        if mv "$temp_file" "$workspaces_file"; then
             return 0
         else
             rm -f "$temp_file"
