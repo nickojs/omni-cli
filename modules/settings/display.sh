@@ -25,7 +25,7 @@ show_settings_menu() {
             echo -e "${BRIGHT_RED}[s]${NC} select workspace │ ${BRIGHT_PURPLE}[b]${NC} back │ ${BRIGHT_PURPLE}[h]${NC} help"
         else
             echo ""
-            echo -e "${BRIGHT_GREEN}[s]${NC} select workspace │ ${BRIGHT_PURPLE}[b]${NC} back │ ${BRIGHT_PURPLE}[h]${NC} help"
+            echo -e "${BRIGHT_GREEN}[s]${NC} select workspace │ ${BRIGHT_GREEN}[a]${NC} add workspace │ ${BRIGHT_PURPLE}[b]${NC} back │ ${BRIGHT_PURPLE}[h]${NC} help"
         fi
         
         # Get user input with instant selection
@@ -66,21 +66,40 @@ show_settings_menu() {
                 echo ""
                 echo -ne "${BRIGHT_WHITE}Select workspace: ${BRIGHT_CYAN}"
                 read -r workspace_choice
-                echo -ne "${NC}" # Reset color
+                echo -ne "${NC}"
 
                 if [[ $workspace_choice =~ ^[0-9]+$ ]]; then
                     if [ "$workspace_choice" -ge 1 ] && [ "$workspace_choice" -le "${#workspace_files[@]}" ]; then
                         handle_workspace_action_selection "$workspace_choice" "${workspace_files[@]}"
                     else
-                        echo ""
                         print_error "Invalid workspace number. Please select between 1 and ${#workspace_files[@]}."
-                        sleep 1
+                        echo ""
+                        echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+                        read -r
                     fi
                 else
-                    echo ""
                     print_error "Please enter a valid workspace number."
-                    sleep 1
+                    echo ""
+                    echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+                    read -r
                 fi
+                ;;
+            "a")
+                # Check if any projects are currently running
+                local running_count=$(count_running_projects)
+                if [ "$running_count" -gt 0 ]; then
+                    echo ""
+                    print_error "Cannot add workspaces while projects are running!"
+                    print_info "Currently running projects: $running_count"
+                    print_info "Stop all projects first, then add workspaces."
+                    echo ""
+                    echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+                    read -r
+                    continue
+                fi
+
+                # Show add workspace flow
+                show_add_workspace_screen
                 ;;
             "b")
                 break
@@ -92,7 +111,7 @@ show_settings_menu() {
             *)
                 # Invalid command
                 echo ""
-                print_error "Invalid command. Use s (select workspace), b (back) or h (help)"
+                print_error "Invalid command. Use s (select workspace), a (add workspace), b (back) or h (help)"
                 echo ""
                 echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
                 read -r
@@ -171,8 +190,11 @@ display_workspace_selector_table() {
             for j in "${!workspace_projects[@]}"; do
                 IFS=':' read -r project_display_name folder_name startup_cmd shutdown_cmd <<< "${workspace_projects[j]}"
 
-                # Check if this is the last project in this workspace AND if it's the last workspace
-                local prefix="${BRIGHT_CYAN}●${NC}"
+                # Check if this is the last project in this workspace
+                local prefix="${BRIGHT_CYAN}├─${NC}"
+                if [ $((j + 1)) -eq ${#workspace_projects[@]} ]; then
+                    prefix="${BRIGHT_CYAN}└─${NC}"
+                fi
 
                 # Format data with fixed column widths: 32 | 30 | 32 | 32
                 local col1="$project_display_name"
@@ -330,8 +352,11 @@ display_config_table() {
             for j in "${!workspace_projects[@]}"; do
                 IFS=':' read -r project_display_name folder_name startup_cmd shutdown_cmd <<< "${workspace_projects[j]}"
 
-                # Check if this is the last project in this workspace AND if it's the last workspace
-                local prefix="${BRIGHT_CYAN}●${NC}"
+                # Check if this is the last project in this workspace
+                local prefix="${BRIGHT_CYAN}├─${NC}"
+                if [ $((j + 1)) -eq ${#workspace_projects[@]} ]; then
+                    prefix="${BRIGHT_CYAN}└─${NC}"
+                fi
 
                 # Format data with fixed column widths: 32 | 30 | 32 | 32
                 local col1="$project_display_name"
@@ -659,7 +684,7 @@ handle_workspace_action_selection() {
 
         # Get projects root directory to show full paths
         local projects_root
-        projects_root=$(get_projects_root_directory)
+        projects_root=$(get_workspace_projects_root "$selected_file")
         if [ $? -ne 0 ] || [ -z "$projects_root" ]; then
             projects_root="<unknown>"
         fi
@@ -768,7 +793,7 @@ show_workspace_management_screen() {
 
         # Get projects root directory to show full paths
         local projects_root
-        projects_root=$(get_projects_root_directory)
+        projects_root=$(get_workspace_projects_root "$selected_file")
         if [ $? -ne 0 ] || [ -z "$projects_root" ]; then
             projects_root="<unknown>"
         fi
@@ -895,13 +920,13 @@ show_workspace_add_project_screen() {
     clear
     print_header "Add Project to Workspace: $workspace_display_name"
 
-    # Get projects root directory
+    # Get projects root directory for this workspace
     local projects_root
-    projects_root=$(get_projects_root_directory)
+    projects_root=$(get_workspace_projects_root "$workspace_file")
     if [ $? -ne 0 ] || [ -z "$projects_root" ]; then
         echo ""
-        print_error "Cannot determine projects directory from existing configuration"
-        echo "Please make sure you have at least one project configured"
+        print_error "Cannot determine projects directory for this workspace"
+        print_info "This workspace may not have been properly configured with a projects folder"
         echo ""
         echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
         read -r
@@ -1157,9 +1182,9 @@ add_project_to_workspace() {
 
     # Get projects root directory to construct the full path
     local projects_root
-    projects_root=$(get_projects_root_directory)
+    projects_root=$(get_workspace_projects_root "$workspace_file")
     if [ $? -ne 0 ] || [ -z "$projects_root" ]; then
-        print_error "Cannot determine projects directory"
+        print_error "Cannot determine projects directory for this workspace"
         return 1
     fi
 
@@ -1435,4 +1460,115 @@ delete_workspace() {
             return 1
             ;;
     esac
+}
+
+# Function to show add workspace screen
+show_add_workspace_screen() {
+    clear
+    print_header "Add New Workspace"
+    echo ""
+    print_color "$BRIGHT_CYAN" "Use the file navigator to select a workspace folder"
+    echo ""
+    echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+    read -r
+
+    # Use the navigator module to select workspace folder
+    # Reset the SELECTED_PROJECTS_DIR variable
+    unset SELECTED_PROJECTS_DIR
+
+    # Call the navigator
+    show_interactive_browser
+
+    # Check if a directory was selected
+    if [ -z "$SELECTED_PROJECTS_DIR" ]; then
+        clear
+        print_warning "No workspace folder selected"
+        echo ""
+        echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+        read -r
+        return 1
+    fi
+
+    # Convert to absolute path
+    local workspace_folder=$(realpath "$SELECTED_PROJECTS_DIR")
+
+    # Get workspace name from user
+    clear
+    print_header "Configure New Workspace"
+    echo ""
+    print_color "$BRIGHT_CYAN" "Selected folder: $workspace_folder"
+    echo ""
+
+    # Suggest a workspace name based on folder
+    local suggested_name=$(basename "$workspace_folder" | tr '[:upper:]' '[:lower:]' | tr ' ' '_')
+
+    echo -e "${BRIGHT_WHITE}Enter workspace name:${NC}"
+    echo -ne "${DIM}(press Enter to use '$suggested_name')${NC} ${BRIGHT_CYAN}>${NC} "
+    read -r workspace_name
+
+    if [ -z "$workspace_name" ]; then
+        workspace_name="$suggested_name"
+    fi
+
+    # Sanitize workspace name (replace spaces with underscores, lowercase)
+    workspace_name=$(echo "$workspace_name" | tr '[:upper:]' '[:lower:]' | tr ' ' '_' | tr -cd '[:alnum:]_-')
+
+    # Get config directory
+    local config_dir
+    if [ -d "config" ] && [ -f "startup.sh" ]; then
+        config_dir="config"
+    else
+        config_dir="$HOME/.cache/fm-manager"
+        mkdir -p "$config_dir"
+    fi
+
+    local workspace_file="$config_dir/${workspace_name}.json"
+
+    # Check if workspace already exists
+    if [ -f "$workspace_file" ]; then
+        echo ""
+        print_error "A workspace with name '$workspace_name' already exists!"
+        echo ""
+        echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+        read -r
+        return 1
+    fi
+
+    # Create empty workspace JSON file
+    if echo '[]' | jq . > "$workspace_file"; then
+        echo ""
+        print_color "$BRIGHT_GREEN" "✓ Workspace '$workspace_name' created successfully"
+        print_color "$DIM" "Location: $workspace_file"
+        print_color "$DIM" "Projects folder: $workspace_folder"
+
+        # Ask if user wants to activate the workspace
+        echo ""
+        echo -e "${BRIGHT_WHITE}Activate this workspace now? (y/n):${NC}"
+        echo -ne "${BRIGHT_CYAN}>${NC} "
+        read -r activate_choice
+
+        case "${activate_choice,,}" in
+            "y"|"yes")
+                if add_workspace_to_bulk_config "$workspace_file" "$workspace_folder"; then
+                    echo ""
+                    print_color "$BRIGHT_GREEN" "✓ Workspace activated successfully"
+                else
+                    echo ""
+                    print_color "$BRIGHT_RED" "❌ Failed to activate workspace"
+                fi
+                ;;
+            *)
+                echo ""
+                print_color "$BRIGHT_YELLOW" "Workspace created but not activated"
+                print_color "$DIM" "Note: You'll need to add this workspace to bulk config manually"
+                ;;
+        esac
+    else
+        print_error "Failed to create workspace file"
+        return 1
+    fi
+
+    echo ""
+    echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
+    read -r
 }

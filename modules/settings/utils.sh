@@ -152,6 +152,50 @@ get_projects_root_directory() {
     return 0
 }
 
+# Function to get projects root for a specific workspace
+# Parameters: workspace_file_path
+# Returns: projects root directory via echo, empty if error
+get_workspace_projects_root() {
+    local workspace_file="$1"
+
+    # Get config directory
+    local config_dir
+    if [ -d "config" ] && [ -f "startup.sh" ]; then
+        config_dir="config"
+    else
+        config_dir="$HOME/.cache/fm-manager"
+    fi
+
+    local bulk_config_file="$config_dir/.bulk_project_config.json"
+
+    # First, try to get from bulk config workspacePaths mapping
+    if [ -f "$bulk_config_file" ] && command -v jq >/dev/null 2>&1; then
+        local workspace_path=$(jq -r --arg workspace_file "$workspace_file" \
+            '.workspacePaths[$workspace_file] // empty' "$bulk_config_file" 2>/dev/null)
+
+        if [ -n "$workspace_path" ] && [ "$workspace_path" != "null" ]; then
+            echo "$workspace_path"
+            return 0
+        fi
+    fi
+
+    # Fallback: try to extract from first project in workspace file
+    if [ -f "$workspace_file" ] && command -v jq >/dev/null 2>&1; then
+        local project_count=$(jq 'length' "$workspace_file" 2>/dev/null)
+
+        if [ -n "$project_count" ] && [ "$project_count" -gt 0 ]; then
+            local first_relative_path=$(jq -r ".[0].relativePath" "$workspace_file" 2>/dev/null)
+            if [ -n "$first_relative_path" ] && [ "$first_relative_path" != "null" ]; then
+                local projects_root=$(dirname "$first_relative_path")
+                echo "$projects_root"
+                return 0
+            fi
+        fi
+    fi
+
+    return 1
+}
+
 # Function to check if a folder is already managed
 # Parameters: folder_name, projects_root_path
 # Returns: 0 if managed, 1 if not managed
@@ -302,10 +346,11 @@ update_project_in_config() {
 
 
 # Function to add workspace to bulk configuration
-# Parameters: workspace_file_path
+# Parameters: workspace_file_path [projects_folder_path]
 # Returns: 0 if successful, 1 if error
 add_workspace_to_bulk_config() {
     local workspace_file="$1"
+    local projects_folder="$2"
 
     if [ ! -f "$workspace_file" ]; then
         print_error "Workspace file not found: $workspace_file"
@@ -321,17 +366,22 @@ add_workspace_to_bulk_config() {
     fi
 
     local bulk_config_file="$config_dir/.bulk_project_config.json"
-    local projects_path=$(dirname "$workspace_file")
+
+    # If projects_folder not provided, try to get from existing config or use dirname
+    if [ -z "$projects_folder" ]; then
+        projects_folder=$(dirname "$workspace_file")
+    fi
 
     # Check if bulk config file already exists
     if [ -f "$bulk_config_file" ]; then
         # Update existing bulk config
         local temp_file=$(mktemp)
         if jq --arg workspace_file "$workspace_file" \
-           --arg projects_path "$projects_path" \
+           --arg projects_path "$projects_folder" \
            '.activeConfig = (.activeConfig + [$workspace_file] | unique) |
             .projectsPath = $projects_path |
-            .availableConfigs = (.availableConfigs + [$workspace_file] | unique)' \
+            .availableConfigs = (.availableConfigs + [$workspace_file] | unique) |
+            .workspacePaths = (.workspacePaths // {} | . + {($workspace_file): $projects_path})' \
            "$bulk_config_file" > "$temp_file"; then
 
             if mv "$temp_file" "$bulk_config_file"; then
@@ -345,16 +395,25 @@ add_workspace_to_bulk_config() {
             return 1
         fi
     else
-        # Create new bulk config file
-        local bulk_config='{
-            "activeConfig": ["'$workspace_file'"],
-            "projectsPath": "'$projects_path'",
-            "availableConfigs": ["'$workspace_file'"]
-        }'
+        # Create new bulk config file with workspacePaths mapping
+        local temp_file=$(mktemp)
+        if jq -n --arg workspace_file "$workspace_file" \
+           --arg projects_path "$projects_folder" \
+           '{
+                "activeConfig": [$workspace_file],
+                "projectsPath": $projects_path,
+                "availableConfigs": [$workspace_file],
+                "workspacePaths": {($workspace_file): $projects_path}
+           }' > "$temp_file"; then
 
-        if echo "$bulk_config" | jq . > "$bulk_config_file"; then
-            return 0
+            if mv "$temp_file" "$bulk_config_file"; then
+                return 0
+            else
+                rm -f "$temp_file"
+                return 1
+            fi
         else
+            rm -f "$temp_file"
             return 1
         fi
     fi

@@ -16,8 +16,9 @@ show_project_menu_tmux() {
 
         # Display workspaces
         display_workspaces
-        
+
         # Commands section with better formatting
+        echo ""
         if [ ${#projects[@]} -eq 0 ]; then
             echo -e "${BRIGHT_PURPLE}[s]${NC} settings │ ${BRIGHT_PURPLE}[h]${NC} help │ ${BRIGHT_PURPLE}[q]${NC} quit"
         elif [ ${#projects[@]} -eq 1 ]; then
