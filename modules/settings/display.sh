@@ -114,12 +114,7 @@ display_workspace_selector_table() {
 
     # Get active workspaces list
     local active_workspaces=()
-    local bulk_config_file="$config_dir/.bulk_project_config.json"
-    if [ -f "$bulk_config_file" ] && command -v jq >/dev/null 2>&1; then
-        while IFS= read -r active_workspace; do
-            active_workspaces+=("$active_workspace")
-        done < <(jq -r '.activeConfig[]? // empty' "$bulk_config_file" 2>/dev/null)
-    fi
+    get_active_workspaces_list active_workspaces
 
     # Display each workspace with workspace numbering and full tree structure
     for workspace_file in "${workspace_files[@]}"; do
@@ -127,12 +122,9 @@ display_workspace_selector_table() {
 
         # Check if this workspace is active
         local is_workspace_active=false
-        for active_ws in "${active_workspaces[@]}"; do
-            if [ "$workspace_file" = "$active_ws" ]; then
-                is_workspace_active=true
-                break
-            fi
-        done
+        if is_workspace_in_active_list "$workspace_file" active_workspaces; then
+            is_workspace_active=true
+        fi
 
         # Display workspace header with color-coded status and numbering
         local workspace_color=""
@@ -146,11 +138,7 @@ display_workspace_selector_table() {
 
         # Parse projects from this workspace file
         local workspace_projects=()
-        if command -v jq >/dev/null 2>&1 && [ -f "$workspace_file" ]; then
-            while IFS= read -r line; do
-                workspace_projects+=("$line")
-            done < <(jq -r '.[] | "\(.displayName):\(.projectName):\(.startupCmd):\(.shutdownCmd)"' "$workspace_file" 2>/dev/null)
-        fi
+        parse_workspace_projects "$workspace_file" workspace_projects
 
         # Display projects for this workspace
         if [ ${#workspace_projects[@]} -eq 0 ]; then
@@ -165,26 +153,8 @@ display_workspace_selector_table() {
                     prefix="${BRIGHT_CYAN}└─${NC}"
                 fi
 
-                # Format data with fixed column widths: 32 | 30 | 32 | 32
-                local col1="$project_display_name"
-                local col2="$folder_name"
-                local col3="$startup_cmd"
-                local col4="$shutdown_cmd"
-
-                # Truncate if longer than max width
-                [ ${#col1} -gt 32 ] && col1=$(printf "%.29s..." "$col1")
-                [ ${#col2} -gt 30 ] && col2=$(printf "%.27s..." "$col2")
-                [ ${#col3} -gt 32 ] && col3=$(printf "%.29s..." "$col3")
-                [ ${#col4} -gt 32 ] && col4=$(printf "%.29s..." "$col4")
-
-                # Ensure fixed width with padding to exact column sizes
-                col1=$(printf "%-32.32s" "$col1")
-                col2=$(printf "%-30.30s" "$col2")
-                col3=$(printf "%-32.32s" "$col3")
-                col4=$(printf "%-32.32s" "$col4")
-
-                # Display normal row with fixed table format - white text for col1, dim for col2-4
-                echo -e "  $prefix ${BRIGHT_WHITE}${col1}${NC} | ${DIM}${col2}${NC} | ${DIM}${col3}${NC} | ${DIM}${col4}${NC}"
+                # Format and display project row
+                format_project_columns "$project_display_name" "$folder_name" "$startup_cmd" "$shutdown_cmd" "$prefix"
             done
         fi
         echo ""
@@ -262,12 +232,7 @@ display_config_table() {
 
     # Get active workspaces list
     local active_workspaces=()
-    local bulk_config_file="$config_dir/.bulk_project_config.json"
-    if [ -f "$bulk_config_file" ] && command -v jq >/dev/null 2>&1; then
-        while IFS= read -r active_workspace; do
-            active_workspaces+=("$active_workspace")
-        done < <(jq -r '.activeConfig[]? // empty' "$bulk_config_file" 2>/dev/null)
-    fi
+    get_active_workspaces_list active_workspaces
 
     # Display each workspace with its projects using global numbering
     for workspace_file in "${workspace_files[@]}"; do
@@ -275,12 +240,9 @@ display_config_table() {
 
         # Check if this workspace is active
         local is_workspace_active=false
-        for active_ws in "${active_workspaces[@]}"; do
-            if [ "$workspace_file" = "$active_ws" ]; then
-                is_workspace_active=true
-                break
-            fi
-        done
+        if is_workspace_in_active_list "$workspace_file" active_workspaces; then
+            is_workspace_active=true
+        fi
 
         # Display workspace header with color-coded status
         local workspace_color=""
@@ -294,11 +256,7 @@ display_config_table() {
 
         # Parse projects from this workspace file
         local workspace_projects=()
-        if command -v jq >/dev/null 2>&1 && [ -f "$workspace_file" ]; then
-            while IFS= read -r line; do
-                workspace_projects+=("$line")
-            done < <(jq -r '.[] | "\(.displayName):\(.projectName):\(.startupCmd):\(.shutdownCmd)"' "$workspace_file" 2>/dev/null)
-        fi
+        parse_workspace_projects "$workspace_file" workspace_projects
 
         # Display projects for this workspace
         if [ ${#workspace_projects[@]} -eq 0 ]; then
@@ -313,26 +271,8 @@ display_config_table() {
                     prefix="${BRIGHT_CYAN}└─${NC}"
                 fi
 
-                # Format data with fixed column widths: 32 | 30 | 32 | 32
-                local col1="$project_display_name"
-                local col2="$folder_name"
-                local col3="$startup_cmd"
-                local col4="$shutdown_cmd"
-
-                # Truncate if longer than max width
-                [ ${#col1} -gt 32 ] && col1=$(printf "%.29s..." "$col1")
-                [ ${#col2} -gt 30 ] && col2=$(printf "%.27s..." "$col2")
-                [ ${#col3} -gt 32 ] && col3=$(printf "%.29s..." "$col3")
-                [ ${#col4} -gt 32 ] && col4=$(printf "%.29s..." "$col4")
-
-                # Ensure fixed width with padding to exact column sizes
-                col1=$(printf "%-32.32s" "$col1")
-                col2=$(printf "%-30.30s" "$col2")
-                col3=$(printf "%-32.32s" "$col3")
-                col4=$(printf "%-32.32s" "$col4")
-
-                # Display normal row with fixed table format - white text for col1, dim for col2-4
-                echo -e "  $prefix ${BRIGHT_WHITE}${col1}${NC} | ${DIM}${col2}${NC} | ${DIM}${col3}${NC} | ${DIM}${col4}${NC}"
+                # Format and display project row
+                format_project_columns "$project_display_name" "$folder_name" "$startup_cmd" "$shutdown_cmd" "$prefix"
 
                 global_counter=$((global_counter + 1))
             done
@@ -388,69 +328,29 @@ configure_new_project() {
     print_color "$DIM" "Location: ${projects_root%/}/$folder_name"
     echo ""
 
-    # Get display name
-    echo -e "${BRIGHT_WHITE}Enter display name for this project:${NC}"
-    echo -ne "${DIM}(press Enter to use '$folder_name')${NC} ${BRIGHT_CYAN}>${NC} "
-    read -r display_name
+    # Get project input fields
+    IFS=$'\n' read -r display_name startup_cmd shutdown_cmd < <(prompt_project_input_fields "$folder_name")
 
-    if [ -z "$display_name" ]; then
-        display_name="$folder_name"
-    fi
+    # Show confirmation summary
+    show_project_configuration_summary "$display_name" "$folder_name" "${projects_root%/}/$folder_name" "$startup_cmd" "$shutdown_cmd"
 
-    # Get startup command
-    echo ""
-    echo -e "${BRIGHT_WHITE}Enter startup command:${NC}"
-    echo -ne "${DIM}(e.g., 'npm start', 'yarn dev')${NC} ${BRIGHT_CYAN}>${NC} "
-    read -r startup_cmd
-
-    if [ -z "$startup_cmd" ]; then
-        startup_cmd="echo 'No startup command configured'"
-    fi
-
-    # Get shutdown command
-    echo ""
-    echo -e "${BRIGHT_WHITE}Enter shutdown command:${NC}"
-    echo -ne "${DIM}(e.g., 'npm run stop', 'pkill -f node')${NC} ${BRIGHT_CYAN}>${NC} "
-    read -r shutdown_cmd
-
-    if [ -z "$shutdown_cmd" ]; then
-        shutdown_cmd="echo 'No shutdown command configured'"
-    fi
-
-    # Show confirmation
-    echo ""
-    echo -e "${BRIGHT_WHITE}Project Configuration:${NC}"
-    echo -e "  Display Name:  ${BRIGHT_GREEN}$display_name${NC}"
-    echo -e "  Folder Name:   ${BRIGHT_CYAN}$folder_name${NC}"
-    echo -e "  Location:      ${DIM}${projects_root%/}/$folder_name${NC}"
-    echo -e "  Startup Cmd:   ${BRIGHT_YELLOW}$startup_cmd${NC}"
-    echo -e "  Shutdown Cmd:  ${BRIGHT_YELLOW}$shutdown_cmd${NC}"
-    echo ""
-
-    echo -e "${BRIGHT_WHITE}Add this project to configuration? (y/n):${NC}"
-    echo -ne "${BRIGHT_CYAN}>${NC} "
-    read -r confirm_add
-
-    case "${confirm_add,,}" in
-        "y"|"yes")
+    # Prompt for confirmation
+    if prompt_yes_no_confirmation "Add this project to configuration?"; then
+        echo ""
+        if add_project_to_config "$display_name" "$folder_name" "$projects_root" "$startup_cmd" "$shutdown_cmd"; then
             echo ""
-            if add_project_to_config "$display_name" "$folder_name" "$projects_root" "$startup_cmd" "$shutdown_cmd"; then
-                echo ""
-                print_color "$BRIGHT_GREEN" "🎉 Project '$display_name' has been successfully added to configuration"
-            else
-                echo ""
-                print_color "$BRIGHT_RED" "❌ Failed to add project to configuration"
-            fi
-            ;;
-        "n"|"no")
+            print_color "$BRIGHT_GREEN" "🎉 Project '$display_name' has been successfully added to configuration"
+        else
             echo ""
-            print_color "$BRIGHT_YELLOW" "Project addition cancelled"
-            ;;
-        *)
-            echo ""
-            print_color "$BRIGHT_RED" "Invalid choice. Project addition cancelled"
-            ;;
-    esac
+            print_color "$BRIGHT_RED" "❌ Failed to add project to configuration"
+        fi
+    elif [ $? -eq 1 ]; then
+        echo ""
+        print_color "$BRIGHT_YELLOW" "Project addition cancelled"
+    else
+        echo ""
+        print_color "$BRIGHT_RED" "Invalid choice. Project addition cancelled"
+    fi
 
     wait_for_enter
 }
@@ -523,18 +423,10 @@ handle_workspace_action_selection() {
 
         # Parse projects from this workspace file
         local workspace_projects=()
-        if command -v jq >/dev/null 2>&1 && [ -f "$selected_file" ]; then
-            while IFS= read -r line; do
-                workspace_projects+=("$line")
-            done < <(jq -r '.[] | "\(.displayName):\(.projectName):\(.startupCmd):\(.shutdownCmd)"' "$selected_file" 2>/dev/null)
-        fi
+        parse_workspace_projects "$selected_file" workspace_projects
 
         # Get projects root directory to show full paths
-        local projects_root
-        projects_root=$(get_workspace_projects_root "$selected_file")
-        if [ $? -ne 0 ] || [ -z "$projects_root" ]; then
-            projects_root="<unknown>"
-        fi
+        local projects_root=$(get_projects_root_or_unknown "$selected_file")
 
         echo ""
         echo -e "${BRIGHT_CYAN}Workspace Location:${NC} ${DIM}$selected_file${NC}"
@@ -624,18 +516,10 @@ show_workspace_management_screen() {
 
         # Parse projects from this workspace file
         local workspace_projects=()
-        if command -v jq >/dev/null 2>&1 && [ -f "$selected_file" ]; then
-            while IFS= read -r line; do
-                workspace_projects+=("$line")
-            done < <(jq -r '.[] | "\(.displayName):\(.projectName):\(.startupCmd):\(.shutdownCmd)"' "$selected_file" 2>/dev/null)
-        fi
+        parse_workspace_projects "$selected_file" workspace_projects
 
         # Get projects root directory to show full paths
-        local projects_root
-        projects_root=$(get_workspace_projects_root "$selected_file")
-        if [ $? -ne 0 ] || [ -z "$projects_root" ]; then
-            projects_root="<unknown>"
-        fi
+        local projects_root=$(get_projects_root_or_unknown "$selected_file")
 
         echo ""
         echo -e "${BRIGHT_CYAN}Workspace Location:${NC} ${DIM}$selected_file${NC}"
@@ -729,24 +613,6 @@ show_workspace_management_screen() {
     done
 }
 
-# Function to show workspace management help
-show_workspace_management_help() {
-    print_header "Workspace Management Help"
-    echo ""
-    echo -e "${BRIGHT_WHITE}This screen shows the project folders in the selected workspace.${NC}"
-    echo ""
-    echo -e "${BRIGHT_CYAN}Folder Status:${NC}"
-    echo -e "  ${BRIGHT_GREEN}Green${NC}   - Folder exists in the projects directory"
-    echo -e "  ${BRIGHT_RED}Red${NC}     - Folder is missing from the projects directory"
-    echo ""
-    echo -e "${BRIGHT_CYAN}Available Commands:${NC}"
-    echo -e "  ${BRIGHT_GREEN}a${NC} - Add a new project to this workspace"
-    echo -e "  ${BRIGHT_RED}d${NC} - Delete a project from this workspace (or delete empty workspace)"
-    echo -e "  ${BRIGHT_PURPLE}b${NC} - Go back to settings menu"
-    echo -e "  ${BRIGHT_PURPLE}h${NC} - Show this help screen"
-    wait_for_enter
-}
-
 # Function to show add project screen for a specific workspace
 show_workspace_add_project_screen() {
     local workspace_file="$1"
@@ -822,69 +688,29 @@ configure_new_workspace_project() {
     print_color "$DIM" "Location: ${projects_root%/}/$folder_name"
     echo ""
 
-    # Get display name
-    echo -e "${BRIGHT_WHITE}Enter display name for this project:${NC}"
-    echo -ne "${DIM}(press Enter to use '$folder_name')${NC} ${BRIGHT_CYAN}>${NC} "
-    read -r display_name
+    # Get project input fields
+    IFS=$'\n' read -r display_name startup_cmd shutdown_cmd < <(prompt_project_input_fields "$folder_name")
 
-    if [ -z "$display_name" ]; then
-        display_name="$folder_name"
-    fi
+    # Show confirmation summary
+    show_project_configuration_summary "$display_name" "$folder_name" "${projects_root%/}/$folder_name" "$startup_cmd" "$shutdown_cmd" "$workspace_display_name"
 
-    # Get startup command
-    echo ""
-    echo -e "${BRIGHT_WHITE}Enter startup command:${NC}"
-    echo -ne "${DIM}(e.g., 'npm start', 'yarn dev')${NC} ${BRIGHT_CYAN}>${NC} "
-    read -r startup_cmd
-
-    if [ -z "$startup_cmd" ]; then
-        startup_cmd="echo 'No startup command configured'"
-    fi
-
-    # Get shutdown command
-    echo ""
-    echo -e "${BRIGHT_WHITE}Enter shutdown command:${NC}"
-    echo -ne "${DIM}(e.g., 'npm run stop', 'pkill -f node')${NC} ${BRIGHT_CYAN}>${NC} "
-    read -r shutdown_cmd
-
-    if [ -z "$shutdown_cmd" ]; then
-        shutdown_cmd="echo 'No shutdown command configured'"
-    fi
-
-    # Show confirmation
-    echo ""
-    echo -e "${BRIGHT_WHITE}Project Configuration:${NC}"
-    echo -e "  Display Name:  ${BRIGHT_GREEN}$display_name${NC}"
-    echo -e "  Folder Name:   ${BRIGHT_CYAN}$folder_name${NC}"
-    echo -e "  Location:      ${DIM}${projects_root%/}/$folder_name${NC}"
-    echo -e "  Startup Cmd:   ${BRIGHT_YELLOW}$startup_cmd${NC}"
-    echo -e "  Shutdown Cmd:  ${BRIGHT_YELLOW}$shutdown_cmd${NC}"
-    echo -e "  Workspace:     ${BRIGHT_PURPLE}$workspace_display_name${NC}"
-    echo ""
-
-    echo -ne "${BRIGHT_WHITE}Add this project to workspace? (y/n): ${NC}"
-    read -r confirm_add
-
-    case "${confirm_add,,}" in
-        "y"|"yes")
+    # Prompt for confirmation
+    if prompt_yes_no_confirmation "Add this project to workspace?"; then
+        echo ""
+        if add_project_to_workspace "$display_name" "$folder_name" "$startup_cmd" "$shutdown_cmd" "$workspace_file"; then
             echo ""
-            if add_project_to_workspace "$display_name" "$folder_name" "$startup_cmd" "$shutdown_cmd" "$workspace_file"; then
-                echo ""
-                print_color "$BRIGHT_GREEN" "🎉 Project '$display_name' has been successfully added to workspace '$workspace_display_name'"
-            else
-                echo ""
-                print_color "$BRIGHT_RED" "❌ Failed to add project to workspace"
-            fi
-            ;;
-        "n"|"no")
+            print_color "$BRIGHT_GREEN" "🎉 Project '$display_name' has been successfully added to workspace '$workspace_display_name'"
+        else
             echo ""
-            print_color "$BRIGHT_YELLOW" "Project addition cancelled"
-            ;;
-        *)
-            echo ""
-            print_color "$BRIGHT_RED" "Invalid choice. Project addition cancelled"
-            ;;
-    esac
+            print_color "$BRIGHT_RED" "❌ Failed to add project to workspace"
+        fi
+    elif [ $? -eq 1 ]; then
+        echo ""
+        print_color "$BRIGHT_YELLOW" "Project addition cancelled"
+    else
+        echo ""
+        print_color "$BRIGHT_RED" "Invalid choice. Project addition cancelled"
+    fi
 
     wait_for_enter
 }
@@ -898,10 +724,7 @@ add_project_to_workspace() {
     local workspace_file="$5"
 
     # Check if jq is available
-    if ! command -v jq >/dev/null 2>&1; then
-        print_error "jq is required for JSON manipulation but not found"
-        return 1
-    fi
+    check_jq_available || return 1
 
     # Check if workspace file exists
     if [ ! -f "$workspace_file" ]; then
@@ -910,11 +733,8 @@ add_project_to_workspace() {
     fi
 
     # Create a backup of the original file
-    local backup_file="${workspace_file}.backup.$(date +%s)"
-    if ! cp "$workspace_file" "$backup_file"; then
-        print_error "Failed to create backup of workspace file"
-        return 1
-    fi
+    local backup_file=$(create_backup_file "$workspace_file")
+    [ $? -ne 0 ] && return 1
 
     # Add the project to the JSON array
     local temp_file="${workspace_file}.tmp"
@@ -930,7 +750,7 @@ add_project_to_workspace() {
     # Construct the full path (we call it relativePath but it's actually absolute)
     local full_path="${projects_root%/}/$folder_name"
 
-    if jq --arg display_name "$display_name" \
+    jq --arg display_name "$display_name" \
           --arg project_name "$folder_name" \
           --arg relative_path "$full_path" \
           --arg startup_cmd "$startup_cmd" \
@@ -942,27 +762,10 @@ add_project_to_workspace() {
               "shutdownCmd": $shutdown_cmd,
               "relativePath": $relative_path
           }]' \
-          "$workspace_file" > "$temp_file"; then
+          "$workspace_file" > "$temp_file"
 
-        # Replace the original file with the modified version
-        if mv "$temp_file" "$workspace_file"; then
-            # Remove backup file on success
-            rm -f "$backup_file"
-            return 0
-        else
-            print_error "Failed to update workspace file"
-            # Restore from backup
-            mv "$backup_file" "$workspace_file"
-            rm -f "$temp_file"
-            return 1
-        fi
-    else
-        print_error "Failed to process JSON file"
-        # Restore from backup
-        mv "$backup_file" "$workspace_file"
-        rm -f "$temp_file"
-        return 1
-    fi
+    # Finalize the file operation (handles backup/restore)
+    finalize_file_operation "$temp_file" "$backup_file" "$workspace_file" $?
 }
 
 # Function to delete a project from workspace
@@ -1057,10 +860,7 @@ delete_project_from_json() {
     local folder_name="$3"
 
     # Check if jq is available
-    if ! command -v jq >/dev/null 2>&1; then
-        print_error "jq is required for JSON manipulation but not found"
-        return 1
-    fi
+    check_jq_available || return 1
 
     # Check if workspace file exists
     if [ ! -f "$workspace_file" ]; then
@@ -1069,38 +869,18 @@ delete_project_from_json() {
     fi
 
     # Create a backup of the original file
-    local backup_file="${workspace_file}.backup.$(date +%s)"
-    if ! cp "$workspace_file" "$backup_file"; then
-        print_error "Failed to create backup of workspace file"
-        return 1
-    fi
+    local backup_file=$(create_backup_file "$workspace_file")
+    [ $? -ne 0 ] && return 1
 
     # Remove the project from the JSON array
     # We'll match on both displayName and projectName to ensure we delete the right project
     local temp_file="${workspace_file}.tmp"
-    if jq --arg display_name "$project_display_name" --arg project_name "$folder_name" \
+    jq --arg display_name "$project_display_name" --arg project_name "$folder_name" \
           'map(select(.displayName != $display_name or .projectName != $project_name))' \
-          "$workspace_file" > "$temp_file"; then
+          "$workspace_file" > "$temp_file"
 
-        # Replace the original file with the modified version
-        if mv "$temp_file" "$workspace_file"; then
-            # Remove backup file on success
-            rm -f "$backup_file"
-            return 0
-        else
-            print_error "Failed to update workspace file"
-            # Restore from backup
-            mv "$backup_file" "$workspace_file"
-            rm -f "$temp_file"
-            return 1
-        fi
-    else
-        print_error "Failed to process JSON file"
-        # Restore from backup
-        mv "$backup_file" "$workspace_file"
-        rm -f "$temp_file"
-        return 1
-    fi
+    # Finalize the file operation (handles backup/restore)
+    finalize_file_operation "$temp_file" "$backup_file" "$workspace_file" $?
 }
 
 # Function to delete an entire workspace

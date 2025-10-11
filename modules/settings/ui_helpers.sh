@@ -208,3 +208,208 @@ scan_and_display_available_folders() {
     echo "$selected_folder"
     return 0
 }
+
+# Function to parse projects from a workspace file
+# Parameters: workspace_file
+# Returns: array variable name to populate (pass by reference)
+# Usage: parse_workspace_projects "$workspace_file" workspace_projects
+parse_workspace_projects() {
+    local workspace_file="$1"
+    local -n result_array=$2  # nameref to array
+
+    result_array=()
+    if command -v jq >/dev/null 2>&1 && [ -f "$workspace_file" ]; then
+        while IFS= read -r line; do
+            result_array+=("$line")
+        done < <(jq -r '.[] | "\(.displayName):\(.projectName):\(.startupCmd):\(.shutdownCmd)"' "$workspace_file" 2>/dev/null)
+    fi
+}
+
+# Function to get projects root or return "<unknown>"
+# Parameters: workspace_file
+# Returns: projects root path or "<unknown>" via echo
+get_projects_root_or_unknown() {
+    local workspace_file="$1"
+
+    local projects_root
+    projects_root=$(get_workspace_projects_root "$workspace_file")
+    if [ $? -ne 0 ] || [ -z "$projects_root" ]; then
+        echo "<unknown>"
+    else
+        echo "$projects_root"
+    fi
+}
+
+# Function to get list of active workspaces
+# Parameters: none
+# Returns: array variable name to populate (pass by reference)
+# Usage: get_active_workspaces_list active_workspaces
+get_active_workspaces_list() {
+    local -n result_array=$1  # nameref to array
+
+    result_array=()
+    local config_dir=$(get_config_directory)
+    local bulk_config_file="$config_dir/.bulk_project_config.json"
+
+    if [ -f "$bulk_config_file" ] && command -v jq >/dev/null 2>&1; then
+        while IFS= read -r active_workspace; do
+            result_array+=("$active_workspace")
+        done < <(jq -r '.activeConfig[]? // empty' "$bulk_config_file" 2>/dev/null)
+    fi
+}
+
+# Function to check if workspace is in active list
+# Parameters: workspace_file, active_workspaces_array_name
+# Returns: 0 if active, 1 if not active
+is_workspace_in_active_list() {
+    local workspace_file="$1"
+    local -n check_array=$2  # nameref to array
+
+    for active_ws in "${check_array[@]}"; do
+        if [ "$workspace_file" = "$active_ws" ]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+# Function to prompt for all project input fields
+# Parameters: folder_name
+# Outputs to stdout: display_name, startup_cmd, shutdown_cmd (one per line)
+# Usage:
+#   IFS=$'\n' read -r display_name startup_cmd shutdown_cmd < <(prompt_project_input_fields "$folder_name")
+prompt_project_input_fields() {
+    local folder_name="$1"
+
+    # Get display name
+    echo -e "${BRIGHT_WHITE}Enter display name for this project:${NC}" >&2
+    echo -ne "${DIM}(press Enter to use '$folder_name')${NC} ${BRIGHT_CYAN}>${NC} " >&2
+    read -r display_name
+
+    if [ -z "$display_name" ]; then
+        display_name="$folder_name"
+    fi
+
+    # Get startup command
+    echo "" >&2
+    echo -e "${BRIGHT_WHITE}Enter startup command:${NC}" >&2
+    echo -ne "${DIM}(e.g., 'npm start', 'yarn dev')${NC} ${BRIGHT_CYAN}>${NC} " >&2
+    read -r startup_cmd
+
+    if [ -z "$startup_cmd" ]; then
+        startup_cmd="echo 'No startup command configured'"
+    fi
+
+    # Get shutdown command
+    echo "" >&2
+    echo -e "${BRIGHT_WHITE}Enter shutdown command:${NC}" >&2
+    echo -ne "${DIM}(e.g., 'npm run stop', 'pkill -f node')${NC} ${BRIGHT_CYAN}>${NC} " >&2
+    read -r shutdown_cmd
+
+    if [ -z "$shutdown_cmd" ]; then
+        shutdown_cmd="echo 'No shutdown command configured'"
+    fi
+
+    # Output the three values to stdout (one per line)
+    echo "$display_name"
+    echo "$startup_cmd"
+    echo "$shutdown_cmd"
+}
+
+# Function to display project configuration summary
+# Parameters: display_name, folder_name, location, startup_cmd, shutdown_cmd, [workspace_name]
+show_project_configuration_summary() {
+    local display_name="$1"
+    local folder_name="$2"
+    local location="$3"
+    local startup_cmd="$4"
+    local shutdown_cmd="$5"
+    local workspace_name="${6:-}"  # Optional
+
+    echo ""
+    echo -e "${BRIGHT_WHITE}Project Configuration:${NC}"
+    echo -e "  Display Name:  ${BRIGHT_GREEN}$display_name${NC}"
+    echo -e "  Folder Name:   ${BRIGHT_CYAN}$folder_name${NC}"
+    echo -e "  Location:      ${DIM}$location${NC}"
+    echo -e "  Startup Cmd:   ${BRIGHT_YELLOW}$startup_cmd${NC}"
+    echo -e "  Shutdown Cmd:  ${BRIGHT_YELLOW}$shutdown_cmd${NC}"
+
+    if [ -n "$workspace_name" ]; then
+        echo -e "  Workspace:     ${BRIGHT_PURPLE}$workspace_name${NC}"
+    fi
+    echo ""
+}
+
+# Function to prompt for yes/no confirmation
+# Parameters: prompt_message
+# Returns: 0 for yes, 1 for no, 2 for invalid
+prompt_yes_no_confirmation() {
+    local prompt_message="$1"
+
+    echo -ne "${BRIGHT_WHITE}${prompt_message} (y/n): ${NC}"
+    read -r confirm_choice
+
+    case "${confirm_choice,,}" in
+        "y"|"yes")
+            return 0
+            ;;
+        "n"|"no")
+            return 1
+            ;;
+        *)
+            return 2
+            ;;
+    esac
+}
+
+# Function to format project data into columns
+# Parameters: display_name, folder_name, startup_cmd, shutdown_cmd, prefix
+# Returns: formatted string via echo
+format_project_columns() {
+    local project_display_name="$1"
+    local folder_name="$2"
+    local startup_cmd="$3"
+    local shutdown_cmd="$4"
+    local prefix="$5"
+
+    # Format data with fixed column widths: 32 | 30 | 32 | 32
+    local col1="$project_display_name"
+    local col2="$folder_name"
+    local col3="$startup_cmd"
+    local col4="$shutdown_cmd"
+
+    # Truncate if longer than max width
+    [ ${#col1} -gt 32 ] && col1=$(printf "%.29s..." "$col1")
+    [ ${#col2} -gt 30 ] && col2=$(printf "%.27s..." "$col2")
+    [ ${#col3} -gt 32 ] && col3=$(printf "%.29s..." "$col3")
+    [ ${#col4} -gt 32 ] && col4=$(printf "%.29s..." "$col4")
+
+    # Ensure fixed width with padding to exact column sizes
+    col1=$(printf "%-32.32s" "$col1")
+    col2=$(printf "%-30.30s" "$col2")
+    col3=$(printf "%-32.32s" "$col3")
+    col4=$(printf "%-32.32s" "$col4")
+
+    # Return formatted row
+    echo -e "  $prefix ${BRIGHT_WHITE}${col1}${NC} | ${DIM}${col2}${NC} | ${DIM}${col3}${NC} | ${DIM}${col4}${NC}"
+}
+
+# Function to show workspace management help text
+show_workspace_management_help() {
+    clear
+    print_header "Workspace Management Help"
+    echo ""
+    echo -e "${BRIGHT_WHITE}This screen shows the project folders in the selected workspace.${NC}"
+    echo ""
+    echo -e "${BRIGHT_CYAN}Folder Status:${NC}"
+    echo -e "  ${BRIGHT_GREEN}Green${NC}   - Folder exists in the projects directory"
+    echo -e "  ${BRIGHT_RED}Red${NC}     - Folder is missing from the projects directory"
+    echo ""
+    echo -e "${BRIGHT_CYAN}Available Commands:${NC}"
+    echo -e "  ${BRIGHT_GREEN}a${NC} - Add a new project to this workspace"
+    echo -e "  ${BRIGHT_RED}d${NC} - Delete a project from this workspace (or delete empty workspace)"
+    echo -e "  ${BRIGHT_PURPLE}b${NC} - Go back to settings menu"
+    echo -e "  ${BRIGHT_PURPLE}h${NC} - Show this help screen"
+    echo ""
+    wait_for_enter
+}

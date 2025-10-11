@@ -465,3 +465,60 @@ remove_workspace_from_bulk_config() {
         return 1
     fi
 }
+
+# Function to check if jq is available
+# Returns: 0 if available, 1 if not (with error message)
+check_jq_available() {
+    if ! command -v jq >/dev/null 2>&1; then
+        print_error "jq is required for JSON manipulation but not found"
+        return 1
+    fi
+    return 0
+}
+
+# Function to create a backup file
+# Parameters: source_file
+# Returns: backup file path via echo, or empty on error
+create_backup_file() {
+    local source_file="$1"
+
+    local backup_file="${source_file}.backup.$(date +%s)"
+    if cp "$source_file" "$backup_file" 2>/dev/null; then
+        echo "$backup_file"
+        return 0
+    else
+        print_error "Failed to create backup of file"
+        return 1
+    fi
+}
+
+# Function to handle temp file operations with backup/restore
+# Parameters: temp_file, backup_file, target_file, operation_success (0 or 1)
+# Returns: 0 on success, 1 on failure
+finalize_file_operation() {
+    local temp_file="$1"
+    local backup_file="$2"
+    local target_file="$3"
+    local operation_success="$4"
+
+    if [ "$operation_success" -eq 0 ]; then
+        # Operation succeeded, move temp to target
+        if mv "$temp_file" "$target_file" 2>/dev/null; then
+            # Success! Remove backup
+            rm -f "$backup_file"
+            return 0
+        else
+            print_error "Failed to update file"
+            # Restore from backup
+            [ -n "$backup_file" ] && mv "$backup_file" "$target_file" 2>/dev/null
+            rm -f "$temp_file"
+            return 1
+        fi
+    else
+        # Operation failed, restore from backup
+        print_error "Failed to process file"
+        [ -n "$backup_file" ] && mv "$backup_file" "$target_file" 2>/dev/null
+        rm -f "$temp_file"
+        return 1
+    fi
+}
