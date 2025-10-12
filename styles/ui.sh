@@ -32,8 +32,18 @@ get_terminal_width() {
 print_header() {
     local title="$1"
 
+    echo ""
     echo -e "${BRIGHT_WHITE}${BOLD}${title}${NC}"
-    echo -e "${BRIGHT_CYAN}$(printf '─%.0s' $(seq 1 ${#title}))${NC}"
+    echo ""
+}
+
+# Function to print a section header (for grouping content)
+print_section_header() {
+    local title="$1"
+    local width=$(get_terminal_width)
+
+    # Lightweight section divider inspired by lazygit
+    echo -e "${CYAN}───${NC} ${BRIGHT_WHITE}${title}${NC} ${CYAN}$(printf '─%.0s' $(seq 1 $((width - ${#title} - 6))))${NC}"
 }
 
 # Function to print a clean separator
