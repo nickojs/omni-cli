@@ -57,8 +57,7 @@ handle_kill_command() {
         else
             print_warning "$display_name is not running"
         fi
-        echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
-        read -r
+        wait_for_enter
     else
         print_error "Invalid kill command. Use k1-k${#projects[@]}"
         sleep 2
@@ -79,8 +78,7 @@ handle_start_command() {
             echo ""
             print_warning "$display_name is already running!"
             print_info "Use 'k$choice' to kill it first, then start again."
-            echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
-            read -r
+            wait_for_enter
             return
         fi
 
@@ -95,12 +93,10 @@ handle_start_command() {
         with_workspace_context "$workspace_file" start_project_in_tmux "$display_name" "$folder_name" "$startup_command"
 
         echo ""
-        echo -ne "${BRIGHT_YELLOW}Press Enter to return to menu...${NC}"
-        read -r
+        wait_for_enter "Press Enter to return to menu..."
     else
         print_error "Please enter a number between 1 and ${#projects[@]}"
-        echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
-        read -r
+        wait_for_enter
     fi
 }
 
@@ -121,16 +117,14 @@ handle_kill_all_command() {
 
     if [[ -z "$running_projects" ]]; then
         print_warning "No projects are currently running"
-        echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
-        read -r
+        wait_for_enter
         return
     fi
 
     show_loading "Killing all running projects" 2
     kill_all_projects
     print_success "All projects stopped successfully"
-    echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
-    read -r
+    wait_for_enter
 }
 
 # Function to handle help command

@@ -16,15 +16,6 @@ get_config_directory() {
     fi
 }
 
-# Function to prompt user to press Enter to continue
-# Parameters: optional custom message
-wait_for_enter() {
-    local message="${1:-Press Enter to continue...}"
-    echo ""
-    echo -ne "${WHITE}${message}${NC}"
-    read -r
-}
-
 # Function to format workspace filename into display name
 # Parameters: workspace_file_path
 # Returns: formatted display name via echo

@@ -40,22 +40,3 @@ show_settings_help() {
     wait_for_enter
 }
 
-# Function to show workspace management help text
-show_workspace_management_help() {
-    clear
-    print_header "Workspace Management Help"
-    echo ""
-    echo -e "${BRIGHT_WHITE}This screen shows the project folders in the selected workspace.${NC}"
-    echo ""
-    echo -e "${BRIGHT_CYAN}Folder Status:${NC}"
-    echo -e "  ${BRIGHT_GREEN}Green${NC}   - Folder exists in the projects directory"
-    echo -e "  ${BRIGHT_RED}Red${NC}     - Folder is missing from the projects directory"
-    echo ""
-    echo -e "${BRIGHT_CYAN}Available Commands:${NC}"
-    echo -e "  ${BRIGHT_GREEN}a${NC} - Add a new project to this workspace"
-    echo -e "  ${BRIGHT_RED}d${NC} - Delete a project from this workspace (or delete empty workspace)"
-    echo -e "  ${BRIGHT_PURPLE}b${NC} - Go back to settings menu"
-    echo -e "  ${BRIGHT_PURPLE}h${NC} - Show this help screen"
-    echo ""
-    wait_for_enter
-}

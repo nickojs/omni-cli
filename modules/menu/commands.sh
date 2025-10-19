@@ -51,6 +51,5 @@ handle_menu_choice() {
     
     # Invalid command
     print_error "Invalid command."
-    echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
-    read -r
+    wait_for_enter
 }

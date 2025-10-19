@@ -66,3 +66,12 @@ print_info() {
 print_step() {
     print_color "$BLUE" "→ $*"
 }
+
+# Function to prompt user to press Enter to continue
+# Parameters: optional custom message
+wait_for_enter() {
+    local message="${1:-Press Enter to continue...}"
+    echo ""
+    echo -ne "${WHITE}${message}${NC}"
+    read -r
+}

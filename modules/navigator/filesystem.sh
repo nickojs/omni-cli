@@ -56,7 +56,7 @@ show_interactive_browser() {
         show_directory_listing "$current_dir"
 
         # In browsing mode - capture single keystrokes
-        echo -e "${BRIGHT_YELLOW}w s${NC} navigate    ${BRIGHT_GREEN}enter${NC} open folder    ${BRIGHT_BLUE}space${NC} select here    ${BRIGHT_RED}b${NC} return "
+        echo -e "${BRIGHT_YELLOW}↑ w  ↓ s${NC} navigate    ${BRIGHT_GREEN}enter${NC} open folder    ${BRIGHT_BLUE}space${NC} select here    ${BRIGHT_RED}b${NC} return "
         IFS= read -r -n1 -s choice
         echo ""  # Add newline after key capture
 
@@ -159,9 +159,6 @@ show_directory_listing() {
     fi
 
     # Display stylized directory list with icons
-    print_color "$BRIGHT_WHITE" "📁 Directories (${#directories[@]} found):"
-    echo ""
-
     for i in "${!directories[@]}"; do
         local counter=$((i + 1))
         local dir_name="${display_names[i]}"
