@@ -163,11 +163,6 @@ manage_workspace() {
             return 1
         fi
 
-        # Show workspace info
-        echo -e "  ${DIM}Location${NC}"
-        echo -e "  ${BRIGHT_WHITE}${projects_root}${NC}"
-        echo ""
-
         # Count and display projects
         local workspace_projects=()
         parse_workspace_projects "$workspace_file" workspace_projects
@@ -190,7 +185,7 @@ manage_workspace() {
         # Commands
         echo ""
         if [ $project_count -gt 0 ]; then
-            echo -e "${BRIGHT_GREEN}[a]${NC} add project │ ${BRIGHT_RED}[r]${NC} remove project │ ${BRIGHT_PURPLE}[b]${NC} back │ ${BRIGHT_PURPLE}[h]${NC} help"
+            echo -e "${BRIGHT_GREEN}[a]${NC} add project │ ${BRIGHT_YELLOW}[e]${NC} edit project │ ${BRIGHT_RED}[r]${NC} remove project │ ${BRIGHT_PURPLE}[b]${NC} back │ ${BRIGHT_PURPLE}[h]${NC} help"
         else
             echo -e "${BRIGHT_GREEN}[a]${NC} add project │ ${BRIGHT_RED}[d]${NC} delete workspace │ ${BRIGHT_PURPLE}[b]${NC} back │ ${BRIGHT_PURPLE}[h]${NC} help"
         fi
@@ -203,6 +198,14 @@ manage_workspace() {
         case "${choice,,}" in
             a)
                 add_project_to_workspace "$workspace_file" "$projects_root"
+                ;;
+            e)
+                if [ $project_count -gt 0 ]; then
+                    edit_project_in_workspace "$workspace_file"
+                else
+                    print_error "No projects to edit"
+                    wait_for_enter
+                fi
                 ;;
             r)
                 if [ $project_count -gt 0 ]; then
@@ -419,6 +422,154 @@ remove_project_from_workspace() {
     return 0
 }
 
+# Function to edit a project in a workspace
+# Parameters: workspace_file
+edit_project_in_workspace() {
+    local workspace_file="$1"
+
+    # Set the JSON_CONFIG_FILE for utils functions
+    export JSON_CONFIG_FILE="$workspace_file"
+    export BACKUP_JSON=false
+
+    clear
+    print_header "Edit Project in Workspace"
+    echo ""
+
+    # Get projects from workspace
+    local workspace_projects=()
+    parse_workspace_projects "$workspace_file" workspace_projects
+
+    if [ ${#workspace_projects[@]} -eq 0 ]; then
+        print_error "No projects in this workspace"
+        unset JSON_CONFIG_FILE
+        wait_for_enter
+        return 1
+    fi
+
+    # Display projects with numbers
+    echo -e "${BRIGHT_WHITE}Select a project to edit:${NC}"
+    echo ""
+
+    local counter=1
+    for project_info in "${workspace_projects[@]}"; do
+        IFS=':' read -r proj_display proj_name proj_start proj_stop <<< "$project_info"
+        echo -e "  ${BRIGHT_CYAN}${counter}.${NC} ${BRIGHT_WHITE}${proj_display}${NC} ${DIM}(${proj_name})${NC}"
+        counter=$((counter + 1))
+    done
+
+    echo ""
+    echo -ne "${BRIGHT_WHITE}Enter project number (or press Enter to cancel): ${NC}"
+    read -r project_choice
+
+    # Handle empty input (cancel)
+    if [ -z "$project_choice" ]; then
+        unset JSON_CONFIG_FILE
+        return 0
+    fi
+
+    # Validate choice is a number
+    if ! [[ "$project_choice" =~ ^[0-9]+$ ]]; then
+        print_error "Invalid choice. Please enter a number."
+        unset JSON_CONFIG_FILE
+        wait_for_enter
+        return 1
+    fi
+
+    # Validate choice is in range
+    if [ "$project_choice" -lt 1 ] || [ "$project_choice" -gt "${#workspace_projects[@]}" ]; then
+        print_error "Invalid choice. Please select a number between 1 and ${#workspace_projects[@]}."
+        unset JSON_CONFIG_FILE
+        wait_for_enter
+        return 1
+    fi
+
+    # Get selected project info
+    local selected_index=$((project_choice - 1))
+    local selected_project="${workspace_projects[selected_index]}"
+    IFS=':' read -r current_display current_name current_start current_stop <<< "$selected_project"
+
+    # Show edit screen
+    clear
+    print_header "Edit Project: $current_display"
+    echo ""
+    echo -e "${DIM}Current display name: ${BRIGHT_WHITE}${current_display}${NC}"
+    echo -e "${DIM}Current startup cmd:  ${BRIGHT_YELLOW}${current_start}${NC}"
+    echo -e "${DIM}Current shutdown cmd: ${BRIGHT_YELLOW}${current_stop}${NC}"
+    echo ""
+
+    # Get new display name
+    echo -e "${BRIGHT_WHITE}Enter new display name:${NC}"
+    echo -ne "${DIM}(press Enter to keep '$current_display')${NC} ${BRIGHT_CYAN}>${NC} "
+    read -r new_display
+
+    if [ -z "$new_display" ]; then
+        new_display="$current_display"
+    fi
+
+    # Get new startup command
+    echo ""
+    echo -e "${BRIGHT_WHITE}Enter new startup command:${NC}"
+    echo -ne "${DIM}(press Enter to keep current)${NC} ${BRIGHT_CYAN}>${NC} "
+    read -r new_startup
+
+    if [ -z "$new_startup" ]; then
+        new_startup="$current_start"
+    fi
+
+    # Get new shutdown command
+    echo ""
+    echo -e "${BRIGHT_WHITE}Enter new shutdown command:${NC}"
+    echo -ne "${DIM}(press Enter to keep current)${NC} ${BRIGHT_CYAN}>${NC} "
+    read -r new_shutdown
+
+    if [ -z "$new_shutdown" ]; then
+        new_shutdown="$current_stop"
+    fi
+
+    # Show summary
+    clear
+    print_header "Confirm Project Changes"
+    echo ""
+    echo -e "  ${DIM}Display Name${NC}"
+    echo -e "  ${BRIGHT_WHITE}${new_display}${NC}"
+    echo ""
+    echo -e "  ${DIM}Startup Command${NC}"
+    echo -e "  ${BRIGHT_YELLOW}${new_startup}${NC}"
+    echo ""
+    echo -e "  ${DIM}Shutdown Command${NC}"
+    echo -e "  ${BRIGHT_YELLOW}${new_shutdown}${NC}"
+    echo ""
+
+    if prompt_yes_no_confirmation "Save changes?"; then
+        # Update the project using jq
+        local temp_file=$(mktemp)
+
+        if jq --arg display_name "$new_display" \
+              --arg startup_cmd "$new_startup" \
+              --arg shutdown_cmd "$new_shutdown" \
+              ".[$selected_index].displayName = \$display_name | .[$selected_index].startupCmd = \$startup_cmd | .[$selected_index].shutdownCmd = \$shutdown_cmd" \
+              "$workspace_file" > "$temp_file"; then
+            if mv "$temp_file" "$workspace_file"; then
+                echo ""
+                print_success "Project updated successfully"
+            else
+                print_error "Failed to update workspace file"
+                rm -f "$temp_file"
+            fi
+        else
+            print_error "Failed to process workspace file"
+            rm -f "$temp_file"
+        fi
+    else
+        echo ""
+        print_info "Cancelled"
+    fi
+
+    unset JSON_CONFIG_FILE
+    wait_for_enter
+    return 0
+}
+
 # Function to delete an empty workspace
 # Parameters: workspace_file
 # Returns: 0 if successful, 1 if error or cancelled
@@ -488,7 +639,6 @@ show_workspace_selection_menu() {
     local counter=1
     for workspace_file in "${active_workspaces[@]}"; do
         local display_name=$(format_workspace_display_name "$workspace_file")
-        local projects_root=$(get_workspace_projects_folder "$workspace_file")
 
         # Count projects
         local workspace_projects=()
@@ -496,11 +646,10 @@ show_workspace_selection_menu() {
         local project_count=${#workspace_projects[@]}
 
         echo -e "  ${BRIGHT_CYAN}${counter}.${NC} ${BRIGHT_WHITE}${display_name}${NC} ${DIM}(${project_count} projects)${NC}"
-        echo -e "     ${DIM}${projects_root}${NC}"
-        echo ""
 
         counter=$((counter + 1))
     done
+    echo ""
 
     # Prompt for selection
     echo -ne "${BRIGHT_WHITE}Select workspace: ${BRIGHT_CYAN}"
