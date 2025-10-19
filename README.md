@@ -1,15 +1,15 @@
 # FM Manager
 
-A powerful terminal-based project manager with tmux integration and modular architecture. FM Manager helps you organize, monitor, and manage multiple projects from a single, intuitive interface.
+A powerful terminal-based project manager with tmux integration and workspace organization. FM Manager helps you organize, monitor, and manage multiple projects from a single, intuitive interface.
 
 ## ✨ Features
 
-- **🚀 Project Management**: Create, configure, and monitor multiple projects
+- **🚀 Workspace Management**: Organize projects by location or category
 - **📱 Tmux Integration**: Seamless tmux session management with smart pane layouts
-- **🎨 Beautiful UI**: Rich terminal interface with colors, animations, and responsive layouts
-- **⚙️ Interactive Setup**: Guided project config
-- **�🔧 Modular Design**: Clean architecture with reusable components
-- **📊 Status Monitoring**: Real-time project status tracking and validation
+- **🎨 Beautiful UI**: Rich terminal interface with colors and responsive layouts
+- **⚙️ Interactive Settings**: Add, edit, and manage workspaces and projects
+- **🔧 Modular Design**: Clean architecture with reusable components
+- **📊 Status Monitoring**: Real-time project status tracking
 - **🏠 Flexible Deployment**: Run locally for development or install system-wide
 
 ## 📋 Requirements
@@ -55,11 +55,11 @@ A powerful terminal-based project manager with tmux integration and modular arch
 
 4. **Test individual modules:**
     ```bash
-        # Test styles
-        source styles/index.sh && styles_loaded
+    # Test styles
+    source styles/index.sh && styles_loaded
 
-        # Test core modules
-        source modules/index.sh && modules_loaded
+    # Test core modules
+    source modules/index.sh && modules_loaded
     ```
 
 ### Option 2: System Installation (Production)
@@ -67,52 +67,51 @@ A powerful terminal-based project manager with tmux integration and modular arch
 1. **Build the package:**
    ```bash
    cd build/
-   ./rebuild.package.sh
+   ./rebuild-package.sh
    ```
-   Note: this will also install the package in your system.
+   Note: This will also install the package in your system.
 
 2. **Run from anywhere:**
     ```bash
     fm-manager
     ```
-    Note: It's a good idea to run this in your root folder where other Projects are installed.
 
 ## 📁 Project Structure
 
 ```
 fm-manager/
 ├── startup.sh              # Main entry point
-├── .env                    # Environment configuration
 ├── config/                 # Configuration files
-│   └── projects_output.json # Project definitions
+│   ├── .workspaces.json    # Workspace definitions
+│   └── *.json              # Individual workspace configs
 ├── styles/                 # UI and styling modules
 │   ├── index.sh            # Styles entry point
 │   ├── colors.sh           # Color definitions
 │   ├── animations.sh       # Loading animations
-│   └── ui.sh              # UI components
-└── modules/               # Core functionality modules
-    ├── index.sh           # Modules entry point
-    ├── config.sh          # Configuration management
-    ├── tmux.sh           # Tmux session management
-    ├── project.sh        # Project operations
-    ├── menu.sh           # Interactive menus
+│   └── ui.sh               # UI components
+└── modules/                # Core functionality modules
+    ├── index.sh            # Modules entry point
+    ├── config/             # Configuration management
+    ├── tmux/               # Tmux session management
+    ├── navigator/          # Filesystem navigation
+    ├── menu/               # Interactive menus
+    └── settings/           # Settings and workspace management
+        ├── workspaces/     # Workspace operations
+        └── projects/       # Project operations
 ```
 
 ## ⚙️ Configuration
 
-### Environment Variables (.env)
-```bash
-SESSION_NAME=fm-session
-JSON_CONFIG_FILE=projects_output.json
-```
+### Workspace System
+The application uses a workspace-based configuration system:
+- **`.workspaces.json`**: Defines active workspaces and their locations
+- **Workspace configs**: Individual JSON files for each workspace's projects
 
-### Project Configuration (projects_output.json)
-The application automatically creates and manages project configurations. Projects are stored in:
-- **Local development**: `./config/projects_output.json`
-- **System installation**: `~/.cache/fm-manager/projects_output.json`
+Configuration storage:
+- **Local development**: `./config/`
+- **System installation**: `~/.cache/fm-manager/`
 
-
-## � Troubleshooting
+## 🔧 Troubleshooting
 
 ### Common Issues
 
@@ -128,7 +127,6 @@ The application automatically creates and manages project configurations. Projec
    ```bash
    chmod +x startup.sh
    ```
-   You may need to chmod other scripts as well. *Do your jumps.*
 
 3. **JSON parsing errors:**
    ```bash
@@ -142,16 +140,19 @@ For development testing, use the included test environment:
 
 ### Generate Mock Projects
 ```bash
-# Generate 5 test projects (default: 3)
-./test-area/mockup.sh 5
+# Generate 2 folders with 3 projects each (total: 6 projects)
+./test-area/mockup.sh 2 3
 
-# Clean up test projects with confirmation
+# Generate 2 folders with 5 projects each (total: 10 projects)
+./test-area/mockup.sh 2 5
+
+# Clean up test projects
 ./test-area/mockup.sh clean
 ```
 
 ### Test with Mock Configuration
 ```bash
-# Switch to test configuration (backs up original, replaces with mock projects)
+# Switch to test configuration (backs up original configs)
 ./test-area/masquerade.sh enable
 
 # Run fm-manager to test functionality safely
@@ -159,17 +160,11 @@ For development testing, use the included test environment:
 
 # Test starting/stopping projects without affecting real ones
 
-# Restore original configuration (restores backup)
+# Restore original configuration
 ./test-area/masquerade.sh restore
 ```
 
-The masquerade script safely swaps your `config/projects_output.json` with the generated mock configuration, backing up the original. Mock projects are simple hanging processes (`echo + sleep 999999`) perfect for testing process management, kill functionality, and UI behavior without interfering with actual projects.
-
-## 📚 Documentation
-
-- [Styles Documentation](styles/README.md) - Complete styling guide
-- [Modules Documentation](modules/README.md) - Core functionality guide
-- [Testing Guide](modules/test/) - Testing and validation
+The masquerade script safely swaps your configs with generated mock workspaces, backing up the originals. Mock projects are simple processes (`echo + sleep 999999`) perfect for testing without interfering with actual projects.
 
 ## 🤝 Contributing
 
