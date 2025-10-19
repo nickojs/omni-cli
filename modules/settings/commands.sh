@@ -152,7 +152,6 @@ manage_workspace() {
     while true; do
         clear
         print_header "Manage Workspace: $display_name"
-        echo ""
 
         # Get projects root for this workspace
         local projects_root=$(get_workspace_projects_folder "$workspace_file")
@@ -184,9 +183,9 @@ manage_workspace() {
         # Commands
         echo ""
         if [ $project_count -gt 0 ]; then
-            echo -e "${BRIGHT_GREEN}[a]${NC} add project │ ${BRIGHT_YELLOW}[e]${NC} edit project │ ${BRIGHT_RED}[r]${NC} remove project │ ${BRIGHT_PURPLE}[b]${NC} back │ ${BRIGHT_PURPLE}[h]${NC} help"
+            echo -e "${BRIGHT_GREEN}a${NC} add project    ${BRIGHT_BLUE}e${NC} edit project    ${BRIGHT_RED}r${NC} remove project    ${BRIGHT_PURPLE}b${NC} back    ${BRIGHT_PURPLE}h${NC} help"
         else
-            echo -e "${BRIGHT_GREEN}[a]${NC} add project │ ${BRIGHT_RED}[d]${NC} delete workspace │ ${BRIGHT_PURPLE}[b]${NC} back │ ${BRIGHT_PURPLE}[h]${NC} help"
+            echo -e "${BRIGHT_GREEN}a${NC} add project    ${BRIGHT_RED}d${NC} delete workspace     ${BRIGHT_PURPLE}b${NC} back     ${BRIGHT_PURPLE}h${NC} help"
         fi
         echo ""
 
@@ -298,16 +297,13 @@ add_project_to_workspace() {
     echo -e "  ${BRIGHT_WHITE}${display_name}${NC}"
     echo ""
     echo -e "  ${DIM}Folder${NC}"
-    echo -e "  ${BRIGHT_CYAN}${selected_folder}${NC}"
-    echo ""
-    echo -e "  ${DIM}Location${NC}"
-    echo -e "  ${DIM}${projects_root%/}/${selected_folder}${NC}"
+    echo -e "  ${BRIGHT_WHITE}${selected_folder}${NC}"
     echo ""
     echo -e "  ${DIM}Startup Command${NC}"
-    echo -e "  ${BRIGHT_YELLOW}${startup_cmd}${NC}"
+    echo -e "  ${BRIGHT_CYAN}${startup_cmd}${NC}"
     echo ""
     echo -e "  ${DIM}Shutdown Command${NC}"
-    echo -e "  ${BRIGHT_YELLOW}${shutdown_cmd}${NC}"
+    echo -e "  ${BRIGHT_CYAN}${shutdown_cmd}${NC}"
     echo ""
 
     # Confirm
@@ -356,7 +352,7 @@ remove_project_from_workspace() {
     local counter=1
     for project_info in "${workspace_projects[@]}"; do
         IFS=':' read -r proj_display proj_name proj_start proj_stop <<< "$project_info"
-        echo -e "  ${BRIGHT_CYAN}${counter}.${NC} ${BRIGHT_WHITE}${proj_display}${NC} ${DIM}(${proj_name})${NC}"
+        echo -e "  ${BRIGHT_CYAN}${counter}${NC} ${BRIGHT_WHITE}${proj_display}${NC}"
         counter=$((counter + 1))
     done
 
@@ -393,9 +389,7 @@ remove_project_from_workspace() {
 
     # Confirm removal
     echo ""
-    echo -e "${BRIGHT_WHITE}Remove project: ${BRIGHT_RED}${proj_display}${NC} ${DIM}(${proj_name})${NC}?"
-
-    if prompt_yes_no_confirmation "Are you sure?"; then
+    if prompt_yes_no_confirmation "${BRIGHT_WHITE}Remove project: ${BRIGHT_RED}${proj_display}${NC}?"; then
         # Remove the project using jq
         local temp_file=$(mktemp)
 
@@ -446,13 +440,13 @@ edit_project_in_workspace() {
     fi
 
     # Display projects with numbers
-    echo -e "${BRIGHT_WHITE}Select a project to edit:${NC}"
+    echo -e "${BRIGHT_WHITE}Select a project to edit${NC}"
     echo ""
 
     local counter=1
     for project_info in "${workspace_projects[@]}"; do
         IFS=':' read -r proj_display proj_name proj_start proj_stop <<< "$project_info"
-        echo -e "  ${BRIGHT_CYAN}${counter}.${NC} ${BRIGHT_WHITE}${proj_display}${NC} ${DIM}(${proj_name})${NC}"
+        echo -e "  ${BRIGHT_CYAN}${counter}${NC} ${BRIGHT_WHITE}${proj_display}${NC}"
         counter=$((counter + 1))
     done
 
@@ -491,9 +485,9 @@ edit_project_in_workspace() {
     clear
     print_header "Edit Project: $current_display"
     echo ""
-    echo -e "${DIM}Current display name: ${BRIGHT_WHITE}${current_display}${NC}"
-    echo -e "${DIM}Current startup cmd:  ${BRIGHT_YELLOW}${current_start}${NC}"
-    echo -e "${DIM}Current shutdown cmd: ${BRIGHT_YELLOW}${current_stop}${NC}"
+    echo -e "${BRIGHT_WHITE}Current display name: ${DIM}${current_display}${NC}"
+    echo -e "${BRIGHT_WHITE}Current startup cmd:  ${DIM}${current_start}${NC}"
+    echo -e "${BRIGHT_WHITE}Current shutdown cmd: ${DIM}${current_stop}${NC}"
     echo ""
 
     # Get new display name
@@ -533,10 +527,10 @@ edit_project_in_workspace() {
     echo -e "  ${BRIGHT_WHITE}${new_display}${NC}"
     echo ""
     echo -e "  ${DIM}Startup Command${NC}"
-    echo -e "  ${BRIGHT_YELLOW}${new_startup}${NC}"
+    echo -e "  ${BRIGHT_WHITE}${new_startup}${NC}"
     echo ""
     echo -e "  ${DIM}Shutdown Command${NC}"
-    echo -e "  ${BRIGHT_YELLOW}${new_shutdown}${NC}"
+    echo -e "  ${BRIGHT_WHITE}${new_shutdown}${NC}"
     echo ""
 
     if prompt_yes_no_confirmation "Save changes?"; then
@@ -581,9 +575,14 @@ delete_workspace() {
     echo ""
 
     # Confirm deletion
-    echo -e "${BRIGHT_RED}WARNING:${NC} You are about to delete workspace: ${BRIGHT_WHITE}${display_name}${NC}"
+    echo -e "${BRIGHT_RED}╔═══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BRIGHT_RED}║                        ⚠️  WARNING  ⚠️                        ║${NC}"
+    echo -e "${BRIGHT_RED}╚═══════════════════════════════════════════════════════════════╝${NC}"
     echo ""
-    echo -e "${DIM}Workspace file: ${workspace_file}${NC}"
+    echo -e "${BRIGHT_RED}You are about to DELETE workspace${NC}"
+    echo -e "  ${BRIGHT_WHITE}${display_name}${NC}"
+    echo ""
+    echo -e "${DIM}Workspace file:${NC} ${BRIGHT_WHITE}${workspace_file}${NC}"
     echo ""
 
     if prompt_yes_no_confirmation "Are you sure you want to delete this workspace?"; then

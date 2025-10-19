@@ -21,7 +21,7 @@ get_config_directory() {
 wait_for_enter() {
     local message="${1:-Press Enter to continue...}"
     echo ""
-    echo -ne "${BRIGHT_YELLOW}${message}${NC}"
+    echo -ne "${WHITE}${message}${NC}"
     read -r
 }
 
@@ -88,10 +88,6 @@ prompt_project_configuration() {
     echo -e "${BRIGHT_WHITE}Enter shutdown command:${NC}"
     echo -ne "${DIM}(e.g., 'npm run stop', 'pkill -f node')${NC} ${BRIGHT_CYAN}>${NC} "
     read -r shutdown_cmd
-
-    if [ -z "$shutdown_cmd" ]; then
-        shutdown_cmd="echo 'No shutdown command configured'"
-    fi
 
     # Output the three values (caller will read them)
     echo "$display_name"
@@ -306,10 +302,6 @@ prompt_project_input_fields() {
     echo -e "${BRIGHT_WHITE}Enter shutdown command:${NC}" >&2
     echo -ne "${DIM}(e.g., 'npm run stop', 'pkill -f node')${NC} ${BRIGHT_CYAN}>${NC} " >&2
     read -r shutdown_cmd
-
-    if [ -z "$shutdown_cmd" ]; then
-        shutdown_cmd="echo 'No shutdown command configured'"
-    fi
 
     # Output the three values to stdout (one per line)
     echo "$display_name"

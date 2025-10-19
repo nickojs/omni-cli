@@ -50,7 +50,7 @@ handle_menu_choice() {
     fi
     
     # Invalid command
-    print_error "Invalid command. Use numbers 1-${#projects[@]}, k[1-${#projects[@]}], ka, r, f, s, h, or q"
+    print_error "Invalid command."
     echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
     read -r
 }

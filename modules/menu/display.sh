@@ -26,11 +26,11 @@ show_project_menu_tmux() {
         echo ""
 
         if [ ${#projects[@]} -eq 0 ]; then
-            echo -e "${BRIGHT_PURPLE}[s]${NC} settings │ ${BRIGHT_PURPLE}[h]${NC} help │ ${BRIGHT_PURPLE}[q]${NC} quit"
+            echo -e "${BRIGHT_PURPLE}s${NC} settings    ${BRIGHT_PURPLE}h${NC} help    ${BRIGHT_PURPLE}q${NC} quit"
         elif [ ${#projects[@]} -eq 1 ]; then
-            echo -e "${BRIGHT_GREEN}[1]${NC} start │ ${BRIGHT_RED}[k1]${NC}/${BRIGHT_RED}[ka]${NC} kill │ ${BRIGHT_PURPLE}[s]${NC} settings │ ${BRIGHT_PURPLE}[h]${NC} help │ ${BRIGHT_PURPLE}[q]${NC} quit"
+            echo -e "${BRIGHT_GREEN}1${NC} start    ${BRIGHT_RED}k1${NC} kill    ${BRIGHT_PURPLE}s${NC} settings    ${BRIGHT_PURPLE}h${NC} help    ${BRIGHT_PURPLE}q${NC} quit"
         else
-            echo -e "${BRIGHT_GREEN}[1-${#projects[@]}]${NC} start │ ${BRIGHT_RED}[k1-${#projects[@]}]${NC}/${BRIGHT_RED}[ka]${NC} kill │ ${BRIGHT_PURPLE}[s]${NC} settings │ ${BRIGHT_PURPLE}[h]${NC} help │ ${BRIGHT_PURPLE}[q]${NC} quit"
+            echo -e "${BRIGHT_GREEN}1-${#projects[@]}${NC} start    ${BRIGHT_RED}k1-${#projects[@]}${NC}  ${BRIGHT_RED}ka${NC} kill    ${BRIGHT_PURPLE}s${NC} settings    ${BRIGHT_PURPLE}h${NC} help    ${BRIGHT_PURPLE}q${NC} quit"
         fi
 
         # Get user input with clean prompt
@@ -95,9 +95,9 @@ display_workspaces() {
     if [ ${#projects[@]} -eq 0 ]; then
         # Clean display for no active workspaces
         echo ""
-        echo -e "${BRIGHT_YELLOW}No workspaces configured.${NC}"
+        echo -e "${WHITE}No workspaces configured.${NC}"
         echo ""
-        echo -e "${DIM}Configure workspaces in ${BRIGHT_PURPLE}[s]${NC} ${DIM}settings menu${NC}"
+        echo -e "${DIM}Configure workspaces in ${BRIGHT_PURPLE}s${NC} ${DIM}settings menu${NC}"
         echo ""
         return 0
     fi
@@ -137,7 +137,7 @@ display_workspaces() {
         local display_name=$(echo "$workspace_name" | sed 's/[_-]/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)} 1')
 
         # Workspace header matching settings menu style
-        printf "${BRIGHT_CYAN}Workspace:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$display_name"
+        printf "${BRIGHT_CYAN}%s${NC}\n" "$display_name"
 
         # Find projects belonging to this workspace
         local workspace_project_indices=()

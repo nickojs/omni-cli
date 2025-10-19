@@ -135,5 +135,5 @@ handle_kill_all_command() {
 
 # Function to handle help command
 handle_help_command() {
-    show_help
+    show_menu_help
 }

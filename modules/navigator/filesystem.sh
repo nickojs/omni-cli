@@ -56,7 +56,7 @@ show_interactive_browser() {
         show_directory_listing "$current_dir"
 
         # In browsing mode - capture single keystrokes
-        echo -ne "${DIM}🎮 Controls: ${BRIGHT_YELLOW}w${NC}${DIM}/s (navigate) │ ${BRIGHT_GREEN}Enter${NC}${DIM} (open) │ ${BRIGHT_PURPLE}Space${NC}${DIM} (select here) │ ${BRIGHT_RED}b${NC}${DIM} (return)${NC} ${BRIGHT_CYAN}▶${NC} "
+        echo -e "${BRIGHT_YELLOW}w s${NC} navigate    ${BRIGHT_GREEN}enter${NC} open folder    ${BRIGHT_BLUE}space${NC} select here    ${BRIGHT_RED}b${NC} return "
         IFS= read -r -n1 -s choice
         echo ""  # Add newline after key capture
 
@@ -123,9 +123,9 @@ show_directory_listing() {
     local dir="$1"
 
     clear
-    print_header "🗂️  DIRECTORY BROWSER"
+    print_header "DIRECTORY BROWSER"
     echo ""
-    print_color "$BRIGHT_CYAN" "📍 Current location: ${BRIGHT_WHITE}$(realpath "$dir")${NC}"
+    print_color "$BRIGHT_CYAN" "Current location: ${BRIGHT_WHITE}$(realpath "$dir")${NC}"
     echo ""
 
     # Get directories in current location
@@ -179,7 +179,7 @@ show_directory_listing() {
             printf "  ${BRIGHT_YELLOW}▶${NC} ${BRIGHT_BLACK}${BRIGHT_YELLOW} %-2s ${NC} ${icon}${BRIGHT_YELLOW}%s${NC}\n" "$counter" "$dir_name"
         else
             # Normal directory entry
-            printf "  ${DIM}○${NC} ${BRIGHT_CYAN}%-2s${NC}  ${icon}${BRIGHT_WHITE}%s${NC}\n" "$counter" "$dir_name"
+            printf "  ${DIM} ${NC} ${BRIGHT_CYAN}%-2s${NC}  ${icon}${BRIGHT_WHITE}%s${NC}\n" "$counter" "$dir_name"
         fi
     done
 

@@ -11,6 +11,7 @@
 MENU_DIR="$(dirname "${BASH_SOURCE[0]}")"
 
 # Import all menu modules in dependency order
+source "$MENU_DIR/docs.sh"            # Documentation and help functions
 source "$MENU_DIR/actions.sh"         # Action handlers (start, kill, quit, etc.)
 source "$MENU_DIR/commands.sh"        # Command handling functions
 source "$MENU_DIR/display.sh"         # Menu display and UI functions

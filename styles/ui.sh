@@ -68,7 +68,7 @@ print_warning() {
 
 # Function to print info message
 print_info() {
-    print_color "$BRIGHT_BLUE" "ℹ $*"
+    print_color "$BRIGHT_WHITE" "[info] $*"
 }
 
 # Function to print step message

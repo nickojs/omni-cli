@@ -17,7 +17,7 @@ show_settings_menu() {
 
         # Commands section with improved spacing
         echo ""
-        echo -e "${BRIGHT_GREEN}[a]${NC} add workspace │ ${BRIGHT_GREEN}[m]${NC} manage workspace │ ${BRIGHT_PURPLE}[b]${NC} back │ ${BRIGHT_PURPLE}[h]${NC} help"
+        echo -e "${BRIGHT_GREEN}a${NC} add workspace    ${BRIGHT_GREEN}m${NC} manage workspace    ${BRIGHT_PURPLE}b${NC} back    ${BRIGHT_PURPLE}h${NC} help"
         echo ""
 
         # Get user input with better prompt
@@ -58,7 +58,7 @@ display_workspaces_info() {
         local display_name=$(echo "$workspace_name" | sed 's/[_-]/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)} 1')
 
         # Display workspace header with numbering
-        printf "${BRIGHT_CYAN}[%s] Workspace:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$counter" "$display_name"
+        printf "${BRIGHT_CYAN}%s${NC} ${BRIGHT_WHITE}%s${NC}\n" "$counter" "$display_name"
 
         # Parse projects from this workspace file
         local workspace_projects=()
@@ -76,7 +76,7 @@ display_workspaces_info() {
                 IFS=':' read -r project_display_name folder_name startup_cmd shutdown_cmd <<< "${workspace_projects[j]}"
 
                 # Use bullet point prefix
-                local prefix="${BRIGHT_CYAN}●${NC}"
+                local prefix="${BRIGHT_WHITE}●${NC}"
 
                 # Format data with fixed column widths: 32 | 30 | 32 | 32
                 local col1="$project_display_name"
@@ -97,7 +97,7 @@ display_workspaces_info() {
                 col4=$(printf "%-32.32s" "$col4")
 
                 # Display row with fixed table format - white text for col1, dim for col2-4
-                echo -e "  $prefix ${BRIGHT_WHITE}${col1}${NC} | ${DIM}${col2}${NC} | ${DIM}${col3}${NC} | ${DIM}${col4}${NC}"
+                echo -e "  $prefix ${BRIGHT_WHITE}${col1}${NC}   ${DIM}${col2}${NC}   ${DIM}${col3}${NC}   ${DIM}${col4}${NC}"
             done
         fi
         echo ""
