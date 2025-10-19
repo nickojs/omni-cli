@@ -179,8 +179,8 @@ display_workspaces() {
                     formatted_name=$(printf "%-32s" "$project_display_name")
                 fi
 
-                # Display with bullet point matching settings menu style
-                echo -e "  ${BRIGHT_CYAN}●${NC} ${BRIGHT_CYAN}[${global_counter}]${NC} $status_icon ${BRIGHT_WHITE}${formatted_name}${NC} ${status_display}"
+                # Display project with number and status
+                echo -e "  ${BRIGHT_CYAN}[${global_counter}]${NC} $status_icon ${BRIGHT_WHITE}${formatted_name}${NC} ${status_display}"
                 global_counter=$((global_counter + 1))
             done
         fi

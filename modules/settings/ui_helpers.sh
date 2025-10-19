@@ -146,8 +146,8 @@ scan_and_display_available_folders() {
     fi
 
     # Display table header (to stderr)
-    printf "  ${BRIGHT_WHITE}%-2s  %-18s  %-8s${NC}\n" "#" "Folder Name" "Status" >&2
-    printf "  ${DIM}%-2s  %-18s  %-8s${NC}\n" "─" "──────────────────" "───────" >&2
+    printf "  ${BRIGHT_WHITE}%-2s  %-40s  %-10s${NC}\n" "#" "Folder Name" "Status" >&2
+    printf "  ${DIM}%-2s  %-40s  %-10s${NC}\n" "─" "────────────────────────────────────────" "──────────" >&2
 
     # Display all folders with their managed status (to stderr)
     for i in "${!available_folders[@]}"; do
@@ -156,15 +156,15 @@ scan_and_display_available_folders() {
         local status="${managed_status[i]}"
 
         # Truncate long folder names
-        local truncated_folder=$(printf "%.18s" "$folder")
-        [ ${#folder} -gt 18 ] && truncated_folder="${truncated_folder}.."
+        local truncated_folder=$(printf "%.40s" "$folder")
+        [ ${#folder} -gt 40 ] && truncated_folder="${truncated_folder}.."
 
         if [ "$status" = "managed" ]; then
             # Already managed - show in very dim text
-            printf "  ${DIM}%-2s  %-18s  %s${NC}\n" "$counter" "$truncated_folder" "$status" >&2
+            printf "  ${DIM}%-2s  %-40s  %s${NC}\n" "$counter" "$truncated_folder" "$status" >&2
         else
             # Available to add - show in white with blue number
-            printf "  ${BLUE}%-2s${NC}  ${BRIGHT_WHITE}%-18s  %s${NC}\n" "$counter" "$truncated_folder" "$status" >&2
+            printf "  ${BLUE}%-2s${NC}  ${BRIGHT_WHITE}%-40s  %s${NC}\n" "$counter" "$truncated_folder" "$status" >&2
         fi
     done
 

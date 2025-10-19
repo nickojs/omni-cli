@@ -189,7 +189,11 @@ manage_workspace() {
 
         # Commands
         echo ""
-        echo -e "${BRIGHT_GREEN}[a]${NC} add project │ ${BRIGHT_PURPLE}[b]${NC} back │ ${BRIGHT_PURPLE}[h]${NC} help"
+        if [ $project_count -gt 0 ]; then
+            echo -e "${BRIGHT_GREEN}[a]${NC} add project │ ${BRIGHT_RED}[r]${NC} remove project │ ${BRIGHT_PURPLE}[b]${NC} back │ ${BRIGHT_PURPLE}[h]${NC} help"
+        else
+            echo -e "${BRIGHT_GREEN}[a]${NC} add project │ ${BRIGHT_RED}[d]${NC} delete workspace │ ${BRIGHT_PURPLE}[b]${NC} back │ ${BRIGHT_PURPLE}[h]${NC} help"
+        fi
         echo ""
 
         # Get user input
@@ -199,6 +203,24 @@ manage_workspace() {
         case "${choice,,}" in
             a)
                 add_project_to_workspace "$workspace_file" "$projects_root"
+                ;;
+            r)
+                if [ $project_count -gt 0 ]; then
+                    remove_project_from_workspace "$workspace_file"
+                else
+                    print_error "No projects to remove"
+                    wait_for_enter
+                fi
+                ;;
+            d)
+                if [ $project_count -eq 0 ]; then
+                    if delete_workspace "$workspace_file"; then
+                        return 0  # Exit to workspace selection menu
+                    fi
+                else
+                    print_error "Cannot delete workspace with projects. Remove all projects first."
+                    wait_for_enter
+                fi
                 ;;
             b)
                 return 0
@@ -299,6 +321,148 @@ add_project_to_workspace() {
     unset JSON_CONFIG_FILE
     wait_for_enter
     return 0
+}
+
+# Function to remove a project from a workspace
+# Parameters: workspace_file
+remove_project_from_workspace() {
+    local workspace_file="$1"
+
+    # Set the JSON_CONFIG_FILE for utils functions
+    export JSON_CONFIG_FILE="$workspace_file"
+    export BACKUP_JSON=false
+
+    clear
+    print_header "Remove Project from Workspace"
+    echo ""
+
+    # Get projects from workspace
+    local workspace_projects=()
+    parse_workspace_projects "$workspace_file" workspace_projects
+
+    if [ ${#workspace_projects[@]} -eq 0 ]; then
+        print_error "No projects in this workspace"
+        unset JSON_CONFIG_FILE
+        wait_for_enter
+        return 1
+    fi
+
+    # Display projects with numbers
+    echo -e "${BRIGHT_WHITE}Select a project to remove:${NC}"
+    echo ""
+
+    local counter=1
+    for project_info in "${workspace_projects[@]}"; do
+        IFS=':' read -r proj_display proj_name proj_start proj_stop <<< "$project_info"
+        echo -e "  ${BRIGHT_CYAN}${counter}.${NC} ${BRIGHT_WHITE}${proj_display}${NC} ${DIM}(${proj_name})${NC}"
+        counter=$((counter + 1))
+    done
+
+    echo ""
+    echo -ne "${BRIGHT_WHITE}Enter project number (or press Enter to cancel): ${NC}"
+    read -r project_choice
+
+    # Handle empty input (cancel)
+    if [ -z "$project_choice" ]; then
+        unset JSON_CONFIG_FILE
+        return 0
+    fi
+
+    # Validate choice is a number
+    if ! [[ "$project_choice" =~ ^[0-9]+$ ]]; then
+        print_error "Invalid choice. Please enter a number."
+        unset JSON_CONFIG_FILE
+        wait_for_enter
+        return 1
+    fi
+
+    # Validate choice is in range
+    if [ "$project_choice" -lt 1 ] || [ "$project_choice" -gt "${#workspace_projects[@]}" ]; then
+        print_error "Invalid choice. Please select a number between 1 and ${#workspace_projects[@]}."
+        unset JSON_CONFIG_FILE
+        wait_for_enter
+        return 1
+    fi
+
+    # Get selected project info
+    local selected_index=$((project_choice - 1))
+    local selected_project="${workspace_projects[selected_index]}"
+    IFS=':' read -r proj_display proj_name proj_start proj_stop <<< "$selected_project"
+
+    # Confirm removal
+    echo ""
+    echo -e "${BRIGHT_WHITE}Remove project: ${BRIGHT_RED}${proj_display}${NC} ${DIM}(${proj_name})${NC}?"
+
+    if prompt_yes_no_confirmation "Are you sure?"; then
+        # Remove the project using jq
+        local temp_file=$(mktemp)
+
+        if jq "del(.[${selected_index}])" "$workspace_file" > "$temp_file"; then
+            if mv "$temp_file" "$workspace_file"; then
+                echo ""
+                print_success "Project removed successfully"
+            else
+                print_error "Failed to update workspace file"
+                rm -f "$temp_file"
+            fi
+        else
+            print_error "Failed to process workspace file"
+            rm -f "$temp_file"
+        fi
+    else
+        echo ""
+        print_info "Cancelled"
+    fi
+
+    unset JSON_CONFIG_FILE
+    wait_for_enter
+    return 0
+}
+
+# Function to delete an empty workspace
+# Parameters: workspace_file
+# Returns: 0 if successful, 1 if error or cancelled
+delete_workspace() {
+    local workspace_file="$1"
+    local display_name=$(format_workspace_display_name "$workspace_file")
+
+    clear
+    print_header "Delete Workspace"
+    echo ""
+
+    # Confirm deletion
+    echo -e "${BRIGHT_RED}WARNING:${NC} You are about to delete workspace: ${BRIGHT_WHITE}${display_name}${NC}"
+    echo ""
+    echo -e "${DIM}Workspace file: ${workspace_file}${NC}"
+    echo ""
+
+    if prompt_yes_no_confirmation "Are you sure you want to delete this workspace?"; then
+        # Remove from active config
+        if remove_workspace_from_bulk_config "$workspace_file"; then
+            # Delete the workspace file
+            if rm -f "$workspace_file" 2>/dev/null; then
+                echo ""
+                print_success "Workspace deleted successfully"
+                wait_for_enter
+                return 0
+            else
+                echo ""
+                print_error "Failed to delete workspace file"
+                wait_for_enter
+                return 1
+            fi
+        else
+            echo ""
+            print_error "Failed to remove workspace from configuration"
+            wait_for_enter
+            return 1
+        fi
+    else
+        echo ""
+        print_info "Cancelled"
+        wait_for_enter
+        return 1
+    fi
 }
 
 # Function to show workspace selection menu

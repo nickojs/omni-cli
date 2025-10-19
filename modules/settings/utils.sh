@@ -448,9 +448,11 @@ remove_workspace_from_bulk_config() {
 
     local temp_file=$(mktemp)
 
-    # Remove workspace ONLY from activeConfig array, keep it in availableConfigs
+    # Remove workspace from activeConfig, availableConfigs, and workspacePaths
     if jq --arg workspace_file "$workspace_file" \
-       '.activeConfig = (.activeConfig - [$workspace_file])' \
+       '.activeConfig = (.activeConfig - [$workspace_file]) |
+        .availableConfigs = (.availableConfigs - [$workspace_file]) |
+        .workspacePaths = (.workspacePaths | del(.[$workspace_file]))' \
        "$workspaces_file" > "$temp_file"; then
 
         # Move the updated file (always keep the workspaces config file)
