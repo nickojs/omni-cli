@@ -341,56 +341,18 @@ remove_project_from_workspace() {
     print_header "Remove Project from Workspace"
     echo ""
 
-    # Get projects from workspace
-    local workspace_projects=()
-    parse_workspace_projects "$workspace_file" workspace_projects
+    # Use helper to select project
+    local selected_index
+    selected_index=$(select_project_from_workspace "$workspace_file")
 
-    if [ ${#workspace_projects[@]} -eq 0 ]; then
-        print_error "No projects in this workspace"
-        unset JSON_CONFIG_FILE
-        wait_for_enter
-        return 1
-    fi
-
-    # Display projects with numbers
-    echo -e "${BRIGHT_WHITE}Select a project to remove:${NC}"
-    echo ""
-
-    local counter=1
-    for project_info in "${workspace_projects[@]}"; do
-        IFS=':' read -r proj_display proj_name proj_start proj_stop <<< "$project_info"
-        echo -e "  ${BRIGHT_CYAN}${counter}${NC} ${BRIGHT_WHITE}${proj_display}${NC}"
-        counter=$((counter + 1))
-    done
-
-    echo ""
-    echo -ne "${BRIGHT_WHITE}Enter project number (or press Enter to cancel): ${NC}"
-    read -r project_choice
-
-    # Handle empty input (cancel)
-    if [ -z "$project_choice" ]; then
+    if [ $? -ne 0 ] || [ -z "$selected_index" ]; then
         unset JSON_CONFIG_FILE
         return 0
     fi
 
-    # Validate choice is a number
-    if ! [[ "$project_choice" =~ ^[0-9]+$ ]]; then
-        print_error "Invalid choice. Please enter a number."
-        unset JSON_CONFIG_FILE
-        wait_for_enter
-        return 1
-    fi
-
-    # Validate choice is in range
-    if [ "$project_choice" -lt 1 ] || [ "$project_choice" -gt "${#workspace_projects[@]}" ]; then
-        print_error "Invalid choice. Please select a number between 1 and ${#workspace_projects[@]}."
-        unset JSON_CONFIG_FILE
-        wait_for_enter
-        return 1
-    fi
-
     # Get selected project info
-    local selected_index=$((project_choice - 1))
+    local workspace_projects=()
+    parse_workspace_projects "$workspace_file" workspace_projects
     local selected_project="${workspace_projects[selected_index]}"
     IFS=':' read -r proj_display proj_name proj_start proj_stop <<< "$selected_project"
 
@@ -435,56 +397,18 @@ edit_project_in_workspace() {
     print_header "Edit Project in Workspace"
     echo ""
 
-    # Get projects from workspace
-    local workspace_projects=()
-    parse_workspace_projects "$workspace_file" workspace_projects
+    # Use helper to select project
+    local selected_index
+    selected_index=$(select_project_from_workspace "$workspace_file")
 
-    if [ ${#workspace_projects[@]} -eq 0 ]; then
-        print_error "No projects in this workspace"
-        unset JSON_CONFIG_FILE
-        wait_for_enter
-        return 1
-    fi
-
-    # Display projects with numbers
-    echo -e "${BRIGHT_WHITE}Select a project to edit${NC}"
-    echo ""
-
-    local counter=1
-    for project_info in "${workspace_projects[@]}"; do
-        IFS=':' read -r proj_display proj_name proj_start proj_stop <<< "$project_info"
-        echo -e "  ${BRIGHT_CYAN}${counter}${NC} ${BRIGHT_WHITE}${proj_display}${NC}"
-        counter=$((counter + 1))
-    done
-
-    echo ""
-    echo -ne "${BRIGHT_WHITE}Enter project number (or press Enter to cancel): ${NC}"
-    read -r project_choice
-
-    # Handle empty input (cancel)
-    if [ -z "$project_choice" ]; then
+    if [ $? -ne 0 ] || [ -z "$selected_index" ]; then
         unset JSON_CONFIG_FILE
         return 0
     fi
 
-    # Validate choice is a number
-    if ! [[ "$project_choice" =~ ^[0-9]+$ ]]; then
-        print_error "Invalid choice. Please enter a number."
-        unset JSON_CONFIG_FILE
-        wait_for_enter
-        return 1
-    fi
-
-    # Validate choice is in range
-    if [ "$project_choice" -lt 1 ] || [ "$project_choice" -gt "${#workspace_projects[@]}" ]; then
-        print_error "Invalid choice. Please select a number between 1 and ${#workspace_projects[@]}."
-        unset JSON_CONFIG_FILE
-        wait_for_enter
-        return 1
-    fi
-
     # Get selected project info
-    local selected_index=$((project_choice - 1))
+    local workspace_projects=()
+    parse_workspace_projects "$workspace_file" workspace_projects
     local selected_project="${workspace_projects[selected_index]}"
     IFS=':' read -r current_display current_name current_start current_stop <<< "$selected_project"
 
@@ -593,8 +517,8 @@ delete_workspace() {
     echo ""
 
     if prompt_yes_no_confirmation "Are you sure you want to delete this workspace?"; then
-        # Remove from active config
-        if remove_workspace_from_bulk_config "$workspace_file"; then
+        # Remove from configuration (both active and available)
+        if unregister_workspace "$workspace_file"; then
             # Delete the workspace file
             if rm -f "$workspace_file" 2>/dev/null; then
                 echo ""
@@ -666,16 +590,8 @@ show_workspace_selection_menu() {
         return 0
     fi
 
-    # Validate choice is a number
-    if ! [[ "$workspace_choice" =~ ^[0-9]+$ ]]; then
-        print_error "Invalid choice. Please enter a number."
-        wait_for_enter
-        return 0
-    fi
-
-    # Validate choice is in range
-    if [ "$workspace_choice" -lt 1 ] || [ "$workspace_choice" -gt "${#available_workspaces[@]}" ]; then
-        print_error "Invalid choice. Please select a number between 1 and ${#available_workspaces[@]}."
+    # Validate choice
+    if ! validate_number_in_range "$workspace_choice" 1 "${#available_workspaces[@]}" "workspace"; then
         wait_for_enter
         return 0
     fi
