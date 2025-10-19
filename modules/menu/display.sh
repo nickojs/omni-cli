@@ -180,7 +180,7 @@ display_workspaces() {
                 fi
 
                 # Display project with number and status
-                echo -e "  ${BRIGHT_CYAN}[${global_counter}]${NC} $status_icon ${BRIGHT_WHITE}${formatted_name}${NC} ${status_display}"
+                echo -e "  ${BRIGHT_CYAN}${global_counter}${NC} ${BRIGHT_WHITE}${formatted_name}${NC} ${status_display}"
                 global_counter=$((global_counter + 1))
             done
         fi

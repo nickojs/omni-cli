@@ -169,8 +169,7 @@ manage_workspace() {
         local project_count=${#workspace_projects[@]}
 
         if [ $project_count -gt 0 ]; then
-            echo -e "  ${CYAN}───${NC} ${BRIGHT_WHITE}Projects (${project_count})${NC} ${CYAN}$(printf '─%.0s' $(seq 1 50))${NC}"
-            echo ""
+            echo -e "  ${BRIGHT_WHITE}Projects (${project_count})"
 
             for project_info in "${workspace_projects[@]}"; do
                 IFS=':' read -r proj_display proj_name proj_start proj_stop <<< "$project_info"
