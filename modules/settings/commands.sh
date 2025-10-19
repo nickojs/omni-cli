@@ -189,13 +189,11 @@ manage_workspace() {
 
         # Commands
         echo ""
-        print_section_header "Commands"
-        echo ""
-        echo -e "  ${PURPLE}[a]${NC} Add project    ${PURPLE}[b]${NC} Back    ${PURPLE}[h]${NC} Help"
+        echo -e "${BRIGHT_GREEN}[a]${NC} add project │ ${BRIGHT_PURPLE}[b]${NC} back │ ${BRIGHT_PURPLE}[h]${NC} help"
         echo ""
 
         # Get user input
-        echo -ne "${CYAN}❯${NC} "
+        echo -ne "${BRIGHT_CYAN}>${NC} "
         read -r choice
 
         case "${choice,,}" in
@@ -323,9 +321,6 @@ show_workspace_selection_menu() {
     fi
 
     # Display workspaces with numbers
-    echo -e "  ${BRIGHT_WHITE}Available Workspaces:${NC}"
-    echo ""
-
     local counter=1
     for workspace_file in "${active_workspaces[@]}"; do
         local display_name=$(format_workspace_display_name "$workspace_file")
@@ -344,9 +339,9 @@ show_workspace_selection_menu() {
     done
 
     # Prompt for selection
-    echo -e "${BRIGHT_WHITE}Enter workspace number to manage, or press Enter to go back:${NC}"
-    echo -ne "${CYAN}❯${NC} "
+    echo -ne "${BRIGHT_WHITE}Select workspace: ${BRIGHT_CYAN}"
     read -r workspace_choice
+    echo -ne "${NC}" # Reset color
 
     # Handle empty input (go back)
     if [ -z "$workspace_choice" ]; then

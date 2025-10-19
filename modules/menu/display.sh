@@ -24,20 +24,18 @@ show_project_menu_tmux() {
 
         # Commands section with better formatting and grouping
         echo ""
-        print_section_header "Commands"
-        echo ""
 
         if [ ${#projects[@]} -eq 0 ]; then
-            echo -e "  ${PURPLE}s${NC} settings  ${CYAN}│${NC}  ${PURPLE}h${NC} help  ${CYAN}│${NC}  ${PURPLE}q${NC} quit"
+            echo -e "${BRIGHT_PURPLE}[s]${NC} settings │ ${BRIGHT_PURPLE}[h]${NC} help │ ${BRIGHT_PURPLE}[q]${NC} quit"
         elif [ ${#projects[@]} -eq 1 ]; then
-            echo -e "  ${GREEN}1${NC} start  ${CYAN}│${NC}  ${RED}k1${NC}/${RED}ka${NC} kill  ${CYAN}│${NC}  ${PURPLE}s${NC} settings  ${CYAN}│${NC}  ${PURPLE}h${NC} help  ${CYAN}│${NC}  ${PURPLE}q${NC} quit"
+            echo -e "${BRIGHT_GREEN}[1]${NC} start │ ${BRIGHT_RED}[k1]${NC}/${BRIGHT_RED}[ka]${NC} kill │ ${BRIGHT_PURPLE}[s]${NC} settings │ ${BRIGHT_PURPLE}[h]${NC} help │ ${BRIGHT_PURPLE}[q]${NC} quit"
         else
-            echo -e "  ${GREEN}1-${#projects[@]}${NC} start  ${CYAN}│${NC}  ${RED}k1-${#projects[@]}${NC}/${RED}ka${NC} kill  ${CYAN}│${NC}  ${PURPLE}s${NC} settings  ${CYAN}│${NC}  ${PURPLE}h${NC} help  ${CYAN}│${NC}  ${PURPLE}q${NC} quit"
+            echo -e "${BRIGHT_GREEN}[1-${#projects[@]}]${NC} start │ ${BRIGHT_RED}[k1-${#projects[@]}]${NC}/${BRIGHT_RED}[ka]${NC} kill │ ${BRIGHT_PURPLE}[s]${NC} settings │ ${BRIGHT_PURPLE}[h]${NC} help │ ${BRIGHT_PURPLE}[q]${NC} quit"
         fi
 
         # Get user input with clean prompt
         echo ""
-        echo -ne "${BLUE}❯${NC} "
+        echo -ne "${BRIGHT_CYAN}>${NC} "
         read -r choice
 
         # Handle user input
@@ -96,9 +94,10 @@ display_workspaces() {
     # Check if any projects are loaded globally
     if [ ${#projects[@]} -eq 0 ]; then
         # Clean display for no active workspaces
-        echo -e "${LIGHT_RED}No Active Workspaces${NC}"
         echo ""
-        echo -e "${WHITE}Configure workspaces in ${BRIGHT_PURPLE}[s]${NC} ${WHITE}settings menu${NC}"
+        echo -e "${BRIGHT_YELLOW}No workspaces configured.${NC}"
+        echo ""
+        echo -e "${DIM}Configure workspaces in ${BRIGHT_PURPLE}[s]${NC} ${DIM}settings menu${NC}"
         echo ""
         return 0
     fi
@@ -132,12 +131,13 @@ display_workspaces() {
     local global_counter=1
 
     # Display each active workspace with its projects using global numbering
+    echo ""
     for workspace_file in "${workspace_files[@]}"; do
         local workspace_name=$(basename "$workspace_file" .json)
         local display_name=$(echo "$workspace_name" | sed 's/[_-]/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)} 1')
 
-        # Elegant workspace header with subtle styling
-        echo -e "${CYAN}╭─${NC} ${BRIGHT_CYAN}${display_name}${NC} ${CYAN}$(printf '─%.0s' $(seq 1 $((60 - ${#display_name}))))╮${NC}"
+        # Workspace header matching settings menu style
+        printf "${BRIGHT_CYAN}Workspace:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$display_name"
 
         # Find projects belonging to this workspace
         local workspace_project_indices=()
@@ -149,7 +149,7 @@ display_workspaces() {
 
         # Display projects for this workspace
         if [ ${#workspace_project_indices[@]} -eq 0 ]; then
-            echo -e "${CYAN}│${NC}  ${DIM}No projects configured${NC}"
+            echo -e "  ${DIM}No projects configured${NC}"
         else
             for j in "${!workspace_project_indices[@]}"; do
                 local project_index=${workspace_project_indices[j]}
@@ -169,7 +169,7 @@ display_workspaces() {
                     status_display="${RED}not found${NC}"
                 fi
 
-                # Format project name with minimum 32 characters for alignment
+                # Format project name with fixed width for alignment
                 local formatted_name
                 if [ ${#project_display_name} -gt 32 ]; then
                     # Truncate long names
@@ -179,12 +179,11 @@ display_workspaces() {
                     formatted_name=$(printf "%-32s" "$project_display_name")
                 fi
 
-                # Display with clean formatting inspired by lazygit
-                echo -e "${CYAN}│${NC} ${BLUE}[$global_counter]${NC} $status_icon ${BRIGHT_WHITE}${formatted_name}${NC} ${status_display}"
+                # Display with bullet point matching settings menu style
+                echo -e "  ${BRIGHT_CYAN}●${NC} ${BRIGHT_CYAN}[${global_counter}]${NC} $status_icon ${BRIGHT_WHITE}${formatted_name}${NC} ${status_display}"
                 global_counter=$((global_counter + 1))
             done
         fi
-        echo -e "${CYAN}╰$(printf '─%.0s' $(seq 1 66))╯${NC}"
         echo ""
     done
 }

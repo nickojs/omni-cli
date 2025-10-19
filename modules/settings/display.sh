@@ -10,7 +10,6 @@
 show_settings_menu() {
     while true; do
         clear
-        echo ""
         print_header "Settings"
 
         # Display workspaces from .workspaces.json
@@ -18,13 +17,11 @@ show_settings_menu() {
 
         # Commands section with improved spacing
         echo ""
-        print_section_header "Commands"
-        echo ""
-        echo -e "  ${PURPLE}[a]${NC} Add workspace    ${PURPLE}[m]${NC} Manage workspace    ${PURPLE}[b]${NC} Back    ${PURPLE}[h]${NC} Help"
+        echo -e "${BRIGHT_GREEN}[a]${NC} add workspace │ ${BRIGHT_GREEN}[m]${NC} manage workspace │ ${BRIGHT_PURPLE}[b]${NC} back │ ${BRIGHT_PURPLE}[h]${NC} help"
         echo ""
 
         # Get user input with better prompt
-        echo -ne "${CYAN}❯${NC} "
+        echo -ne "${BRIGHT_CYAN}>${NC} "
         read -r choice
 
         # Handle user input
@@ -48,69 +45,62 @@ display_workspaces_info() {
     if [ ! -f "$workspaces_file" ] || ! get_active_workspaces active_workspaces || [ ${#active_workspaces[@]} -eq 0 ]; then
         # Display empty state with better spacing
         echo ""
-        print_section_header "Active Workspaces"
-        echo ""
-        echo -e "  ${DIM}No configured workspaces available${NC}"
-        echo ""
-        echo -e "  ${DIM}Use '${PURPLE}a${DIM}' to add your first workspace${NC}"
+        echo -e "${BRIGHT_YELLOW}No workspaces configured.${NC}"
         echo ""
         return 0
     fi
 
-    # Display active workspaces with better formatting
+    # Display active workspaces as numbered list
     echo ""
-    print_section_header "Active Workspaces"
-    echo ""
-
     local counter=1
-    local width=$(get_terminal_width)
-    local box_width=$((width - 4))  # Account for padding
-
     for workspace_file in "${active_workspaces[@]}"; do
-        local display_name=$(format_workspace_display_name "$workspace_file")
-        local projects_root=$(get_workspace_projects_folder "$workspace_file")
+        local workspace_name=$(basename "$workspace_file" .json)
+        local display_name=$(echo "$workspace_name" | sed 's/[_-]/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)} 1')
 
-        # Check if file exists
-        if [ ! -f "$workspace_file" ]; then
-            # Error state
-            echo -e "  ${CYAN}╭─${NC} ${BRIGHT_RED}${display_name}${NC} ${RED}(file not found)${NC}"
-            echo -e "  ${CYAN}│${NC}  ${DIM}File: ${workspace_file}${NC}"
-            echo -e "  ${CYAN}╰─$(printf '─%.0s' $(seq 1 $((box_width - 2))))${NC}"
+        # Display workspace header with numbering
+        printf "${BRIGHT_CYAN}[%s] Workspace:${NC} ${BRIGHT_GREEN}%s${NC}\n" "$counter" "$display_name"
+
+        # Parse projects from this workspace file
+        local workspace_projects=()
+        if command -v jq >/dev/null 2>&1 && [ -f "$workspace_file" ]; then
+            while IFS= read -r line; do
+                workspace_projects+=("$line")
+            done < <(jq -r '.[] | "\(.displayName):\(.projectName):\(.startupCmd):\(.shutdownCmd)"' "$workspace_file" 2>/dev/null)
+        fi
+
+        # Display projects for this workspace
+        if [ ${#workspace_projects[@]} -eq 0 ]; then
+            echo -e "  ${DIM}No projects configured${NC}"
         else
-            # Display workspace card
-            echo -e "  ${CYAN}╭─${NC} ${BRIGHT_CYAN}${BOLD}${display_name}${NC}"
-            echo -e "  ${CYAN}│${NC}"
+            for j in "${!workspace_projects[@]}"; do
+                IFS=':' read -r project_display_name folder_name startup_cmd shutdown_cmd <<< "${workspace_projects[j]}"
 
-            # Location
-            if [ -n "$projects_root" ]; then
-                echo -e "  ${CYAN}│${NC}  ${DIM}Location${NC}"
-                echo -e "  ${CYAN}│${NC}  ${BRIGHT_WHITE}${projects_root}${NC}"
-                echo -e "  ${CYAN}│${NC}"
-            fi
+                # Use bullet point prefix
+                local prefix="${BRIGHT_CYAN}●${NC}"
 
-            # Count projects in this workspace
-            local workspace_projects=()
-            parse_workspace_projects "$workspace_file" workspace_projects
-            local project_count=${#workspace_projects[@]}
+                # Format data with fixed column widths: 32 | 30 | 32 | 32
+                local col1="$project_display_name"
+                local col2="$folder_name"
+                local col3="$startup_cmd"
+                local col4="$shutdown_cmd"
 
-            # Projects count
-            echo -e "  ${CYAN}│${NC}  ${DIM}Projects${NC}"
-            if [ $project_count -gt 0 ]; then
-                echo -e "  ${CYAN}│${NC}  ${GREEN}${project_count} configured${NC}"
-            else
-                echo -e "  ${CYAN}│${NC}  ${DIM}none configured${NC}"
-            fi
+                # Truncate if longer than max width
+                [ ${#col1} -gt 32 ] && col1=$(printf "%.29s..." "$col1")
+                [ ${#col2} -gt 30 ] && col2=$(printf "%.27s..." "$col2")
+                [ ${#col3} -gt 32 ] && col3=$(printf "%.29s..." "$col3")
+                [ ${#col4} -gt 32 ] && col4=$(printf "%.29s..." "$col4")
 
-            echo -e "  ${CYAN}│${NC}"
-            echo -e "  ${CYAN}│${NC}  ${DIM}${workspace_file}${NC}"
-            echo -e "  ${CYAN}╰─$(printf '─%.0s' $(seq 1 $((box_width - 2))))${NC}"
+                # Ensure fixed width with padding to exact column sizes
+                col1=$(printf "%-32.32s" "$col1")
+                col2=$(printf "%-30.30s" "$col2")
+                col3=$(printf "%-32.32s" "$col3")
+                col4=$(printf "%-32.32s" "$col4")
+
+                # Display row with fixed table format - white text for col1, dim for col2-4
+                echo -e "  $prefix ${BRIGHT_WHITE}${col1}${NC} | ${DIM}${col2}${NC} | ${DIM}${col3}${NC} | ${DIM}${col4}${NC}"
+            done
         fi
-
-        # Add spacing between workspaces
-        if [ $counter -lt ${#active_workspaces[@]} ]; then
-            echo ""
-        fi
-
+        echo ""
         counter=$((counter + 1))
     done
 }

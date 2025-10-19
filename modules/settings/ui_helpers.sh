@@ -160,16 +160,16 @@ scan_and_display_available_folders() {
         [ ${#folder} -gt 18 ] && truncated_folder="${truncated_folder}.."
 
         if [ "$status" = "managed" ]; then
-            # Already managed - show in green
-            printf "  ${DIM}%-2s  %-18s  ${BRIGHT_GREEN}%s${NC}\n" "$counter" "$truncated_folder" "$status" >&2
+            # Already managed - show in very dim text
+            printf "  ${DIM}%-2s  %-18s  %s${NC}\n" "$counter" "$truncated_folder" "$status" >&2
         else
-            # Available to add - show in yellow
-            printf "  ${BRIGHT_CYAN}%-2s${NC}  ${BRIGHT_WHITE}%-18s${NC}  ${BRIGHT_YELLOW}%s${NC}\n" "$counter" "$truncated_folder" "$status" >&2
+            # Available to add - show in white with blue number
+            printf "  ${BLUE}%-2s${NC}  ${BRIGHT_WHITE}%-18s  %s${NC}\n" "$counter" "$truncated_folder" "$status" >&2
         fi
     done
 
     echo "" >&2
-    print_color "$BRIGHT_YELLOW" "Select a folder to add (enter number), or press Enter to go back" >&2
+    echo -e "${BRIGHT_WHITE}Select a folder to add (enter number), or press Enter to go back${NC}" >&2
     echo -n "> " >&2
 
     read -r folder_choice
