@@ -127,7 +127,6 @@ setup_config_paths() {
 setup_config_paths
 source "$BASE_DIR/styles/index.sh"
 source "$BASE_DIR/modules/index.sh"
-source "$BASE_DIR/docs/index.sh"
 
 main() {
     # Parse command line arguments first

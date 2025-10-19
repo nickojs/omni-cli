@@ -6,39 +6,9 @@
 # This module provides interactive filesystem navigation for path selection
 # Usage: source modules/navigator/filesystem.sh
 
-# Function to show path selection options
+# Function to show path selection - goes straight to interactive browser
 show_path_selector() {
-    clear
-    print_header "📁 SELECT PROJECTS DIRECTORY"
-    echo ""
-    print_info "Choose how you want to select your projects directory:"
-    echo ""
-    echo -e "${BRIGHT_GREEN}🎮 [1]${NC} Interactive Browser ${DIM}(navigate with w/s keys)${NC}"
-    echo -e "${BRIGHT_BLUE}✏️  [2]${NC} Manual Path Entry ${DIM}(type the path)${NC}"
-    echo ""
-    echo -e "${BRIGHT_PURPLE}❌ [q]${NC} quit"
-    echo ""
-    echo -ne "${BRIGHT_CYAN}▶${NC} "
-
-    read -r choice
-
-    case "$choice" in
-        1)
-            show_interactive_browser
-            ;;
-        2)
-            show_manual_path_entry
-            ;;
-        [Qq])
-            print_info "Setup cancelled"
-            exit 0
-            ;;
-        *)
-            print_error "Invalid choice. Please select 1, 2, or q"
-            sleep 1
-            show_path_selector
-            ;;
-    esac
+    show_interactive_browser
 }
 
 # Function to show manual path entry (existing behavior)
@@ -86,7 +56,7 @@ show_interactive_browser() {
         show_directory_listing "$current_dir"
 
         # In browsing mode - capture single keystrokes
-        echo -ne "${DIM}🎮 Controls: ${BRIGHT_YELLOW}w${NC}${DIM}/s (navigate) │ ${BRIGHT_GREEN}Enter${NC}${DIM} (open) │ ${BRIGHT_PURPLE}Space${NC}${DIM} (select here) │ ${BRIGHT_RED}q${NC}${DIM} (quit)${NC} ${BRIGHT_CYAN}▶${NC} "
+        echo -ne "${DIM}🎮 Controls: ${BRIGHT_YELLOW}w${NC}${DIM}/s (navigate) │ ${BRIGHT_GREEN}Enter${NC}${DIM} (open) │ ${BRIGHT_PURPLE}Space${NC}${DIM} (select here) │ ${BRIGHT_RED}b${NC}${DIM} (return)${NC} ${BRIGHT_CYAN}▶${NC} "
         IFS= read -r -n1 -s choice
         echo ""  # Add newline after key capture
 
@@ -97,12 +67,7 @@ show_interactive_browser() {
             # Directory selected
             break
         elif [ $result -eq 2 ]; then
-            # Quit requested
-            print_info "Browser cancelled"
-            exit 0
-        elif [ $result -eq 3 ]; then
-            # Go back to path selector
-            show_path_selector
+            # Return requested
             return
         elif [ $result -eq 4 ]; then
             # Navigate to parent directory
@@ -189,7 +154,7 @@ show_directory_listing() {
     if [ ${#directories[@]} -eq 0 ]; then
         print_warning "No directories found in this location"
         echo ""
-        echo -e "${BRIGHT_YELLOW}Press 'Space' to select current directory, 'b' to go back, or 'q' to quit${NC}"
+        echo -e "${BRIGHT_YELLOW}Press 'Space' to select current directory or 'b' to return${NC}"
         return
     fi
 
@@ -291,16 +256,12 @@ handle_browsing_key() {
             export SELECTED_PROJECTS_DIR="$relative_path"
             return 1  # Signal selection made
             ;;
-        q|Q)
-            # Quit browsing
+        b|B)
+            # Return without selecting
             return 2
             ;;
-        b|B)
-            # Go back to path selector
-            return 3
-            ;;
         *)
-            print_error "Invalid key. Use w/s to navigate, Enter to select, b to go back, q to quit"
+            print_error "Invalid key. Use w/s to navigate, Enter to open, Space to select, b to return"
             sleep 1
             return 0
             ;;

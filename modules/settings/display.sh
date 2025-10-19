@@ -6,18 +6,36 @@
 # This module handles settings menu display and UI functionality
 # Usage: source modules/settings/display.sh
 
-# Simplified settings menu - just displays workspaces info
+# Interactive settings menu with command handling
 show_settings_menu() {
-    clear
-    print_header "Settings"
-    echo ""
+    while true; do
+        clear
+        print_header "Settings"
+        echo ""
 
-    # Display workspaces from .workspaces.json
-    display_workspaces_info
+        # Display workspaces from .workspaces.json
+        display_workspaces_info
 
-    echo ""
-    print_color "$BRIGHT_YELLOW" "Press Enter to return to main menu..."
-    read -r
+        # Commands section
+        echo ""
+        print_section_header "Commands"
+        echo ""
+        echo -e "  ${PURPLE}a${NC} add workspace  ${CYAN}│${NC}  ${PURPLE}b${NC} back  ${CYAN}│${NC}  ${PURPLE}h${NC} help"
+
+        # Get user input
+        echo ""
+        echo -ne "${BLUE}❯${NC} "
+        read -r choice
+
+        # Handle user input
+        handle_settings_choice "$choice"
+        local result=$?
+
+        # Exit loop if back was selected
+        if [ $result -eq 1 ]; then
+            break
+        fi
+    done
 }
 
 # Function to display workspaces information
@@ -25,30 +43,12 @@ display_workspaces_info() {
     local config_dir=$(get_config_directory)
     local workspaces_file="$config_dir/.workspaces.json"
 
-    # Check if workspaces file exists
-    if [ ! -f "$workspaces_file" ]; then
-        print_color "$BRIGHT_YELLOW" "No workspaces configuration found."
-        echo ""
-        print_info "Workspaces are configured in: $workspaces_file"
-        return 1
-    fi
-
-    # Get active workspaces
+    # Check if workspaces file exists or has active workspaces
     local active_workspaces=()
-    if ! get_active_workspaces active_workspaces; then
-        print_color "$BRIGHT_YELLOW" "No active workspaces configured."
-        echo ""
-        print_info "Edit $workspaces_file to configure workspaces"
-        return 1
-    fi
-
-    if [ ${#active_workspaces[@]} -eq 0 ]; then
-        print_color "$BRIGHT_YELLOW" "No active workspaces configured."
-        echo ""
-        print_info "Workspaces file: $workspaces_file"
-        echo ""
-        print_info "Add workspace files to the 'activeConfig' array to activate them"
-        return 1
+    if [ ! -f "$workspaces_file" ] || ! get_active_workspaces active_workspaces || [ ${#active_workspaces[@]} -eq 0 ]; then
+        # Display empty state message
+        echo -e "${DIM}No configured workspaces available${NC}"
+        return 0
     fi
 
     # Display active workspaces with better formatting
