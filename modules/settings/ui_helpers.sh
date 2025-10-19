@@ -101,19 +101,20 @@ prompt_project_configuration() {
 
 # Function to scan a directory for folders and display them with managed status
 # Parameters: projects_root, is_managed_check_function
-# Returns: selected folder name via echo, or empty if cancelled
+# Returns: selected folder name via echo (to stdout), or empty if cancelled
 # The is_managed_check_function should take (folder_name) and return 0 if managed, 1 if not
+# NOTE: All UI output goes to stderr (>&2) so only the selected folder goes to stdout
 scan_and_display_available_folders() {
     local projects_root="$1"
     local is_managed_check_fn="$2"
 
-    echo ""
-    print_color "$BRIGHT_CYAN" "Scanning projects directory: $projects_root"
-    echo ""
+    echo "" >&2
+    print_color "$BRIGHT_CYAN" "Scanning projects directory: $projects_root" >&2
+    echo "" >&2
 
     # Check if directory exists
     if [ ! -d "$projects_root" ]; then
-        print_error "Projects directory does not exist: $projects_root"
+        print_error "Projects directory does not exist: $projects_root" >&2
         wait_for_enter
         return 1
     fi
@@ -139,16 +140,16 @@ scan_and_display_available_folders() {
     done < <(find "$projects_root" -mindepth 1 -maxdepth 1 -type d -print0 | sort -z)
 
     if [ ${#available_folders[@]} -eq 0 ]; then
-        print_error "No folders found in projects directory: $projects_root"
+        print_error "No folders found in projects directory: $projects_root" >&2
         wait_for_enter
         return 1
     fi
 
-    # Display table header
-    printf "  ${BRIGHT_WHITE}%-2s  %-18s  %-8s${NC}\n" "#" "Folder Name" "Status"
-    printf "  ${DIM}%-2s  %-18s  %-8s${NC}\n" "─" "──────────────────" "───────"
+    # Display table header (to stderr)
+    printf "  ${BRIGHT_WHITE}%-2s  %-18s  %-8s${NC}\n" "#" "Folder Name" "Status" >&2
+    printf "  ${DIM}%-2s  %-18s  %-8s${NC}\n" "─" "──────────────────" "───────" >&2
 
-    # Display all folders with their managed status
+    # Display all folders with their managed status (to stderr)
     for i in "${!available_folders[@]}"; do
         local counter=$((i + 1))
         local folder="${available_folders[i]}"
@@ -160,16 +161,16 @@ scan_and_display_available_folders() {
 
         if [ "$status" = "managed" ]; then
             # Already managed - show in green
-            printf "  ${DIM}%-2s  %-18s  ${BRIGHT_GREEN}%s${NC}\n" "$counter" "$truncated_folder" "$status"
+            printf "  ${DIM}%-2s  %-18s  ${BRIGHT_GREEN}%s${NC}\n" "$counter" "$truncated_folder" "$status" >&2
         else
             # Available to add - show in yellow
-            printf "  ${BRIGHT_CYAN}%-2s${NC}  ${BRIGHT_WHITE}%-18s${NC}  ${BRIGHT_YELLOW}%s${NC}\n" "$counter" "$truncated_folder" "$status"
+            printf "  ${BRIGHT_CYAN}%-2s${NC}  ${BRIGHT_WHITE}%-18s${NC}  ${BRIGHT_YELLOW}%s${NC}\n" "$counter" "$truncated_folder" "$status" >&2
         fi
     done
 
-    echo ""
-    print_color "$BRIGHT_YELLOW" "Select a folder to add (enter number), or press Enter to go back"
-    echo -ne "${BRIGHT_CYAN}>${NC} "
+    echo "" >&2
+    print_color "$BRIGHT_YELLOW" "Select a folder to add (enter number), or press Enter to go back" >&2
+    echo -n "> " >&2
 
     read -r folder_choice
 
@@ -180,14 +181,14 @@ scan_and_display_available_folders() {
 
     # Validate choice is a number
     if ! [[ "$folder_choice" =~ ^[0-9]+$ ]]; then
-        print_error "Invalid choice. Please enter a number."
+        print_error "Invalid choice. Please enter a number." >&2
         wait_for_enter
         return 1
     fi
 
     # Validate choice is in range
     if [ "$folder_choice" -lt 1 ] || [ "$folder_choice" -gt "${#available_folders[@]}" ]; then
-        print_error "Invalid choice. Please select a number between 1 and ${#available_folders[@]}."
+        print_error "Invalid choice. Please select a number between 1 and ${#available_folders[@]}." >&2
         wait_for_enter
         return 1
     fi
@@ -199,12 +200,12 @@ scan_and_display_available_folders() {
 
     # Check if folder is already managed
     if [ "$selected_status" = "managed" ]; then
-        print_error "Folder '$selected_folder' is already managed."
+        print_error "Folder '$selected_folder' is already managed." >&2
         wait_for_enter
         return 1
     fi
 
-    # Return selected folder name
+    # Return selected folder name to stdout (only this goes to stdout!)
     echo "$selected_folder"
     return 0
 }

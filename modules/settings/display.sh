@@ -10,21 +10,21 @@
 show_settings_menu() {
     while true; do
         clear
-        print_header "Settings"
         echo ""
+        print_header "Settings"
 
         # Display workspaces from .workspaces.json
         display_workspaces_info
 
-        # Commands section
+        # Commands section with improved spacing
         echo ""
         print_section_header "Commands"
         echo ""
-        echo -e "  ${PURPLE}a${NC} add workspace  ${CYAN}│${NC}  ${PURPLE}b${NC} back  ${CYAN}│${NC}  ${PURPLE}h${NC} help"
-
-        # Get user input
+        echo -e "  ${PURPLE}[a]${NC} Add workspace    ${PURPLE}[m]${NC} Manage workspace    ${PURPLE}[b]${NC} Back    ${PURPLE}[h]${NC} Help"
         echo ""
-        echo -ne "${BLUE}❯${NC} "
+
+        # Get user input with better prompt
+        echo -ne "${CYAN}❯${NC} "
         read -r choice
 
         # Handle user input
@@ -46,30 +46,46 @@ display_workspaces_info() {
     # Check if workspaces file exists or has active workspaces
     local active_workspaces=()
     if [ ! -f "$workspaces_file" ] || ! get_active_workspaces active_workspaces || [ ${#active_workspaces[@]} -eq 0 ]; then
-        # Display empty state message
-        echo -e "${DIM}No configured workspaces available${NC}"
+        # Display empty state with better spacing
+        echo ""
+        print_section_header "Active Workspaces"
+        echo ""
+        echo -e "  ${DIM}No configured workspaces available${NC}"
+        echo ""
+        echo -e "  ${DIM}Use '${PURPLE}a${DIM}' to add your first workspace${NC}"
+        echo ""
         return 0
     fi
 
     # Display active workspaces with better formatting
+    echo ""
     print_section_header "Active Workspaces"
     echo ""
 
     local counter=1
+    local width=$(get_terminal_width)
+    local box_width=$((width - 4))  # Account for padding
+
     for workspace_file in "${active_workspaces[@]}"; do
         local display_name=$(format_workspace_display_name "$workspace_file")
         local projects_root=$(get_workspace_projects_folder "$workspace_file")
 
         # Check if file exists
         if [ ! -f "$workspace_file" ]; then
-            echo -e "${CYAN}╭─${NC} ${BRIGHT_RED}${display_name}${NC} ${RED}(file not found)${NC}"
-            echo -e "${CYAN}│${NC} ${DIM}File: ${workspace_file}${NC}"
-            echo -e "${CYAN}╰$(printf '─%.0s' $(seq 1 66))╯${NC}"
+            # Error state
+            echo -e "  ${CYAN}╭─${NC} ${BRIGHT_RED}${display_name}${NC} ${RED}(file not found)${NC}"
+            echo -e "  ${CYAN}│${NC}  ${DIM}File: ${workspace_file}${NC}"
+            echo -e "  ${CYAN}╰─$(printf '─%.0s' $(seq 1 $((box_width - 2))))${NC}"
         else
-            echo -e "${CYAN}╭─${NC} ${BRIGHT_CYAN}${display_name}${NC}"
+            # Display workspace card
+            echo -e "  ${CYAN}╭─${NC} ${BRIGHT_CYAN}${BOLD}${display_name}${NC}"
+            echo -e "  ${CYAN}│${NC}"
 
+            # Location
             if [ -n "$projects_root" ]; then
-                echo -e "${CYAN}│${NC} ${BRIGHT_WHITE}Location:${NC} ${DIM}${projects_root}${NC}"
+                echo -e "  ${CYAN}│${NC}  ${DIM}Location${NC}"
+                echo -e "  ${CYAN}│${NC}  ${BRIGHT_WHITE}${projects_root}${NC}"
+                echo -e "  ${CYAN}│${NC}"
             fi
 
             # Count projects in this workspace
@@ -77,21 +93,24 @@ display_workspaces_info() {
             parse_workspace_projects "$workspace_file" workspace_projects
             local project_count=${#workspace_projects[@]}
 
+            # Projects count
+            echo -e "  ${CYAN}│${NC}  ${DIM}Projects${NC}"
             if [ $project_count -gt 0 ]; then
-                echo -e "${CYAN}│${NC} ${BRIGHT_WHITE}Projects:${NC} ${GREEN}${project_count}${NC}"
+                echo -e "  ${CYAN}│${NC}  ${GREEN}${project_count} configured${NC}"
             else
-                echo -e "${CYAN}│${NC} ${BRIGHT_WHITE}Projects:${NC} ${DIM}none configured${NC}"
+                echo -e "  ${CYAN}│${NC}  ${DIM}none configured${NC}"
             fi
 
-            echo -e "${CYAN}│${NC} ${DIM}${workspace_file}${NC}"
-            echo -e "${CYAN}╰$(printf '─%.0s' $(seq 1 66))╯${NC}"
+            echo -e "  ${CYAN}│${NC}"
+            echo -e "  ${CYAN}│${NC}  ${DIM}${workspace_file}${NC}"
+            echo -e "  ${CYAN}╰─$(printf '─%.0s' $(seq 1 $((box_width - 2))))${NC}"
         fi
 
-        echo ""
+        # Add spacing between workspaces
+        if [ $counter -lt ${#active_workspaces[@]} ]; then
+            echo ""
+        fi
+
         counter=$((counter + 1))
     done
-
-    # Show workspaces file location with subtle styling
-    echo -e "${CYAN}─── Configuration ─────────────────────────────────────────────${NC}"
-    echo -e "${DIM}${workspaces_file}${NC}"
 }
