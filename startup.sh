@@ -107,13 +107,7 @@ setup_config_paths() {
         local active_config=$(jq -r '.activeConfig[0] // empty' "$workspaces_file" 2>/dev/null)
         if [ -n "$active_config" ] && [ -f "$active_config" ]; then
             JSON_CONFIG_FILE="$active_config"
-        else
-            # Fallback to default if active config file doesn't exist
-            JSON_CONFIG_FILE="$JSON_CONFIG_FOLDER/projects_output.json"
         fi
-    else
-        # Fallback to default if no bulk config file
-        JSON_CONFIG_FILE="$JSON_CONFIG_FOLDER/projects_output.json"
     fi
     
     # Export for use by other modules
