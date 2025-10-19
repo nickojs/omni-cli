@@ -4,7 +4,7 @@
 # Enhanced Mock Project Generator
 # ========================================
 # Generates realistic test projects with safety limits
-# Usage: mockup.sh <projects> [folders]
+# Usage: mockup.sh <folders> [projects-per-folder]
 
 # Bash safety settings
 set -euo pipefail
@@ -14,6 +14,7 @@ IFS=$'\n\t'
 readonly MAX_PROJECTS_PER_FOLDER=5
 readonly MAX_FOLDERS=3
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly CONFIG_DIR="$SCRIPT_DIR/../config"
 
 # Realistic project names
 readonly MOCK_PROJECTS=(
@@ -62,11 +63,10 @@ sanitize_name() {
     echo "$name" | tr -cd '[:alnum:]-_' | tr '[:upper:]' '[:lower:]'
 }
 
-# Function to escape string for JSON using jq
-escape_json_string() {
-    local str="$1"
-    # Use jq to properly escape JSON strings - much safer than manual escaping
-    printf '%s' "$str" | jq -R .
+# Function to convert name to title case (e.g., "my-project" -> "My Project")
+to_title_case() {
+    local name="$1"
+    echo "$name" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)} 1'
 }
 
 # Function to get random project name
@@ -114,8 +114,16 @@ generate_folder_json() {
            --arg projectName "$proj_name" \
            --arg relativePath "$proj_path" \
            --arg startupCmd "./start.sh" \
+           --arg shutdownCmd "" \
            --arg folderPath "test-area/$folder_name" \
-           '. += [{"displayName": $displayName, "projectName": $projectName, "relativePath": $relativePath, "startupCmd": $startupCmd, "folderPath": $folderPath}]' \
+           '. += [{
+               "displayName": $displayName,
+               "projectName": $projectName,
+               "relativePath": $relativePath,
+               "startupCmd": $startupCmd,
+               "shutdownCmd": $shutdownCmd,
+               "folderPath": $folderPath
+           }]' \
            "$temp_file" > "$temp_file.new" && mv "$temp_file.new" "$temp_file"
     done
 
@@ -124,6 +132,47 @@ generate_folder_json() {
     mv "$temp_file" "$final_file"
 
     echo "📝 Generated: testing_data__$folder_name.json (${#projects_ref[@]} projects)"
+}
+
+# Function to generate .workspaces.json
+generate_workspaces_config() {
+    local -n folder_names_ref=$1
+    local workspaces_file="$SCRIPT_DIR/testing_data__.workspaces.json"
+
+    echo "🏗️  Generating workspaces configuration..."
+
+    # Build arrays for activeConfig, availableConfigs, and workspacePaths
+    local active_config_array="[]"
+    local available_configs_array="[]"
+    local workspace_paths_obj="{}"
+
+    for folder_name in "${folder_names_ref[@]}"; do
+        local workspace_file="config/testing_data__$folder_name.json"
+        local projects_folder="test-area/$folder_name"
+
+        # Add to activeConfig (all workspaces active by default for testing)
+        active_config_array=$(echo "$active_config_array" | jq --arg ws "$workspace_file" '. += [$ws]')
+
+        # Add to availableConfigs
+        available_configs_array=$(echo "$available_configs_array" | jq --arg ws "$workspace_file" '. += [$ws]')
+
+        # Add to workspacePaths
+        workspace_paths_obj=$(echo "$workspace_paths_obj" | jq --arg key "$workspace_file" --arg val "$projects_folder" '. + {($key): $val}')
+    done
+
+    # Create the final workspaces config
+    jq -n \
+        --argjson activeConfig "$active_config_array" \
+        --argjson availableConfigs "$available_configs_array" \
+        --argjson workspacePaths "$workspace_paths_obj" \
+        '{
+            "activeConfig": $activeConfig,
+            "availableConfigs": $availableConfigs,
+            "workspacePaths": $workspacePaths
+        }' > "$workspaces_file"
+
+    echo "✅ Generated: testing_data__.workspaces.json"
+    echo "   Active workspaces: ${#folder_names_ref[@]}"
 }
 
 # Function to clean up test projects
@@ -135,6 +184,7 @@ clean_projects() {
     local has_legacy_projects=false
     local has_folder_projects=false
     local has_configs=false
+    local has_workspaces_config=false
     local found_items=()
 
     # Check for legacy project-* folders (backward compatibility)
@@ -168,6 +218,13 @@ clean_projects() {
         printf '  %s\n' "${config_files[@]}"
         has_configs=true
         found_items+=("configuration files")
+    fi
+
+    # Check for workspaces config
+    if [ -f "$SCRIPT_DIR/testing_data__.workspaces.json" ]; then
+        echo "🗑️  Found workspaces configuration"
+        has_workspaces_config=true
+        found_items+=("workspaces configuration")
     fi
 
     # Check for temporary files
@@ -220,6 +277,11 @@ clean_projects() {
     if [ "$has_configs" = true ]; then
         rm -f "$SCRIPT_DIR"/testing_data__*.json 2>/dev/null
         echo "✅ Removed configuration files"
+    fi
+
+    if [ "$has_workspaces_config" = true ]; then
+        rm -f "$SCRIPT_DIR/testing_data__.workspaces.json"
+        echo "✅ Removed workspaces configuration"
     fi
 
     # Clean up any temporary files
@@ -295,7 +357,7 @@ if [ $# -eq 0 ]; then
     exit 1
 fi
 
-# Parse and validate arguments - FIXED LOGIC
+# Parse and validate arguments
 NUM_FOLDERS="$1"
 PROJECTS_PER_FOLDER="${2:-3}"
 NUM_PROJECTS=$((NUM_FOLDERS * PROJECTS_PER_FOLDER))
@@ -303,9 +365,6 @@ NUM_PROJECTS=$((NUM_FOLDERS * PROJECTS_PER_FOLDER))
 validate_inputs "$NUM_FOLDERS" "$PROJECTS_PER_FOLDER"
 
 echo "🎭 Generating $NUM_FOLDERS folders with $PROJECTS_PER_FOLDER projects each (total: $NUM_PROJECTS projects)..."
-
-# Simple logic: each folder gets the same number of projects
-# mockup.sh <folders> <projects> = <folders> folders with <projects> projects each
 
 # Function to create project directory and script
 create_project() {
@@ -337,13 +396,19 @@ EOF
 clean_projects
 echo "📍 Script directory: $SCRIPT_DIR"
 
-# Generate projects in folders - SIMPLE LOGIC
+# Array to collect all folder names for workspaces config
+declare -a all_folder_names=()
+
+# Generate projects in folders
 project_counter=1
 for folder_idx in $(seq 1 "$NUM_FOLDERS"); do
     # Get folder name from array or fallback
     folder_name=$(get_folder_name "$folder_idx")
     folder_name=$(sanitize_name "$folder_name")
     folder_dir="$SCRIPT_DIR/$folder_name"
+
+    # Add to all folders array
+    all_folder_names+=("$folder_name")
 
     echo "📂 Creating folder: $folder_name ($PROJECTS_PER_FOLDER projects)"
     mkdir -p "$folder_dir"
@@ -357,8 +422,8 @@ for folder_idx in $(seq 1 "$NUM_FOLDERS"); do
         project_name=$(sanitize_name "$project_name")
 
         # Create display name (Folder Name - Project Name)
-        folder_display=$(get_folder_name "$folder_idx" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)} 1')
-        project_display=$(get_project_name "$project_counter" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)} 1')
+        folder_display=$(to_title_case "$(get_folder_name "$folder_idx")")
+        project_display=$(to_title_case "$(get_project_name "$project_counter")")
         project_display_name="$folder_display - $project_display"
 
         project_dir="$folder_dir/$project_name"
@@ -377,11 +442,15 @@ for folder_idx in $(seq 1 "$NUM_FOLDERS"); do
     echo ""
 done
 
+# Generate workspaces configuration
+echo ""
+generate_workspaces_config all_folder_names
+
+echo ""
 echo "✅ Generated $NUM_PROJECTS projects in $NUM_FOLDERS folder(s) successfully!"
-echo "📄 Created $NUM_FOLDERS configuration files:"
-for folder_idx in $(seq 1 "$NUM_FOLDERS"); do
-    folder_name=$(get_folder_name "$folder_idx")
-    folder_name=$(sanitize_name "$folder_name")
+echo "📄 Created $NUM_FOLDERS workspace configuration files:"
+for folder_name in "${all_folder_names[@]}"; do
     echo "  • testing_data__$folder_name.json"
 done
-echo "🎯 Use masquerade script to switch between configurations"
+echo "📄 Created workspaces config: testing_data__.workspaces.json"
+echo "🎯 Use masquerade script to apply these test configurations"
