@@ -24,9 +24,3 @@ config_modules_loaded() {
     echo "  - Setup: $(type check_and_setup_config &>/dev/null && echo "✓" || echo "✗")"
     echo "  - Loader: $(type load_config &>/dev/null && echo "✓" || echo "✗")"
 }
-
-# Function to initialize configuration modules
-init_config() {
-    # Any initialization logic for config modules can go here
-    return 0
-}

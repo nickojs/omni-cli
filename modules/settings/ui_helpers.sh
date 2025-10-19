@@ -34,67 +34,6 @@ format_workspace_display_name() {
     echo "$workspace_name" | sed 's/[_-]/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)} 1'
 }
 
-# Function to check if any projects are running and show error if so
-# Returns: 0 if no projects running, 1 if projects are running (with error message shown)
-check_no_running_projects_or_error() {
-    local running_count=$(count_running_projects)
-    if [ "$running_count" -gt 0 ]; then
-        echo ""
-        print_error "Cannot manage workspaces while projects are running!"
-        print_info "Currently running projects: $running_count"
-        print_info "Stop all projects first, then manage workspaces."
-        wait_for_enter
-        return 1
-    fi
-    return 0
-}
-
-# Function to prompt user for project configuration details
-# Parameters: folder_name, projects_root
-# Returns: outputs three lines to stdout: display_name, startup_cmd, shutdown_cmd
-# Usage: read -r display_name startup_cmd shutdown_cmd < <(prompt_project_configuration "$folder" "$root")
-prompt_project_configuration() {
-    local folder_name="$1"
-    local projects_root="$2"
-
-    clear
-    print_header "Configure New Project"
-    echo ""
-    print_color "$BRIGHT_CYAN" "Adding project: $folder_name"
-    print_color "$DIM" "Location: ${projects_root%/}/$folder_name"
-    echo ""
-
-    # Get display name
-    echo -e "${BRIGHT_WHITE}Enter display name for this project:${NC}"
-    echo -ne "${DIM}(press Enter to use '$folder_name')${NC} ${BRIGHT_CYAN}>${NC} "
-    read -r display_name
-
-    if [ -z "$display_name" ]; then
-        display_name="$folder_name"
-    fi
-
-    # Get startup command
-    echo ""
-    echo -e "${BRIGHT_WHITE}Enter startup command:${NC}"
-    echo -ne "${DIM}(e.g., 'npm start', 'yarn dev')${NC} ${BRIGHT_CYAN}>${NC} "
-    read -r startup_cmd
-
-    if [ -z "$startup_cmd" ]; then
-        startup_cmd="echo 'No startup command configured'"
-    fi
-
-    # Get shutdown command
-    echo ""
-    echo -e "${BRIGHT_WHITE}Enter shutdown command:${NC}"
-    echo -ne "${DIM}(e.g., 'npm run stop', 'pkill -f node')${NC} ${BRIGHT_CYAN}>${NC} "
-    read -r shutdown_cmd
-
-    # Output the three values (caller will read them)
-    echo "$display_name"
-    echo "$startup_cmd"
-    echo "$shutdown_cmd"
-}
-
 # Function to scan a directory for folders and display them with managed status
 # Parameters: projects_root, is_managed_check_function
 # Returns: selected folder name via echo (to stdout), or empty if cancelled
@@ -307,30 +246,6 @@ prompt_project_input_fields() {
     echo "$display_name"
     echo "$startup_cmd"
     echo "$shutdown_cmd"
-}
-
-# Function to display project configuration summary
-# Parameters: display_name, folder_name, location, startup_cmd, shutdown_cmd, [workspace_name]
-show_project_configuration_summary() {
-    local display_name="$1"
-    local folder_name="$2"
-    local location="$3"
-    local startup_cmd="$4"
-    local shutdown_cmd="$5"
-    local workspace_name="${6:-}"  # Optional
-
-    echo ""
-    echo -e "${BRIGHT_WHITE}Project Configuration:${NC}"
-    echo -e "  Display Name:  ${BRIGHT_GREEN}$display_name${NC}"
-    echo -e "  Folder Name:   ${BRIGHT_CYAN}$folder_name${NC}"
-    echo -e "  Location:      ${DIM}$location${NC}"
-    echo -e "  Startup Cmd:   ${BRIGHT_YELLOW}$startup_cmd${NC}"
-    echo -e "  Shutdown Cmd:  ${BRIGHT_YELLOW}$shutdown_cmd${NC}"
-
-    if [ -n "$workspace_name" ]; then
-        echo -e "  Workspace:     ${BRIGHT_PURPLE}$workspace_name${NC}"
-    fi
-    echo ""
 }
 
 # Function to prompt for yes/no confirmation

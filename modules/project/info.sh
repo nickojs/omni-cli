@@ -17,18 +17,3 @@ get_project_info() {
     fi
     return 1
 }
-
-# Function to find project by name
-find_project_by_name() {
-    local search_name="$1"
-    
-    for i in "${!projects[@]}"; do
-        IFS=':' read -r display_name folder_name startup_cmd shutdown_cmd <<< "${projects[i]}"
-        if [[ "$display_name" == "$search_name" ]]; then
-            echo "$i"
-            return 0
-        fi
-    done
-    
-    return 1
-}

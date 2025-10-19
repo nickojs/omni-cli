@@ -14,12 +14,6 @@ is_project_running() {
     [[ -n "$pane_id" ]]
 }
 
-# Function to get the first project pane (used as reference for splitting)
-get_first_project_pane() {
-    # Get the first non-main-menu pane
-    tmux list-panes -t "$SESSION_NAME" -F "#{pane_id}:#{pane_title}" 2>/dev/null | grep -v "^%0:" | head -n1 | cut -d: -f1
-}
-
 # Function to start project in new tmux pane
 start_project_in_tmux() {
     local display_name="$1"

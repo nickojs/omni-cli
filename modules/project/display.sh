@@ -27,22 +27,3 @@ display_project_status() {
         fi
     fi
 }
-
-# Function to list all project statuses
-list_project_statuses() {
-    echo -e "${BRIGHT_WHITE}${BOLD}Project Status${NC}"
-    echo -e "${BRIGHT_CYAN}$(printf '─%.0s' $(seq 1 14))${NC}"
-    echo ""
-
-    for i in "${!projects[@]}"; do
-        IFS=':' read -r display_name folder_name startup_cmd shutdown_cmd <<< "${projects[i]}"
-
-        if is_project_running "$display_name"; then
-            echo -e "  ${BRIGHT_CYAN}$((i + 1))${NC}  ${BRIGHT_WHITE}${display_name}${NC}  ${BRIGHT_GREEN}●${NC} ${BRIGHT_GREEN}running${NC}"
-        elif [ -d "$folder_name" ]; then
-            echo -e "  ${BRIGHT_CYAN}$((i + 1))${NC}  ${BRIGHT_WHITE}${display_name}${NC}  ${DIM}○${NC} ${DIM}stopped${NC}"
-        else
-            echo -e "  ${BRIGHT_CYAN}$((i + 1))${NC}  ${DIM}${display_name}${NC}  ${BRIGHT_RED}✗${NC} ${BRIGHT_RED}not found${NC}"
-        fi
-    done
-}

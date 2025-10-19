@@ -128,30 +128,6 @@ get_project_field() {
     return 0
 }
 
-# Function to extract projects root directory from existing config
-# Returns: projects root directory via echo, empty if error
-get_projects_root_directory() {
-    if ! validate_json_config; then
-        return 1
-    fi
-
-    local project_count=$(get_project_count)
-    if [ -z "$project_count" ] || [ "$project_count" -eq 0 ]; then
-        return 1
-    fi
-
-    # Get the first project's relativePath and extract parent directory
-    local first_relative_path=$(jq -r ".[0].relativePath" "$JSON_CONFIG_FILE")
-    if [ -z "$first_relative_path" ] || [ "$first_relative_path" = "null" ]; then
-        return 1
-    fi
-
-    # Extract parent directory (remove the last component)
-    local projects_root=$(dirname "$first_relative_path")
-    echo "$projects_root"
-    return 0
-}
-
 # Function to get projects root for a specific workspace
 # Parameters: workspace_file_path
 # Returns: projects root directory via echo, empty if error
@@ -344,81 +320,6 @@ update_project_in_config() {
     fi
 }
 
-
-# Function to add workspace to bulk configuration
-# Parameters: workspace_file_path [projects_folder_path]
-# Returns: 0 if successful, 1 if error
-add_workspace_to_bulk_config() {
-    local workspace_file="$1"
-    local projects_folder="$2"
-
-    if [ ! -f "$workspace_file" ]; then
-        print_error "Workspace file not found: $workspace_file"
-        return 1
-    fi
-
-    # Get config directory
-    local config_dir
-    if [ -d "config" ] && [ -f "startup.sh" ]; then
-        config_dir="config"
-    else
-        config_dir="$HOME/.cache/fm-manager"
-    fi
-
-    local workspaces_file="$config_dir/.workspaces.json"
-
-    # If projects_folder not provided, try to get from existing config or use dirname
-    if [ -z "$projects_folder" ]; then
-        projects_folder=$(dirname "$workspace_file")
-    fi
-
-    # Check if workspaces config file already exists
-    if [ -f "$workspaces_file" ]; then
-        # Update existing workspaces config
-        local temp_file=$(mktemp)
-        if jq --arg workspace_file "$workspace_file" \
-           --arg projects_path "$projects_folder" \
-           '.activeConfig = (.activeConfig + [$workspace_file] | unique) |
-            .projectsPath = $projects_path |
-            .availableConfigs = (.availableConfigs + [$workspace_file] | unique) |
-            .workspacePaths = (.workspacePaths // {} | . + {($workspace_file): $projects_path})' \
-           "$workspaces_file" > "$temp_file"; then
-
-            if mv "$temp_file" "$workspaces_file"; then
-                return 0
-            else
-                rm -f "$temp_file"
-                return 1
-            fi
-        else
-            rm -f "$temp_file"
-            return 1
-        fi
-    else
-        # Create new workspaces config file with workspacePaths mapping
-        local temp_file=$(mktemp)
-        if jq -n --arg workspace_file "$workspace_file" \
-           --arg projects_path "$projects_folder" \
-           '{
-                "activeConfig": [$workspace_file],
-                "projectsPath": $projects_path,
-                "availableConfigs": [$workspace_file],
-                "workspacePaths": {($workspace_file): $projects_path}
-           }' > "$temp_file"; then
-
-            if mv "$temp_file" "$workspaces_file"; then
-                return 0
-            else
-                rm -f "$temp_file"
-                return 1
-            fi
-        else
-            rm -f "$temp_file"
-            return 1
-        fi
-    fi
-}
-
 # Function to remove workspace from bulk configuration
 # Parameters: workspace_file_path
 # Returns: 0 if successful, 1 if error
@@ -464,32 +365,6 @@ remove_workspace_from_bulk_config() {
         fi
     else
         rm -f "$temp_file"
-        return 1
-    fi
-}
-
-# Function to check if jq is available
-# Returns: 0 if available, 1 if not (with error message)
-check_jq_available() {
-    if ! command -v jq >/dev/null 2>&1; then
-        print_error "jq is required for JSON manipulation but not found"
-        return 1
-    fi
-    return 0
-}
-
-# Function to create a backup file
-# Parameters: source_file
-# Returns: backup file path via echo, or empty on error
-create_backup_file() {
-    local source_file="$1"
-
-    local backup_file="${source_file}.backup.$(date +%s)"
-    if cp "$source_file" "$backup_file" 2>/dev/null; then
-        echo "$backup_file"
-        return 0
-    else
-        print_error "Failed to create backup of file"
         return 1
     fi
 }
