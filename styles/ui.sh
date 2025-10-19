@@ -44,17 +44,17 @@ print_separator() {
 
 # Function to print success message
 print_success() {
-    print_color "$BRIGHT_GREEN" "✓ $*"
+    print_color "$BRIGHT_GREEN" "[success] $*"
 }
 
 # Function to print error message
 print_error() {
-    print_color "$BRIGHT_RED" "✗ $*"
+    print_color "$BRIGHT_RED" "[error] $*"
 }
 
 # Function to print warning message
 print_warning() {
-    print_color "$BRIGHT_YELLOW" "⚠ $*"
+    print_color "$BRIGHT_YELLOW" "[warning] $*"
 }
 
 # Function to print info message
