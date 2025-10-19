@@ -160,13 +160,13 @@ scan_and_display_available_folders() {
             printf "  ${DIM}%-2s  %-40s  %s${NC}\n" "$counter" "$truncated_folder" "$status" >&2
         else
             # Available to add - show in white with blue number
-            printf "  ${BLUE}%-2s${NC}  ${BRIGHT_WHITE}%-40s  %s${NC}\n" "$counter" "$truncated_folder" "$status" >&2
+            printf "  ${DIM}%-2s${NC}  ${BRIGHT_WHITE}%-40s${NC}  ${BRIGHT_GREEN}%s${NC}\n" "$counter" "$truncated_folder" "$status" >&2
         fi
     done
 
     echo "" >&2
     echo -e "${BRIGHT_WHITE}Select a folder to add (enter number), or press Enter to go back${NC}" >&2
-    echo -n "> " >&2
+    echo -ne "${BRIGHT_CYAN}>${NC} " >&2
 
     read -r folder_choice
 

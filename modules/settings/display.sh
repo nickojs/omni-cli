@@ -8,6 +8,20 @@
 
 # Interactive settings menu with command handling
 show_settings_menu() {
+    # Check if any projects are running
+    local running_projects
+    running_projects=$(list_project_panes)
+
+    if [[ -n "$running_projects" ]]; then
+        clear
+        print_header "Settings"
+        echo ""
+        print_error "Cannot access settings while projects are running"
+        echo ""
+        wait_for_enter
+        return 0
+    fi
+
     while true; do
         clear
         print_header "Settings"
@@ -17,7 +31,7 @@ show_settings_menu() {
 
         # Commands section with improved spacing
         echo ""
-        echo -e "${BRIGHT_GREEN}a${NC} add workspace    ${BRIGHT_GREEN}m${NC} manage workspace    ${BRIGHT_PURPLE}b${NC} back    ${BRIGHT_PURPLE}h${NC} help"
+        echo -e "${BRIGHT_GREEN}a${NC} add workspace    ${BRIGHT_GREEN}m${NC} manage workspace    ${BRIGHT_BLUE}t${NC} toggle workspace    ${BRIGHT_PURPLE}b${NC} back    ${BRIGHT_PURPLE}h${NC} help"
         echo ""
 
         # Get user input with better prompt
@@ -40,9 +54,9 @@ display_workspaces_info() {
     local config_dir=$(get_config_directory)
     local workspaces_file="$config_dir/.workspaces.json"
 
-    # Check if workspaces file exists or has active workspaces
-    local active_workspaces=()
-    if [ ! -f "$workspaces_file" ] || ! get_active_workspaces active_workspaces || [ ${#active_workspaces[@]} -eq 0 ]; then
+    # Get all available workspaces
+    local available_workspaces=()
+    if [ ! -f "$workspaces_file" ] || ! get_available_workspaces available_workspaces || [ ${#available_workspaces[@]} -eq 0 ]; then
         # Display empty state with better spacing
         echo ""
         echo -e "${BRIGHT_YELLOW}No workspaces configured.${NC}"
@@ -50,15 +64,21 @@ display_workspaces_info() {
         return 0
     fi
 
-    # Display active workspaces as numbered list
+    # Display all workspaces (both active and inactive) as numbered list
     echo ""
     local counter=1
-    for workspace_file in "${active_workspaces[@]}"; do
+    for workspace_file in "${available_workspaces[@]}"; do
         local workspace_name=$(basename "$workspace_file" .json)
         local display_name=$(echo "$workspace_name" | sed 's/[_-]/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)} 1')
 
-        # Display workspace header with numbering
-        printf "${BRIGHT_CYAN}%s${NC} ${BRIGHT_WHITE}%s${NC}\n" "$counter" "$display_name"
+        # Check if workspace is active and display status
+        if is_workspace_active "$workspace_file"; then
+            # Active workspace - green bullet
+            printf "${BRIGHT_CYAN}%s${NC} ${BRIGHT_WHITE}%s${NC} ${BRIGHT_GREEN}●${NC}\n" "$counter" "$display_name"
+        else
+            # Inactive workspace - dim bullet
+            printf "${BRIGHT_CYAN}%s${NC} ${BRIGHT_WHITE}%s${NC} ${DIM}○${NC}\n" "$counter" "$display_name"
+        fi
 
         # Parse projects from this workspace file
         local workspace_projects=()
@@ -74,9 +94,6 @@ display_workspaces_info() {
         else
             for j in "${!workspace_projects[@]}"; do
                 IFS=':' read -r project_display_name folder_name startup_cmd shutdown_cmd <<< "${workspace_projects[j]}"
-
-                # Use bullet point prefix
-                local prefix="${BRIGHT_WHITE}●${NC}"
 
                 # Format data with fixed column widths: 32 | 30 | 32 | 32
                 local col1="$project_display_name"
@@ -97,7 +114,7 @@ display_workspaces_info() {
                 col4=$(printf "%-32.32s" "$col4")
 
                 # Display row with fixed table format - white text for col1, dim for col2-4
-                echo -e "  $prefix ${BRIGHT_WHITE}${col1}${NC}   ${DIM}${col2}${NC}   ${DIM}${col3}${NC}   ${DIM}${col4}${NC}"
+                echo -e "  ${BRIGHT_WHITE}${col1}${NC}   ${DIM}${col2}${NC}   ${DIM}${col3}${NC}   ${DIM}${col4}${NC}"
             done
         fi
         echo ""

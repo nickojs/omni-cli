@@ -33,8 +33,14 @@ handle_settings_choice() {
         return 0
     fi
 
+    # Handle toggle workspace command
+    if [[ $choice =~ ^[Tt]$ ]]; then
+        show_toggle_workspace_menu
+        return 0
+    fi
+
     # Invalid command
-    print_error "Invalid command. Use a (add workspace), m (manage workspace), b (back) or h (help)"
+    print_error "Invalid command. Use a (add workspace), m (manage workspace), t (toggle workspace), b (back) or h (help)"
     echo -ne "${BRIGHT_YELLOW}Press Enter to continue...${NC}"
     read -r
     return 0
@@ -132,8 +138,8 @@ create_workspace() {
         return 1
     fi
 
-    # Activate the workspace (registers and activates in one step)
-    if ! activate_workspace "$workspace_file" "$projects_folder"; then
+    # Register the workspace (add to availableConfigs but not activeConfig - starts inactive)
+    if ! register_workspace "$workspace_file" "$projects_folder"; then
         print_error "Failed to register workspace in configuration"
         # Clean up the workspace file we just created
         rm -f "$workspace_file" 2>/dev/null
@@ -152,6 +158,7 @@ manage_workspace() {
     while true; do
         clear
         print_header "Manage Workspace: $display_name"
+        echo ""
 
         # Get projects root for this workspace
         local projects_root=$(get_workspace_projects_folder "$workspace_file")
@@ -168,7 +175,7 @@ manage_workspace() {
         local project_count=${#workspace_projects[@]}
 
         if [ $project_count -gt 0 ]; then
-            echo -e "  ${BRIGHT_WHITE}Projects (${project_count})"
+            echo -e "  ${BRIGHT_WHITE}Projects"
 
             for project_info in "${workspace_projects[@]}"; do
                 IFS=':' read -r proj_display proj_name proj_start proj_stop <<< "$project_info"
@@ -620,13 +627,13 @@ show_workspace_selection_menu() {
     print_header "Select Workspace to Manage"
     echo ""
 
-    # Get active workspaces
-    local active_workspaces=()
+    # Get all available workspaces (both active and inactive)
+    local available_workspaces=()
     local config_dir=$(get_config_directory)
     local workspaces_file="$config_dir/.workspaces.json"
 
-    if [ ! -f "$workspaces_file" ] || ! get_active_workspaces active_workspaces || [ ${#active_workspaces[@]} -eq 0 ]; then
-        print_error "No active workspaces found"
+    if [ ! -f "$workspaces_file" ] || ! get_available_workspaces available_workspaces || [ ${#available_workspaces[@]} -eq 0 ]; then
+        print_error "No workspaces found"
         echo ""
         print_info "Add a workspace first using 'a' from the settings menu"
         wait_for_enter
@@ -635,7 +642,7 @@ show_workspace_selection_menu() {
 
     # Display workspaces with numbers
     local counter=1
-    for workspace_file in "${active_workspaces[@]}"; do
+    for workspace_file in "${available_workspaces[@]}"; do
         local display_name=$(format_workspace_display_name "$workspace_file")
 
         # Count projects
@@ -667,18 +674,74 @@ show_workspace_selection_menu() {
     fi
 
     # Validate choice is in range
-    if [ "$workspace_choice" -lt 1 ] || [ "$workspace_choice" -gt "${#active_workspaces[@]}" ]; then
-        print_error "Invalid choice. Please select a number between 1 and ${#active_workspaces[@]}."
+    if [ "$workspace_choice" -lt 1 ] || [ "$workspace_choice" -gt "${#available_workspaces[@]}" ]; then
+        print_error "Invalid choice. Please select a number between 1 and ${#available_workspaces[@]}."
         wait_for_enter
         return 0
     fi
 
     # Get selected workspace
     local selected_index=$((workspace_choice - 1))
-    local selected_workspace="${active_workspaces[selected_index]}"
+    local selected_workspace="${available_workspaces[selected_index]}"
 
     # Open workspace management screen
     manage_workspace "$selected_workspace"
+
+    return 0
+}
+
+# Function to toggle workspace active/inactive status
+show_toggle_workspace_menu() {
+    # Get all available workspaces
+    local available_workspaces=()
+    if ! get_available_workspaces available_workspaces || [ ${#available_workspaces[@]} -eq 0 ]; then
+        print_error "No workspaces found"
+        wait_for_enter
+        return 1
+    fi
+
+    echo ""
+    echo -ne "${BRIGHT_WHITE}Enter workspace number to toggle: ${NC}"
+    read -r workspace_choice
+
+    # Handle empty input (cancel)
+    if [ -z "$workspace_choice" ]; then
+        return 0
+    fi
+
+    # Validate input
+    if ! [[ "$workspace_choice" =~ ^[0-9]+$ ]] || [ "$workspace_choice" -lt 1 ] || [ "$workspace_choice" -gt "${#available_workspaces[@]}" ]; then
+        print_error "Invalid workspace number"
+        wait_for_enter
+        return 1
+    fi
+
+    # Get selected workspace
+    local selected_index=$((workspace_choice - 1))
+    local selected_workspace="${available_workspaces[selected_index]}"
+    local display_name=$(format_workspace_display_name "$selected_workspace")
+
+    # Toggle the workspace
+    if is_workspace_active "$selected_workspace"; then
+        # Deactivate
+        if deactivate_workspace "$selected_workspace"; then
+            print_success "Workspace '$display_name' deactivated"
+        else
+            print_error "Failed to deactivate workspace"
+        fi
+    else
+        # Activate
+        local projects_folder=$(get_workspace_projects_folder "$selected_workspace")
+        if [ -z "$projects_folder" ]; then
+            projects_folder=$(dirname "$selected_workspace")
+        fi
+
+        if activate_workspace "$selected_workspace" "$projects_folder"; then
+            print_success "Workspace '$display_name' activated"
+        else
+            print_error "Failed to activate workspace"
+        fi
+    fi
 
     return 0
 }

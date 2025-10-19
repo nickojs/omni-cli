@@ -17,6 +17,7 @@ show_settings_help() {
     echo -e "${BRIGHT_BLUE}Available Commands${NC}"
     echo -e "  ${BRIGHT_CYAN}a${NC} add workspace      Create a new workspace"
     echo -e "  ${BRIGHT_CYAN}m${NC} manage workspace   Add, edit, or remove projects from a workspace"
+    echo -e "  ${BRIGHT_CYAN}t${NC} toggle workspace   Activate or deactivate a workspace"
     echo -e "  ${BRIGHT_CYAN}b${NC} back              Return to main menu"
     echo -e "  ${BRIGHT_CYAN}h${NC} help              Show this help screen"
     echo ""
