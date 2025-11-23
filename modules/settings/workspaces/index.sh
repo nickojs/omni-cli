@@ -141,6 +141,14 @@ manage_workspace() {
                     wait_for_enter
                 fi
                 ;;
+            c)
+                if [ $project_count -gt 0 ]; then
+                    custom_commands_for_project "$workspace_file"
+                else
+                    print_error "No projects available"
+                    wait_for_enter
+                fi
+                ;;
             r)
                 if [ $project_count -gt 0 ]; then
                     remove_project_from_workspace "$workspace_file"
@@ -168,6 +176,111 @@ manage_workspace() {
                 ;;
         esac
     done
+}
+
+# Function to manage custom commands for a project
+# Parameters: workspace_file
+custom_commands_for_project() {
+    local workspace_file="$1"
+
+    # Set the JSON_CONFIG_FILE for utils functions
+    export JSON_CONFIG_FILE="$workspace_file"
+    export BACKUP_JSON=false
+
+    clear
+    print_header "Custom Commands for Project"
+    echo ""
+
+    # Use helper to select project
+    local selected_index
+    selected_index=$(select_project_from_workspace "$workspace_file")
+
+    if [ $? -ne 0 ] || [ -z "$selected_index" ]; then
+        unset JSON_CONFIG_FILE
+        return 0
+    fi
+
+    # Get selected project info
+    local workspace_projects=()
+    parse_workspace_projects "$workspace_file" workspace_projects
+    local selected_project="${workspace_projects[selected_index]}"
+    IFS=':' read -r current_display current_name current_start current_stop <<< "$selected_project"
+
+    # Loop to add custom commands
+    while true; do
+        clear
+        print_header "Custom Commands: $current_display"
+        echo ""
+
+        # Display existing custom commands
+        echo -e "${BRIGHT_WHITE}Existing custom commands:${NC}"
+        echo ""
+
+        local has_commands=false
+        while IFS= read -r line; do
+            if [ -n "$line" ]; then
+                has_commands=true
+                IFS=':' read -r cmd_name cmd_value <<< "$line"
+                echo -e "  ${BRIGHT_CYAN}${cmd_name}:${NC} ${cmd_value}"
+            fi
+        done < <(jq -r ".[$selected_index].customCommands // {} | to_entries[] | \"\(.key):\(.value)\"" "$workspace_file" 2>/dev/null)
+
+        if [ "$has_commands" = false ]; then
+            echo -e "  ${DIM}No custom commands yet${NC}"
+        fi
+
+        echo ""
+        echo ""
+
+        # Prompt for command name
+        echo -e "${BRIGHT_WHITE}Enter command name ${DIM}(press ESC or Enter to go back):${NC}"
+        echo -ne "${BRIGHT_CYAN}>${NC} "
+        read_with_instant_back cmd_name
+
+        # Exit if empty or ESC
+        if [ -z "$cmd_name" ]; then
+            break
+        fi
+
+        # Prompt for command value
+        echo ""
+        echo -e "${BRIGHT_WHITE}Enter command for '${cmd_name}':${NC}"
+        echo -ne "${BRIGHT_CYAN}>${NC} "
+        read -r cmd_value
+
+        # Skip if empty command value
+        if [ -z "$cmd_value" ]; then
+            print_error "Command cannot be empty"
+            wait_for_enter
+            continue
+        fi
+
+        # Save to workspace.json
+        local temp_file=$(mktemp)
+
+        if jq --arg index "$selected_index" \
+              --arg cmd_name "$cmd_name" \
+              --arg cmd_value "$cmd_value" \
+              ".[\$index | tonumber].customCommands = (.[\$index | tonumber].customCommands // {} | . + {(\$cmd_name): \$cmd_value})" \
+              "$workspace_file" > "$temp_file"; then
+            if mv "$temp_file" "$workspace_file"; then
+                echo ""
+                print_success "Custom command '$cmd_name' added/updated"
+                sleep 1
+            else
+                print_error "Failed to update workspace file"
+                rm -f "$temp_file"
+                wait_for_enter
+            fi
+        else
+            print_error "Failed to process workspace file"
+            rm -f "$temp_file"
+            wait_for_enter
+        fi
+    done
+
+    unset JSON_CONFIG_FILE
+    return 0
 }
 
 # Function to delete an empty workspace

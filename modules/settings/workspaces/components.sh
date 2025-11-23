@@ -76,7 +76,7 @@ show_workspace_management_commands() {
 
     echo ""
     if [ $project_count -gt 0 ]; then
-        echo -e "${BRIGHT_GREEN}a${NC} add project    ${BRIGHT_BLUE}e${NC} edit project    ${BRIGHT_RED}r${NC} remove project    ${BRIGHT_PURPLE}b${NC} back"
+        echo -e "${BRIGHT_GREEN}a${NC} add project    ${BRIGHT_BLUE}e${NC} edit project    ${BRIGHT_YELLOW}c${NC} custom commands    ${BRIGHT_RED}r${NC} remove project    ${BRIGHT_PURPLE}b${NC} back"
     else
         echo -e "${BRIGHT_GREEN}a${NC} add project    ${BRIGHT_RED}d${NC} delete workspace     ${BRIGHT_PURPLE}b${NC} back"
     fi
