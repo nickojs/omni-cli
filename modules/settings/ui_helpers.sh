@@ -6,6 +6,32 @@
 # This module provides reusable UI interaction helpers for settings screens
 # Usage: source modules/settings/ui_helpers.sh
 
+# Function to read user input with instant back key handling
+# The 'b' key will trigger immediately without needing Enter
+# All other input requires pressing Enter
+# Returns: user input via variable name passed as parameter
+# Usage: read_with_instant_back choice
+read_with_instant_back() {
+    local -n result_var=$1  # nameref to result variable
+    local first_char
+
+    # Read first character without waiting for Enter
+    read -n 1 -r first_char
+
+    # If it's 'b', return immediately
+    if [ "$first_char" = "b" ]; then
+        result_var="b"
+        echo ""  # Add newline since -n 1 doesn't auto-newline
+        return 0
+    fi
+
+    # Otherwise, read the rest of the line
+    local rest_of_line
+    read -r rest_of_line
+    result_var="${first_char}${rest_of_line}"
+    return 0
+}
+
 # Function to get the config directory path
 # Returns: config directory path via echo
 get_config_directory() {

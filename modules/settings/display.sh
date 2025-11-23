@@ -36,7 +36,7 @@ show_settings_menu() {
 
         # Get user input with better prompt
         echo -ne "${BRIGHT_CYAN}>${NC} "
-        read -r choice
+        read_with_instant_back choice
 
         # Handle user input
         handle_settings_choice "$choice"

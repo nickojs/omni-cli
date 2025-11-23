@@ -127,7 +127,7 @@ manage_workspace() {
 
         # Get user input
         echo -ne "${BRIGHT_CYAN}>${NC} "
-        read -r choice
+        read_with_instant_back choice
 
         case "${choice,,}" in
             a)
