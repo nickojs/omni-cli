@@ -207,18 +207,18 @@ select_project_from_workspace() {
     fi
 
     # Display projects with numbers
-    echo -e "${BRIGHT_WHITE}Select a project:${NC}"
-    echo ""
+    echo -e "${BRIGHT_WHITE}Select a project:${NC}" >&2
+    echo "" >&2
 
     local counter=1
     for project_info in "${workspace_projects[@]}"; do
         IFS=':' read -r proj_display proj_name proj_start proj_stop <<< "$project_info"
-        echo -e "  ${BRIGHT_CYAN}${counter}${NC} ${BRIGHT_WHITE}${proj_display}${NC}"
+        echo -e "  ${BRIGHT_CYAN}${counter}${NC} ${BRIGHT_WHITE}${proj_display}${NC}" >&2
         counter=$((counter + 1))
     done
 
-    echo ""
-    echo -ne "${BRIGHT_WHITE}Enter project number (or press Enter to cancel): ${NC}"
+    echo "" >&2
+    echo -ne "${BRIGHT_WHITE}Enter project number (or press Enter to cancel): ${NC}" >&2
     read -r project_choice
 
     # Handle empty input (cancel)

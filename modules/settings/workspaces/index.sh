@@ -248,7 +248,10 @@ show_workspace_selection_menu() {
 
     # Get selected workspace
     local selected_index=$((workspace_choice - 1))
-    local selected_workspace="${available_workspaces[selected_index]}"
+    local selected_workspace_basename="${available_workspaces[selected_index]}"
+
+    # Construct full path from config_dir and basename
+    local selected_workspace="$config_dir/$selected_workspace_basename"
 
     # Open workspace management screen
     manage_workspace "$selected_workspace"
@@ -284,7 +287,11 @@ show_toggle_workspace_menu() {
 
     # Get selected workspace
     local selected_index=$((workspace_choice - 1))
-    local selected_workspace="${available_workspaces[selected_index]}"
+    local selected_workspace_basename="${available_workspaces[selected_index]}"
+
+    # Construct full path from config_dir and basename
+    local config_dir=$(get_config_directory)
+    local selected_workspace="$config_dir/$selected_workspace_basename"
     local display_name=$(format_workspace_display_name "$selected_workspace")
 
     # Toggle the workspace

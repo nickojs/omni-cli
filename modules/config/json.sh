@@ -32,8 +32,10 @@ load_projects_from_json() {
     if [ -f "$workspaces_file" ] && command -v jq >/dev/null 2>&1; then
         # Load only active workspaces from workspaces configuration
         while IFS= read -r active_workspace; do
-            if [ -f "$active_workspace" ]; then
-                workspace_files+=("$active_workspace")
+            # Construct full path from config_dir and workspace filename
+            local full_workspace_path="$config_dir/$active_workspace"
+            if [ -f "$full_workspace_path" ]; then
+                workspace_files+=("$full_workspace_path")
             fi
         done < <(jq -r '.activeConfig[]? // empty' "$workspaces_file" 2>/dev/null)
     else

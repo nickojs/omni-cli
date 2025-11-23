@@ -67,8 +67,10 @@ display_workspaces_info() {
     # Display all workspaces (both active and inactive) as numbered list
     echo ""
     local counter=1
-    for workspace_file in "${available_workspaces[@]}"; do
-        local workspace_name=$(basename "$workspace_file" .json)
+    for workspace_basename in "${available_workspaces[@]}"; do
+        # Construct full path from config_dir and basename
+        local workspace_file="$config_dir/$workspace_basename"
+        local workspace_name=$(basename "$workspace_basename" .json)
         local display_name=$(echo "$workspace_name" | sed 's/[_-]/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)} 1')
 
         # Check if workspace is active and display status

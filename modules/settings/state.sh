@@ -99,6 +99,8 @@ get_available_workspaces() {
 # Returns: 0 if active, 1 if not active or error
 is_workspace_active() {
     local workspace_file="$1"
+    local workspace_basename
+    workspace_basename=$(basename "$workspace_file")
 
     local active_workspaces=()
     if ! get_active_workspaces active_workspaces; then
@@ -106,7 +108,7 @@ is_workspace_active() {
     fi
 
     for active_ws in "${active_workspaces[@]}"; do
-        if [ "$workspace_file" = "$active_ws" ]; then
+        if [ "$workspace_basename" = "$active_ws" ]; then
             return 0
         fi
     done
@@ -151,6 +153,10 @@ activate_workspace() {
         return 1
     fi
 
+    # Store only the basename to keep paths clean and portable
+    local workspace_basename
+    workspace_basename=$(basename "$workspace_file")
+
     local workspaces_file=$(get_workspaces_file_path)
 
     # If projects_folder not provided, try to get from existing config or use dirname
@@ -160,7 +166,7 @@ activate_workspace() {
 
     local temp_file=$(mktemp)
 
-    if jq --arg workspace_file "$workspace_file" \
+    if jq --arg workspace_file "$workspace_basename" \
        --arg projects_path "$projects_folder" \
        '.activeConfig = (.activeConfig + [$workspace_file] | unique) |
         .projectsPath = $projects_path |
@@ -194,10 +200,14 @@ deactivate_workspace() {
         return 1
     fi
 
+    # Use only the basename for consistency
+    local workspace_basename
+    workspace_basename=$(basename "$workspace_file")
+
     local workspaces_file=$(get_workspaces_file_path)
     local temp_file=$(mktemp)
 
-    if jq --arg workspace_file "$workspace_file" \
+    if jq --arg workspace_file "$workspace_basename" \
        '.activeConfig = (.activeConfig - [$workspace_file])' \
        "$workspaces_file" > "$temp_file"; then
 
@@ -232,10 +242,14 @@ register_workspace() {
         return 1
     fi
 
+    # Store only the basename to keep paths clean and portable
+    local workspace_basename
+    workspace_basename=$(basename "$workspace_file")
+
     local workspaces_file=$(get_workspaces_file_path)
     local temp_file=$(mktemp)
 
-    if jq --arg workspace_file "$workspace_file" \
+    if jq --arg workspace_file "$workspace_basename" \
        --arg projects_path "$projects_folder" \
        '.availableConfigs = (.availableConfigs + [$workspace_file] | unique) |
         .workspacePaths = (.workspacePaths // {} | . + {($workspace_file): $projects_path})' \
@@ -267,10 +281,14 @@ unregister_workspace() {
         return 1
     fi
 
+    # Use only the basename for consistency
+    local workspace_basename
+    workspace_basename=$(basename "$workspace_file")
+
     local workspaces_file=$(get_workspaces_file_path)
     local temp_file=$(mktemp)
 
-    if jq --arg workspace_file "$workspace_file" \
+    if jq --arg workspace_file "$workspace_basename" \
        '.activeConfig = (.activeConfig - [$workspace_file]) |
         .availableConfigs = (.availableConfigs - [$workspace_file]) |
         .workspacePaths = (.workspacePaths | del(.[$workspace_file]))' \
@@ -302,8 +320,12 @@ get_workspace_projects_folder() {
         return 1
     fi
 
+    # Use only the basename for looking up in workspacePaths
+    local workspace_basename
+    workspace_basename=$(basename "$workspace_file")
+
     local workspaces_file=$(get_workspaces_file_path)
-    local projects_folder=$(jq -r --arg workspace_file "$workspace_file" \
+    local projects_folder=$(jq -r --arg workspace_file "$workspace_basename" \
         '.workspacePaths[$workspace_file]? // empty' "$workspaces_file" 2>/dev/null)
 
     if [ -n "$projects_folder" ]; then

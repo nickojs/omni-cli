@@ -191,9 +191,11 @@ get_active_workspaces_list() {
 is_workspace_in_active_list() {
     local workspace_file="$1"
     local -n check_array=$2  # nameref to array
+    local workspace_basename
+    workspace_basename=$(basename "$workspace_file")
 
     for active_ws in "${check_array[@]}"; do
-        if [ "$workspace_file" = "$active_ws" ]; then
+        if [ "$workspace_basename" = "$active_ws" ]; then
             return 0
         fi
     done

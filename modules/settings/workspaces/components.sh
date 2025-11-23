@@ -115,8 +115,13 @@ show_workspace_selection_header() {
 display_workspace_list() {
     local -n workspaces_list=$1
 
+    # Get config directory for constructing full paths
+    local config_dir=$(get_config_directory)
+
     local counter=1
-    for workspace_file in "${workspaces_list[@]}"; do
+    for workspace_basename in "${workspaces_list[@]}"; do
+        # Construct full path from config_dir and basename
+        local workspace_file="$config_dir/$workspace_basename"
         local display_name=$(format_workspace_display_name "$workspace_file")
 
         # Count projects
