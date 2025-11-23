@@ -117,15 +117,12 @@ display_workspaces() {
     if [ -f "$workspaces_file" ] && command -v jq >/dev/null 2>&1; then
         # Get active workspaces from workspaces config
         while IFS= read -r active_workspace; do
-            if [ -f "$active_workspace" ]; then
-                workspace_files+=("$active_workspace")
+            # Construct full path from config_dir and workspace filename
+            local full_workspace_path="$config_dir/$active_workspace"
+            if [ -f "$full_workspace_path" ]; then
+                workspace_files+=("$full_workspace_path")
             fi
         done < <(jq -r '.activeConfig[]? // empty' "$workspaces_file" 2>/dev/null)
-    fi
-
-    # If no active workspaces found, show all workspaces (fallback for backward compatibility)
-    if [ ${#workspace_files[@]} -eq 0 ]; then
-        mapfile -t workspace_files < <(find "$config_dir" -name "*.json" -type f ! -name ".*" 2>/dev/null | sort)
     fi
 
     local global_counter=1

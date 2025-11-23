@@ -38,9 +38,6 @@ load_projects_from_json() {
                 workspace_files+=("$full_workspace_path")
             fi
         done < <(jq -r '.activeConfig[]? // empty' "$workspaces_file" 2>/dev/null)
-    else
-        # Fallback: load all JSON workspace files (excluding hidden files) for backward compatibility
-        mapfile -t workspace_files < <(find "$config_dir" -name "*.json" -type f ! -name ".*" 2>/dev/null | sort)
     fi
 
     if [ ${#workspace_files[@]} -eq 0 ]; then
