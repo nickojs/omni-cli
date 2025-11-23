@@ -1,0 +1,33 @@
+# Maintainer: nic <nic@unknown.af>
+pkgname=fm-manager
+pkgver=0.0.1
+pkgrel=1
+pkgdesc=""
+arch=('any')
+url="https://github.com/nickojs/fm-manager"
+license=('custom')
+depends=('bash>=4.0' 'tmux>=2.0' 'jq')
+optdepends=()
+source=()
+sha256sums=()
+
+package() {
+    cd "$startdir"
+
+    # Install main executable
+    install -Dm755 startup.sh "$pkgdir/usr/bin/$pkgname"
+
+    # Install modules and styles to /usr/share
+    install -dm755 "$pkgdir/usr/share/$pkgname"
+    cp -r modules "$pkgdir/usr/share/$pkgname/"
+    cp -r styles "$pkgdir/usr/share/$pkgname/"
+
+    # Ensure all files have correct permissions
+	# nic comment: not sure if this is right at all, but it works ¯\_ (ツ)_/¯ 
+    chmod -R u=rwX,go=rX "$pkgdir/usr/share/$pkgname"
+
+    # Install .env if exists
+    if [ -f .env ]; then
+        install -Dm644 .env "$pkgdir/usr/share/$pkgname/.env"
+    fi
+}
