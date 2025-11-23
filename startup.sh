@@ -5,11 +5,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Determine base directory
 if [[ "$SCRIPT_DIR" == *"/usr/bin"* ]]; then
-    BASE_DIR="/usr/share/fm-manager"
-    IS_INSTALLED=true
+    export BASE_DIR="/usr/share/fm-manager"
+    export IS_INSTALLED=true
 else
-    BASE_DIR="$(dirname "${BASH_SOURCE[0]}")"
-    IS_INSTALLED=false
+    export BASE_DIR="$(dirname "${BASH_SOURCE[0]}")"
+    export IS_INSTALLED=false
 fi
 
 # Function to set up configuration paths
