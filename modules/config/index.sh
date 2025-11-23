@@ -11,7 +11,8 @@
 CONFIG_DIR="$(dirname "${BASH_SOURCE[0]}")"
 
 # Import all configuration modules in dependency order
-source "$CONFIG_DIR/json.sh"     # JSON parsing and data loading
+source "$CONFIG_DIR/utils.sh"           # Common configuration utilities
+source "$CONFIG_DIR/json.sh"            # JSON parsing and data loading
 source "$CONFIG_DIR/validation.sh"      # Configuration validation
 source "$CONFIG_DIR/setup.sh"          # Setup functions
 source "$CONFIG_DIR/loader.sh"         # Main configuration loading logic

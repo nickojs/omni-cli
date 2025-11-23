@@ -32,16 +32,6 @@ read_with_instant_back() {
     return 0
 }
 
-# Function to get the config directory path
-# Returns: config directory path via echo
-get_config_directory() {
-    if [ -d "config" ] && [ -f "startup.sh" ]; then
-        echo "config"
-    else
-        echo "$HOME/.cache/fm-manager"
-    fi
-}
-
 # Function to format workspace filename into display name
 # Parameters: workspace_file_path
 # Returns: formatted display name via echo

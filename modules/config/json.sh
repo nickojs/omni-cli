@@ -18,12 +18,7 @@ load_projects_from_json() {
     project_workspaces=()
 
     # Get config directory
-    local config_dir
-    if [ -d "config" ] && [ -f "startup.sh" ]; then
-        config_dir="config"
-    else
-        config_dir="$HOME/.cache/fm-manager"
-    fi
+    local config_dir=$(get_config_directory)
 
     # Check for workspaces configuration file
     local workspaces_file="$config_dir/.workspaces.json"

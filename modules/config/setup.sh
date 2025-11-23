@@ -11,12 +11,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Function to check if this is first-time setup (just checks, doesn't show UI)
 is_first_time_setup() {
-    local config_dir
-    if [ -d "config" ] && [ -f "startup.sh" ]; then
-        config_dir="config"
-    else
-        config_dir="$HOME/.cache/fm-manager"
-    fi
+    local config_dir=$(get_config_directory)
 
     local workspaces_file="$config_dir/.workspaces.json"
 
@@ -30,12 +25,7 @@ is_first_time_setup() {
 
 # Function to initialize config for first-time setup
 initialize_first_time_config() {
-    local config_dir
-    if [ -d "config" ] && [ -f "startup.sh" ]; then
-        config_dir="config"
-    else
-        config_dir="$HOME/.cache/fm-manager"
-    fi
+    local config_dir=$(get_config_directory)
 
     local workspaces_file="$config_dir/.workspaces.json"
 

@@ -46,12 +46,7 @@ show_project_menu_tmux() {
 # Function to display active configuration info
 show_active_config_info() {
     # Check for bulk config file
-    local config_dir
-    if [ -d "config" ] && [ -f "startup.sh" ]; then
-        config_dir="config"
-    else
-        config_dir="$HOME/.cache/fm-manager"
-    fi
+    local config_dir=$(get_config_directory)
 
     local workspaces_file="$config_dir/.workspaces.json"
 
@@ -103,12 +98,7 @@ display_workspaces() {
     fi
 
     # Get config directory
-    local config_dir
-    if [ -d "config" ] && [ -f "startup.sh" ]; then
-        config_dir="config"
-    else
-        config_dir="$HOME/.cache/fm-manager"
-    fi
+    local config_dir=$(get_config_directory)
 
     # Get only active workspaces from workspaces config
     local workspace_files=()
