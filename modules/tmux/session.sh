@@ -18,7 +18,7 @@ setup_tmux_session() {
     fi
 
     # Create new session (detached) and start the menu in it
-    tmux new-session -d -s "$SESSION_NAME" "$0 --tmux-menu"
+    tmux new-session -d -s "$SESSION_NAME" "$0"
 
     # Configure session for better scrolling and usability
     tmux set-option -t "$SESSION_NAME" mouse on

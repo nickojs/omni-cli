@@ -19,10 +19,6 @@ parse_arguments() {
 
     while [[ $# -gt 0 ]]; do
         case $1 in
-            --tmux-menu)
-                # This is handled in main(), just skip it here
-                shift
-                ;;
             --bkpJson)
                 BACKUP_JSON=true
                 shift
@@ -126,13 +122,13 @@ main() {
     # Parse command line arguments first
     parse_arguments "$@"
 
-    # Check if running with --tmux-menu flag (inside tmux session)
-    if [ "$1" = "--tmux-menu" ]; then
-        # Load config inside tmux session
+    # Check if already inside a tmux session
+    if [ -n "$TMUX" ]; then
+        # Already in tmux - load config and show menu
         load_config
         show_project_menu_tmux
     else
-        # Direct startup - go straight to tmux (no config loading here)
+        # Not in tmux - create/attach to session
         check_tmux
         setup_tmux_session
         tmux attach-session -t "$SESSION_NAME"

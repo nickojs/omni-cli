@@ -12,3 +12,7 @@ build/*
 !build/PKGBUILD
 !build/rebuild-package.sh
 !modules/config
+
+# AI and config
+.claude
+.vscode
