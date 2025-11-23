@@ -64,7 +64,8 @@ display_workspaces_info() {
 
     # Display all workspaces (both active and inactive) as numbered list
     # Table header
-    printf "${BOLD}%-3s %-32s %-15s %-16s %-16s %-8s${NC}\n" "#" "display name" "folder" "startup cmd" "shutdown cmd" "has custom cmd"
+    echo ""
+    printf "${BOLD}%-33s %-15s %-16s %-16s %-8s${NC}\n" "display name" "folder" "startup cmd" "shutdown cmd" "has custom cmd"
     echo ""
 
     local counter=1
@@ -81,7 +82,7 @@ display_workspaces_info() {
         else
             status_icon="${DIM}○${NC}"
         fi
-        printf "${BRIGHT_CYAN}%-3s${NC} ${BOLD}%-32s${NC} ${DIM}%-15s %-16s %-16s %-8s${NC}\n" "$counter" "$display_name $status_icon" "" "" "" ""
+        printf "${NC} ${BOLD}%-32s${NC} ${DIM}%-15s %-16s %-16s %-8s${NC}\n" "$display_name $status_icon" "" "" "" ""
 
         # Parse projects from this workspace file
         local workspace_projects=()
@@ -93,7 +94,7 @@ display_workspaces_info() {
 
         # Display projects for this workspace
         if [ ${#workspace_projects[@]} -eq 0 ]; then
-            printf "${DIM}%-3s %-32s %-15s %-16s %-16s %-8s${NC}\n" "" "No projects configured" "" "" "" ""
+            printf " ${DIM} %-32s %-15s %-16s %-16s %-8s${NC}\n" "No projects configured" "---" "---" "---" "---"
             echo ""
         else
             for j in "${!workspace_projects[@]}"; do
@@ -105,8 +106,7 @@ display_workspaces_info() {
                 [ ${#startup_cmd} -gt 16 ] && startup_cmd=$(printf "%.13s..." "$startup_cmd")
                 [ ${#shutdown_cmd} -gt 16 ] && shutdown_cmd=$(printf "%.13s..." "$shutdown_cmd")
 
-                # Display row with proper table alignment
-                printf "%-3s ${BRIGHT_WHITE}%-32s${NC} ${DIM}%-15s %-16s %-16s %-8s${NC}\n" "" "$project_display_name" "$folder_name"/ "$startup_cmd" "$shutdown_cmd" "$has_custom_cmd"
+                printf " ${BRIGHT_WHITE} %-32s${NC} ${DIM}%-15s %-16s %-16s %-8s${NC}\n" "$project_display_name" "$folder_name"/ "$startup_cmd" "$shutdown_cmd" "$has_custom_cmd"
             done
                 echo ""
         fi

@@ -28,9 +28,9 @@ show_project_menu_tmux() {
         if [ ${#projects[@]} -eq 0 ]; then
             echo -e "${BRIGHT_PURPLE}s${NC} settings    ${BRIGHT_PURPLE}h${NC} help    ${BRIGHT_PURPLE}q${NC} quit"
         elif [ ${#projects[@]} -eq 1 ]; then
-            echo -e "${BRIGHT_GREEN}1${NC} start    ${BRIGHT_RED}k1${NC} kill    ${BRIGHT_PURPLE}s${NC} settings    ${BRIGHT_PURPLE}h${NC} help    ${BRIGHT_PURPLE}q${NC} quit"
+            echo -e "${BRIGHT_GREEN}1${NC} start    ${BRIGHT_RED}k1${NC} kill    ${BRIGHT_PURPLE}c${NC} run custom cmd    ${BRIGHT_PURPLE}s${NC} settings    ${BRIGHT_PURPLE}h${NC} help    ${BRIGHT_PURPLE}q${NC} quit"
         else
-            echo -e "${BRIGHT_GREEN}1-${#projects[@]}${NC} start    ${BRIGHT_RED}k1-${#projects[@]}${NC}  ${BRIGHT_RED}ka${NC} kill    ${BRIGHT_PURPLE}s${NC} settings    ${BRIGHT_PURPLE}h${NC} help    ${BRIGHT_PURPLE}q${NC} quit"
+            echo -e "${BRIGHT_GREEN}1-${#projects[@]}${NC} start    ${BRIGHT_RED}k1-${#projects[@]}${NC}  ${BRIGHT_RED}ka${NC} kill    ${BRIGHT_PURPLE}c${NC} run custom cmd    ${BRIGHT_PURPLE}s${NC} settings    ${BRIGHT_PURPLE}h${NC} help    ${BRIGHT_PURPLE}q${NC} quit"
         fi
 
         # Get user input with clean prompt
@@ -156,6 +156,17 @@ display_workspaces() {
                     status_display="${RED}not found${NC}"
                 fi
 
+                # Check if project has custom commands
+                local has_custom_cmd="false"
+                if command -v jq >/dev/null 2>&1 && [ -f "$workspace_file" ]; then
+                    has_custom_cmd=$(jq -r ".[$j].customCommands | if . and (. | length) > 0 then \"true\" else \"false\" end" "$workspace_file" 2>/dev/null)
+                fi
+
+                local custom_cmd_indicator=""
+                if [ "$has_custom_cmd" = "true" ]; then
+                    custom_cmd_indicator="${BRIGHT_CYAN}⚙${NC}"
+                fi
+
                 # Format project name with fixed width for alignment
                 local formatted_name
                 if [ ${#project_display_name} -gt 32 ]; then
@@ -167,7 +178,7 @@ display_workspaces() {
                 fi
 
                 # Display project with number and status
-                echo -e "  ${BRIGHT_CYAN}${global_counter}${NC} ${BRIGHT_WHITE}${formatted_name}${NC} ${status_display}"
+                echo -e "  ${BRIGHT_CYAN}${global_counter}${NC} ${BRIGHT_WHITE}${formatted_name}${NC} ${status_display}${NC} ${BRIGHT_PURPLE}${custom_cmd_indicator}"
                 global_counter=$((global_counter + 1))
             done
         fi

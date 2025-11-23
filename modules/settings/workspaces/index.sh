@@ -206,7 +206,7 @@ custom_commands_for_project() {
     local selected_project="${workspace_projects[selected_index]}"
     IFS=':' read -r current_display current_name current_start current_stop <<< "$selected_project"
 
-    # Loop to add custom commands
+    # Loop to manage custom commands
     while true; do
         clear
         print_header "Custom Commands: $current_display"
@@ -232,51 +232,233 @@ custom_commands_for_project() {
         echo ""
         echo ""
 
-        # Prompt for command name
-        echo -e "${BRIGHT_WHITE}Enter command name ${DIM}(press ESC or Enter to go back):${NC}"
+        # Ask for action
+        echo -e "${BRIGHT_GREEN}a${NC} add    ${BRIGHT_BLUE}e${NC} edit    ${BRIGHT_RED}d${NC} delete    ${BRIGHT_PURPLE}b${NC} back"
+        echo ""
         echo -ne "${BRIGHT_CYAN}>${NC} "
-        read_with_instant_back cmd_name
+        read -n 1 action
+        echo ""
 
         # Exit if empty or ESC
-        if [ -z "$cmd_name" ]; then
+        if [ -z "$action" ] || [ "$action" = $'\e' ]; then
             break
         fi
 
-        # Prompt for command value
-        echo ""
-        echo -e "${BRIGHT_WHITE}Enter command for '${cmd_name}':${NC}"
-        echo -ne "${BRIGHT_CYAN}>${NC} "
-        read -r cmd_value
-
-        # Skip if empty command value
-        if [ -z "$cmd_value" ]; then
-            print_error "Command cannot be empty"
-            wait_for_enter
-            continue
-        fi
-
-        # Save to workspace.json
-        local temp_file=$(mktemp)
-
-        if jq --arg index "$selected_index" \
-              --arg cmd_name "$cmd_name" \
-              --arg cmd_value "$cmd_value" \
-              ".[\$index | tonumber].customCommands = (.[\$index | tonumber].customCommands // {} | . + {(\$cmd_name): \$cmd_value})" \
-              "$workspace_file" > "$temp_file"; then
-            if mv "$temp_file" "$workspace_file"; then
+        case "${action,,}" in
+            a)
+                # Add command flow
+                clear
+                print_header "Add Custom Command: $current_display"
                 echo ""
-                print_success "Custom command '$cmd_name' added/updated"
-                sleep 1
-            else
-                print_error "Failed to update workspace file"
-                rm -f "$temp_file"
-                wait_for_enter
-            fi
-        else
-            print_error "Failed to process workspace file"
-            rm -f "$temp_file"
-            wait_for_enter
-        fi
+
+                # Prompt for command name
+                echo -e "${BRIGHT_WHITE}Enter command name:${NC}"
+                echo -ne "${BRIGHT_CYAN}>${NC} "
+                read -r cmd_name
+
+                # Skip if empty
+                if [ -z "$cmd_name" ]; then
+                    continue
+                fi
+
+                # Prompt for command value
+                echo ""
+                echo -e "${BRIGHT_WHITE}Enter command for '${cmd_name}':${NC}"
+                echo -ne "${BRIGHT_CYAN}>${NC} "
+                read -r cmd_value
+
+                # Skip if empty command value
+                if [ -z "$cmd_value" ]; then
+                    print_error "Command cannot be empty"
+                    wait_for_enter
+                    continue
+                fi
+
+                # Save to workspace.json
+                local temp_file=$(mktemp)
+
+                if jq --arg index "$selected_index" \
+                      --arg cmd_name "$cmd_name" \
+                      --arg cmd_value "$cmd_value" \
+                      ".[\$index | tonumber].customCommands = (.[\$index | tonumber].customCommands // {} | . + {(\$cmd_name): \$cmd_value})" \
+                      "$workspace_file" > "$temp_file"; then
+                    if mv "$temp_file" "$workspace_file"; then
+                        # Success - loop will refresh the screen
+                        :
+                    else
+                        print_error "Failed to update workspace file"
+                        rm -f "$temp_file"
+                        wait_for_enter
+                    fi
+                else
+                    print_error "Failed to process workspace file"
+                    rm -f "$temp_file"
+                    wait_for_enter
+                fi
+                ;;
+            e)
+                # Edit command flow
+                if [ "$has_commands" = false ]; then
+                    print_error "No custom commands to edit"
+                    wait_for_enter
+                    continue
+                fi
+
+                clear
+                print_header "Edit Custom Command: $current_display"
+                echo ""
+
+                # Display existing custom commands for reference
+                echo -e "${BRIGHT_WHITE}Existing custom commands:${NC}"
+                echo ""
+
+                while IFS= read -r line; do
+                    if [ -n "$line" ]; then
+                        IFS=':' read -r cmd_name_display cmd_value_display <<< "$line"
+                        echo -e "  ${BRIGHT_CYAN}${cmd_name_display}:${NC} ${cmd_value_display}"
+                    fi
+                done < <(jq -r ".[$selected_index].customCommands // {} | to_entries[] | \"\(.key):\(.value)\"" "$workspace_file" 2>/dev/null)
+
+                echo ""
+                echo ""
+
+                # Prompt for command name to edit
+                echo -e "${BRIGHT_WHITE}Enter command name to edit:${NC}"
+                echo -ne "${BRIGHT_CYAN}>${NC} "
+                read -r cmd_name
+
+                # Skip if empty
+                if [ -z "$cmd_name" ]; then
+                    continue
+                fi
+
+                # Check if command exists
+                local cmd_exists
+                cmd_exists=$(jq -r ".[$selected_index].customCommands | has(\"$cmd_name\")" "$workspace_file" 2>/dev/null)
+
+                if [ "$cmd_exists" != "true" ]; then
+                    echo ""
+                    print_error "Command '$cmd_name' does not exist"
+                    wait_for_enter
+                    continue
+                fi
+
+                # Get current value for display
+                local current_value
+                current_value=$(jq -r ".[$selected_index].customCommands[\"$cmd_name\"]" "$workspace_file" 2>/dev/null)
+
+                # Prompt for new command value
+                echo ""
+                echo -e "${DIM}Current: ${current_value}${NC}"
+                echo ""
+                echo -e "${BRIGHT_WHITE}Enter new command for '${cmd_name}':${NC}"
+                echo -ne "${BRIGHT_CYAN}>${NC} "
+                read -r new_cmd_value
+
+                # Skip if empty
+                if [ -z "$new_cmd_value" ]; then
+                    print_error "Command cannot be empty"
+                    wait_for_enter
+                    continue
+                fi
+
+                # Update the command in workspace.json
+                local temp_file=$(mktemp)
+
+                if jq --arg index "$selected_index" \
+                      --arg cmd_name "$cmd_name" \
+                      --arg cmd_value "$new_cmd_value" \
+                      ".[\$index | tonumber].customCommands[\$cmd_name] = \$cmd_value" \
+                      "$workspace_file" > "$temp_file"; then
+                    if mv "$temp_file" "$workspace_file"; then
+                        # Success - loop will refresh the screen
+                        :
+                    else
+                        print_error "Failed to update workspace file"
+                        rm -f "$temp_file"
+                        wait_for_enter
+                    fi
+                else
+                    print_error "Failed to process workspace file"
+                    rm -f "$temp_file"
+                    wait_for_enter
+                fi
+                ;;
+            d)
+                # Delete command flow
+                if [ "$has_commands" = false ]; then
+                    print_error "No custom commands to delete"
+                    wait_for_enter
+                    continue
+                fi
+
+                clear
+                print_header "Delete Custom Command: $current_display"
+                echo ""
+
+                # Display existing custom commands for reference
+                echo -e "${BRIGHT_WHITE}Existing custom commands:${NC}"
+                echo ""
+
+                while IFS= read -r line; do
+                    if [ -n "$line" ]; then
+                        IFS=':' read -r cmd_name_display cmd_value_display <<< "$line"
+                        echo -e "  ${BRIGHT_CYAN}${cmd_name_display}:${NC} ${cmd_value_display}"
+                    fi
+                done < <(jq -r ".[$selected_index].customCommands // {} | to_entries[] | \"\(.key):\(.value)\"" "$workspace_file" 2>/dev/null)
+
+                echo ""
+                echo ""
+
+                # Prompt for command name to delete
+                echo -e "${BRIGHT_WHITE}Enter command name to delete:${NC}"
+                echo -ne "${BRIGHT_CYAN}>${NC} "
+                read -r cmd_name
+
+                # Skip if empty
+                if [ -z "$cmd_name" ]; then
+                    continue
+                fi
+
+                # Check if command exists
+                local cmd_exists
+                cmd_exists=$(jq -r ".[$selected_index].customCommands | has(\"$cmd_name\")" "$workspace_file" 2>/dev/null)
+
+                if [ "$cmd_exists" != "true" ]; then
+                    echo ""
+                    print_error "Command '$cmd_name' does not exist"
+                    wait_for_enter
+                    continue
+                fi
+
+                # Delete from workspace.json
+                local temp_file=$(mktemp)
+
+                if jq --arg index "$selected_index" \
+                      --arg cmd_name "$cmd_name" \
+                      ".[\$index | tonumber].customCommands |= del(.[\$cmd_name])" \
+                      "$workspace_file" > "$temp_file"; then
+                    if mv "$temp_file" "$workspace_file"; then
+                        # Success - loop will refresh the screen
+                        :
+                    else
+                        print_error "Failed to update workspace file"
+                        rm -f "$temp_file"
+                        wait_for_enter
+                    fi
+                else
+                    print_error "Failed to process workspace file"
+                    rm -f "$temp_file"
+                    wait_for_enter
+                fi
+                ;;
+            b)
+                break
+                ;;
+            *)
+                # Ignore invalid keys, just loop back
+                ;;
+        esac
     done
 
     unset JSON_CONFIG_FILE

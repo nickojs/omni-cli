@@ -17,12 +17,18 @@ handle_menu_choice() {
     fi
     
     
+    # Handle custom config command
+    if [[ $choice =~ ^[Cc]$ ]]; then
+        handle_custom_config_command
+        return
+    fi
+
     # Handle settings command
     if [[ $choice =~ ^[Ss]$ ]]; then
         handle_settings_command
         return
     fi
-    
+
     # Handle help command
     if [[ $choice =~ ^[Hh]$ ]]; then
         clear
