@@ -242,7 +242,7 @@ prompt_project_input_fields() {
     read -r startup_cmd
 
     if [ -z "$startup_cmd" ]; then
-        startup_cmd="echo 'No startup command configured'"
+        startup_cmd="No startup command configured"
     fi
 
     # Get shutdown command
@@ -267,7 +267,8 @@ prompt_yes_no_confirmation() {
     read -r confirm_choice
 
     case "${confirm_choice,,}" in
-        "y"|"yes")
+        ""|"y"|"yes")
+            # Empty input or explicit yes
             return 0
             ;;
         "n"|"no")

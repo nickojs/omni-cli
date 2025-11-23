@@ -29,8 +29,6 @@ show_settings_menu() {
         # Display workspaces from .workspaces.json
         display_workspaces_info
 
-        # Commands section with improved spacing
-        echo ""
         echo -e "${BRIGHT_GREEN}a${NC} add workspace    ${BRIGHT_GREEN}m${NC} manage workspace    ${BRIGHT_BLUE}t${NC} toggle workspace    ${BRIGHT_PURPLE}b${NC} back    ${BRIGHT_PURPLE}h${NC} help"
         echo ""
 
@@ -65,7 +63,10 @@ display_workspaces_info() {
     fi
 
     # Display all workspaces (both active and inactive) as numbered list
+    # Table header
+    printf "${BOLD}%-3s %-32s %-30s %-32s %-32s${NC}\n" "#" "display name" "folder" "startup cmd" "shutdown cmd"
     echo ""
+
     local counter=1
     for workspace_basename in "${available_workspaces[@]}"; do
         # Construct full path from config_dir and basename
@@ -73,14 +74,14 @@ display_workspaces_info() {
         local workspace_name=$(basename "$workspace_basename" .json)
         local display_name=$(echo "$workspace_name" | sed 's/[_-]/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)} 1')
 
-        # Check if workspace is active and display status
+        # Workspace row in table format
+        local status_icon=""
         if is_workspace_active "$workspace_file"; then
-            # Active workspace - green bullet
-            printf "${BRIGHT_CYAN}%s${NC} ${BRIGHT_WHITE}%s${NC} ${BRIGHT_GREEN}●${NC}\n" "$counter" "$display_name"
+            status_icon="${BRIGHT_GREEN}●${NC}"
         else
-            # Inactive workspace - dim bullet
-            printf "${BRIGHT_CYAN}%s${NC} ${BRIGHT_WHITE}%s${NC} ${DIM}○${NC}\n" "$counter" "$display_name"
+            status_icon="${DIM}○${NC}"
         fi
+        printf "${BRIGHT_CYAN}%-3s${NC} ${BOLD}%-32s${NC} ${DIM}%-30s %-32s %-32s${NC}\n" "$counter" "$display_name $status_icon" "" "" ""
 
         # Parse projects from this workspace file
         local workspace_projects=()
@@ -92,34 +93,23 @@ display_workspaces_info() {
 
         # Display projects for this workspace
         if [ ${#workspace_projects[@]} -eq 0 ]; then
-            echo -e "  ${DIM}No projects configured${NC}"
+            printf "${DIM}%-3s %-32s %-30s %-32s %-32s${NC}\n" "" "No projects configured" "" "" ""
+            echo ""
         else
             for j in "${!workspace_projects[@]}"; do
                 IFS=':' read -r project_display_name folder_name startup_cmd shutdown_cmd <<< "${workspace_projects[j]}"
 
-                # Format data with fixed column widths: 32 | 30 | 32 | 32
-                local col1="$project_display_name"
-                local col2="$folder_name"
-                local col3="$startup_cmd"
-                local col4="$shutdown_cmd"
-
                 # Truncate if longer than max width
-                [ ${#col1} -gt 32 ] && col1=$(printf "%.29s..." "$col1")
-                [ ${#col2} -gt 30 ] && col2=$(printf "%.27s..." "$col2")
-                [ ${#col3} -gt 32 ] && col3=$(printf "%.29s..." "$col3")
-                [ ${#col4} -gt 32 ] && col4=$(printf "%.29s..." "$col4")
+                [ ${#project_display_name} -gt 32 ] && project_display_name=$(printf "%.29s..." "$project_display_name")
+                [ ${#folder_name} -gt 30 ] && folder_name=$(printf "%.27s..." "$folder_name")
+                [ ${#startup_cmd} -gt 32 ] && startup_cmd=$(printf "%.29s..." "$startup_cmd")
+                [ ${#shutdown_cmd} -gt 32 ] && shutdown_cmd=$(printf "%.29s..." "$shutdown_cmd")
 
-                # Ensure fixed width with padding to exact column sizes
-                col1=$(printf "%-32.32s" "$col1")
-                col2=$(printf "%-30.30s" "$col2")
-                col3=$(printf "%-32.32s" "$col3")
-                col4=$(printf "%-32.32s" "$col4")
-
-                # Display row with fixed table format - white text for col1, dim for col2-4
-                echo -e "  ${BRIGHT_WHITE}${col1}${NC}   ${DIM}${col2}${NC}   ${DIM}${col3}${NC}   ${DIM}${col4}${NC}"
+                # Display row with proper table alignment
+                printf "%-3s ${BRIGHT_WHITE}%-32s${NC} ${DIM}%-30s %-32s %-32s${NC}\n" "" "$project_display_name" "$folder_name"/ "$startup_cmd" "$shutdown_cmd"
             done
+                echo ""
         fi
-        echo ""
         counter=$((counter + 1))
     done
 }

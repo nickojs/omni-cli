@@ -258,8 +258,7 @@ handle_browsing_key() {
             return 2
             ;;
         *)
-            print_error "Invalid key. Use w/s to navigate, Enter to open, Space to select, b to return"
-            sleep 1
+            # Silently ignore invalid keys
             return 0
             ;;
     esac
