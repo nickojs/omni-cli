@@ -72,7 +72,7 @@ fm-manager/
 
 ```mermaid
 flowchart TB
-    subgraph MAIN["📋 Main Screen (Project Manager)"]
+    subgraph MAIN["Main Screen (Project Manager)"]
         TABLE["Table: Workspaces & Projects<br/>(with IDs, based on settings)"]
         RUN["Run Project"]
         STOP["Stop Project"]
@@ -82,30 +82,30 @@ flowchart TB
         TABLE --> CUSTOM
     end
 
-    subgraph TMUX["🖥️ Tmux Navigation"]
+    subgraph TMUX["Tmux Navigation"]
         WALK["Walk through<br/>projects panel"]
     end
 
-    subgraph SETTINGS["⚙️ Settings Menu"]
+    subgraph SETTINGS["Settings Menu"]
         MW["Manage Workspace"]
         AW["Add Workspace"]
         TW["Toggle Workspace<br/>(show/hide in main)"]
     end
 
-    subgraph ADD_WS_FLOW["📁 Add Workspace"]
+    subgraph ADD_WS_FLOW["Add Workspace"]
         NAV["Filesystem Navigator"]
         SELECT["Select folder"]
         NAV --> SELECT
     end
 
-    subgraph MANAGE_WS["🔧 Manage Workspace"]
+    subgraph MANAGE_WS["Manage Workspace"]
         ADD_PROJ["Add Project"]
         EDIT_PROJ["Edit Project"]
         REMOVE_PROJ["Remove Project"]
         REMOVE_WS["Remove Workspace<br/>(if no projects)"]
     end
 
-    subgraph ADD_PROJ_FLOW["➕ Add Project"]
+    subgraph ADD_PROJ_FLOW["Add Project"]
         LIST_PROJS["List workspace's<br/>available projects"]
         CONFIG_PROJ["Configure project"]
         LIST_PROJS --> CONFIG_PROJ
