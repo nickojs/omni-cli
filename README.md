@@ -21,13 +21,12 @@ A powerful terminal-based project manager with tmux integration and workspace or
 - **git** (optional, for version control integration)
 
 ### Platform Support
-- Linux (all distributions)
-- macOS (with Homebrew)
-- WSL2 (Windows Subsystem for Linux)
+- Arch Linux btw
+- for macOS, windows, and other OS I recommend praying
 
 ## 🚀 Quick Start
 
-### Option 1: Run Locally (Development)
+### Run Locally
 
 1. **Clone and setup:**
    ```bash
@@ -38,14 +37,8 @@ A powerful terminal-based project manager with tmux integration and workspace or
 
 2. **Install dependencies:**
    ```bash
-   # Ubuntu/Debian
-   sudo apt update && sudo apt install bash tmux jq
-
    # Arch Linux
    sudo pacman -S bash tmux jq
-
-   # macOS
-   brew install bash tmux jq
    ```
 
 3. **Run the application:**
@@ -62,42 +55,19 @@ A powerful terminal-based project manager with tmux integration and workspace or
     source modules/index.sh && modules_loaded
     ```
 
-### Option 2: System Installation (Production)
-
-1. **Build the package:**
-   ```bash
-   cd build/
-   ./rebuild-package.sh
-   ```
-   Note: This will also install the package in your system.
-
-2. **Run from anywhere:**
-    ```bash
-    fm-manager
-    ```
-
 ## 📁 Project Structure
 
 ```
 fm-manager/
-├── startup.sh              # Main entry point
-├── config/                 # Configuration files
-│   ├── .workspaces.json    # Workspace definitions
-│   └── *.json              # Individual workspace configs
-├── styles/                 # UI and styling modules
-│   ├── index.sh            # Styles entry point
-│   ├── colors.sh           # Color definitions
-│   ├── animations.sh       # Loading animations
-│   └── ui.sh               # UI components
-└── modules/                # Core functionality modules
-    ├── index.sh            # Modules entry point
-    ├── config/             # Configuration management
-    ├── tmux/               # Tmux session management
-    ├── navigator/          # Filesystem navigation
-    ├── menu/               # Interactive menus
-    └── settings/           # Settings and workspace management
-        ├── workspaces/     # Workspace operations
-        └── projects/       # Project operations
+├── startup.sh          # Entry point
+├── config/             # Workspace configs (.json)
+├── styles/             # UI, colors, animations
+└── modules/            
+    ├── config/         # Config file management
+    ├── tmux/           # Tmux configuration
+    ├── navigator/      # Filesystem navigation
+    ├── menu/           # Interactive menus
+    └── settings/       # Workspace & project configuration
 ```
 
 ```mermaid
@@ -166,29 +136,6 @@ Configuration storage:
 - **Local development**: `./config/`
 - **System installation**: `~/.cache/fm-manager/`
 
-## 🔧 Troubleshooting
-
-### Common Issues
-
-1. **Tmux not found:**
-   ```bash
-   # Install tmux
-   sudo apt install tmux  # Ubuntu/Debian
-   sudo pacman -S tmux    # Arch Linux
-   brew install tmux      # macOS
-   ```
-
-2. **Permission denied:**
-   ```bash
-   chmod +x startup.sh
-   ```
-
-3. **JSON parsing errors:**
-   ```bash
-   # Install jq if missing
-   sudo apt install jq
-   ```
-
 ## 🧪 Testing
 
 For development testing, use the included test environment:
@@ -223,11 +170,8 @@ The masquerade script safely swaps your configs with generated mock workspaces, 
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Follow the modular architecture principles
-4. Add tests for new functionality
-5. Submit a pull request
+1. Clone this and open a Pull Request with a proper branch.
+2. Follow the modular architecture principles
 
 ### Development Guidelines
 
@@ -242,4 +186,4 @@ This project is licensed under the NIC License.
 
 ## 🎉 Credits
 
-Built with ❤️ using claude sonnet 4, thank god.
+Built with ❤️ using claude code CLI, thank god.
