@@ -92,11 +92,10 @@ flowchart TB
         TW["Toggle Workspace<br/>(show/hide in main)"]
     end
 
-    subgraph ADD_WS_FLOW["📁 Add Workspace Flow"]
+    subgraph ADD_WS_FLOW["📁 Add Workspace"]
         NAV["Filesystem Navigator"]
-        SELECT["Select workspace folder"]
-        ADD_TO_PROJ["Add to project"]
-        NAV --> SELECT --> ADD_TO_PROJ
+        SELECT["Select folder"]
+        NAV --> SELECT
     end
 
     subgraph MANAGE_WS["🔧 Manage Workspace"]
@@ -106,23 +105,32 @@ flowchart TB
         REMOVE_WS["Remove Workspace<br/>(if no projects)"]
     end
 
+    subgraph ADD_PROJ_FLOW["➕ Add Project"]
+        LIST_PROJS["List workspace's<br/>available projects"]
+        CONFIG_PROJ["Configure project"]
+        LIST_PROJS --> CONFIG_PROJ
+    end
+
     MAIN <--> SETTINGS
     MAIN -.-> TMUX
     MW --> MANAGE_WS
     AW --> ADD_WS_FLOW
+    ADD_PROJ --> ADD_PROJ_FLOW
 
     %% Styling
     classDef mainScreen fill:#4a9eff,stroke:#2670c2,color:#fff
     classDef settings fill:#ff9f43,stroke:#c77a2e,color:#fff
     classDef manage fill:#26de81,stroke:#1b9e5c,color:#fff
     classDef tmux fill:#a55eea,stroke:#7c3aab,color:#fff
-    classDef addFlow fill:#45aaf2,stroke:#2d8ed9,color:#fff
+    classDef addWsFlow fill:#45aaf2,stroke:#2d8ed9,color:#fff
+    classDef addProjFlow fill:#a55eea,stroke:#7c3aab,color:#fff
     
     class TABLE,RUN,STOP,CUSTOM mainScreen
     class MW,AW,TW settings
     class ADD_PROJ,EDIT_PROJ,REMOVE_PROJ,REMOVE_WS manage
     class WALK tmux
-    class NAV,SELECT,ADD_TO_PROJ addFlow
+    class NAV,SELECT addWsFlow
+    class LIST_PROJS,CONFIG_PROJ addProjFlow
 ```
 
 ## ⚙️ Configuration
