@@ -272,3 +272,31 @@ handle_kill_all_command() {
 handle_help_command() {
     show_menu_help
 }
+
+# Function to handle custom command (open terminal in project folder)
+handle_custom_command() {
+    local choice="$1"
+
+    if [ "$choice" -ge 1 ] && [ "$choice" -le "${#projects[@]}" ]; then
+        local project_index=$((choice - 1))
+        IFS=':' read -r display_name folder_name startup_command shutdown_command <<< "${projects[$project_index]}"
+
+        # Check if folder exists
+        if [ ! -d "$folder_name" ]; then
+            print_error "Project folder '$folder_name' not found"
+            wait_for_enter
+            return 1
+        fi
+
+        print_info "Opening terminal for $display_name in $folder_name"
+
+        # Open new kgx terminal window in the project folder
+        kgx --working-directory="$folder_name" &
+
+        print_success "Terminal opened for $display_name"
+        sleep 1
+    else
+        print_error "Please enter a number between 1 and ${#projects[@]}"
+        wait_for_enter
+    fi
+}
