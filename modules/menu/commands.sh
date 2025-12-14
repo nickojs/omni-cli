@@ -42,7 +42,14 @@ handle_menu_choice() {
         handle_kill_command "$kill_choice"
         return
     fi
-    
+
+    # Handle custom/terminal commands (c1, c2, etc.)
+    if [[ $choice =~ ^[Cc]([0-9]+)$ ]]; then
+        local custom_choice="${BASH_REMATCH[1]}"
+        handle_custom_command "$custom_choice"
+        return
+    fi
+
     # Handle start commands (1, 2, etc.)
     if [[ $choice =~ ^[0-9]+$ ]]; then
         handle_start_command "$choice"

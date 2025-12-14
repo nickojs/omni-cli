@@ -176,6 +176,16 @@ For development testing, use the included test environment:
 
 The masquerade script safely swaps your configs with generated mock workspaces, backing up the originals. Mock projects are simple processes (`echo + sleep 999999`) perfect for testing without interfering with actual projects.
 
+## 🔮 Future Features
+
+- **Global Blacklist File**: Configurable blacklist file to avoid displaying specific projects by folder name
+- **Better Input Parsing**: Improve input validation to prevent breaking the application flow with non-allowed characters
+- **Revamped Settings Menu**:
+  - Use `m1-mx` format to manage workspaces directly by number, removing the 'in-between' menu, improving UX
+  - Same for toggling workspace (`t1-tx`)
+  - Add global blacklist management interface config in settings
+  - Add logic to extend 'custom command' to support terminals other than kgx
+
 ## 🤝 Contributing
 
 1. Clone this and open a Pull Request with a proper branch.

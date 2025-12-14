@@ -68,8 +68,8 @@ scan_and_display_available_folders() {
     while IFS= read -r -d '' dir; do
         local folder_name=$(basename "$dir")
 
-        # Skip hidden directories and fm-manager itself
-        if [[ ! "$folder_name" =~ ^\. ]] && [[ "$folder_name" != "fm-manager" ]]; then
+        # Skip hidden directories
+        if [[ ! "$folder_name" =~ ^\. ]]; then
             available_folders+=("$folder_name")
 
             # Check if this folder is already managed using provided function
