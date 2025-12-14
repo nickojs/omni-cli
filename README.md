@@ -100,6 +100,61 @@ fm-manager/
         └── projects/       # Project operations
 ```
 
+```mermaid
+flowchart TB
+    subgraph MAIN["📋 Main Screen (Project Manager)"]
+        TABLE["Table: Workspaces & Projects<br/>(with IDs, based on settings)"]
+        RUN["Run Project"]
+        STOP["Stop Project"]
+        CUSTOM["Custom Command<br/>(opens panel in project folder)"]
+        TABLE --> RUN
+        TABLE --> STOP
+        TABLE --> CUSTOM
+    end
+
+    subgraph TMUX["🖥️ Tmux Navigation"]
+        WALK["Walk through<br/>projects panel"]
+    end
+
+    subgraph SETTINGS["⚙️ Settings Menu"]
+        MW["Manage Workspace"]
+        AW["Add Workspace"]
+        TW["Toggle Workspace<br/>(show/hide in main)"]
+    end
+
+    subgraph ADD_WS_FLOW["📁 Add Workspace Flow"]
+        NAV["Filesystem Navigator"]
+        SELECT["Select workspace folder"]
+        ADD_TO_PROJ["Add to project"]
+        NAV --> SELECT --> ADD_TO_PROJ
+    end
+
+    subgraph MANAGE_WS["🔧 Manage Workspace"]
+        ADD_PROJ["Add Project"]
+        EDIT_PROJ["Edit Project"]
+        REMOVE_PROJ["Remove Project"]
+        REMOVE_WS["Remove Workspace<br/>(if no projects)"]
+    end
+
+    MAIN <--> SETTINGS
+    MAIN -.-> TMUX
+    MW --> MANAGE_WS
+    AW --> ADD_WS_FLOW
+
+    %% Styling
+    classDef mainScreen fill:#4a9eff,stroke:#2670c2,color:#fff
+    classDef settings fill:#ff9f43,stroke:#c77a2e,color:#fff
+    classDef manage fill:#26de81,stroke:#1b9e5c,color:#fff
+    classDef tmux fill:#a55eea,stroke:#7c3aab,color:#fff
+    classDef addFlow fill:#45aaf2,stroke:#2d8ed9,color:#fff
+    
+    class TABLE,RUN,STOP,CUSTOM mainScreen
+    class MW,AW,TW settings
+    class ADD_PROJ,EDIT_PROJ,REMOVE_PROJ,REMOVE_WS manage
+    class WALK tmux
+    class NAV,SELECT,ADD_TO_PROJ addFlow
+```
+
 ## ⚙️ Configuration
 
 ### Workspace System
