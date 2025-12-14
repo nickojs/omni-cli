@@ -156,17 +156,6 @@ display_workspaces() {
                     status_display="${RED}not found${NC}"
                 fi
 
-                # Check if project has custom commands
-                local has_custom_cmd="false"
-                if command -v jq >/dev/null 2>&1 && [ -f "$workspace_file" ]; then
-                    has_custom_cmd=$(jq -r ".[$j].customCommands | if . and (. | length) > 0 then \"true\" else \"false\" end" "$workspace_file" 2>/dev/null)
-                fi
-
-                local custom_cmd_indicator=""
-                if [ "$has_custom_cmd" = "true" ]; then
-                    custom_cmd_indicator="${BRIGHT_CYAN}⚙${NC}"
-                fi
-
                 # Format project name with fixed width for alignment
                 local formatted_name
                 if [ ${#project_display_name} -gt 32 ]; then
@@ -178,7 +167,7 @@ display_workspaces() {
                 fi
 
                 # Display project with number and status
-                echo -e "  ${BRIGHT_CYAN}${global_counter}${NC} ${BRIGHT_WHITE}${formatted_name}${NC} ${status_display}${NC} ${BRIGHT_PURPLE}${custom_cmd_indicator}"
+                echo -e "  ${BRIGHT_CYAN}${global_counter}${NC} ${BRIGHT_WHITE}${formatted_name}${NC} ${status_display}${NC}"
                 global_counter=$((global_counter + 1))
             done
         fi
