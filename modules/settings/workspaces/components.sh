@@ -12,13 +12,18 @@ show_workspace_name_prompt() {
     local projects_folder="$1"
     local default_name="$2"
 
+    # Convert path to use ~ for home directory
+    local display_path="${projects_folder/#$HOME/\~}"
+
     clear
     print_header "Create Workspace"
     echo ""
-    print_success "Directory selected: $projects_folder"
+    print_success "Directory selected: $display_path"
+    echo ""
+    echo -e "${DIM}Press Esc to cancel${NC}"
     echo ""
     echo -e "${BRIGHT_WHITE}Enter name for this workspace:${NC}"
-    echo -ne "${DIM}(press Enter to use '$default_name')${NC} ${BLUE}❯${NC} "
+    echo -ne "${DIM}(press Enter to use '$default_name')${NC} ${BRIGHT_CYAN}>${NC} "
 }
 
 # Function to show workspace created success screen

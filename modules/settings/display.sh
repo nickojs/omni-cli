@@ -79,9 +79,10 @@ display_workspaces_info() {
     # Get all available workspaces
     local available_workspaces=()
     if [ ! -f "$workspaces_file" ] || ! get_available_workspaces available_workspaces || [ ${#available_workspaces[@]} -eq 0 ]; then
-        # Display empty state with better spacing
         echo ""
-        echo -e "${BRIGHT_YELLOW}No workspaces configured.${NC}"
+        echo -e "${WHITE}No workspaces configured.${NC}"
+        echo ""
+        echo -e "${DIM}Use ${BRIGHT_GREEN}a${NC} ${DIM}to add a workspace${NC}"
         echo ""
         return 0
     fi
@@ -89,54 +90,56 @@ display_workspaces_info() {
     # Populate global array for command routing
     settings_workspaces=("${available_workspaces[@]}")
 
-    # Display all workspaces (both active and inactive) as numbered list
-    # Table header
     echo ""
-    printf "${BOLD}%-33s %-15s %-16s %-16s %-8s${NC}\n" "display name" "folder" "startup cmd" "shutdown cmd"
-    echo ""
-
     local counter=1
     for workspace_basename in "${available_workspaces[@]}"; do
-        # Construct full path from config_dir and basename
         local workspace_file="$config_dir/$workspace_basename"
         local workspace_name=$(basename "$workspace_basename" .json)
         local display_name=$(echo "$workspace_name" | sed 's/[_-]/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)} 1')
 
-        # Workspace row in table format
+        # Workspace header with status icon
         local status_icon=""
         if is_workspace_active "$workspace_file"; then
             status_icon="${BRIGHT_GREEN}●${NC}"
         else
             status_icon="${DIM}○${NC}"
         fi
-        printf "${NC} ${BOLD}%-32s${NC} ${DIM}%-15s %-16s %-16s %-8s${NC}\n" "$display_name $status_icon" "" "" "" ""
+        echo -e "${BRIGHT_CYAN}${counter}${NC} ${BRIGHT_CYAN}${display_name}${NC}  ${status_icon}"
 
         # Parse projects from this workspace file
         local workspace_projects=()
         if command -v jq >/dev/null 2>&1 && [ -f "$workspace_file" ]; then
             while IFS= read -r line; do
                 workspace_projects+=("$line")
-            done < <(jq -r '.[] | "\(.displayName):\(.projectName):\(.startupCmd):\(.shutdownCmd)"' "$workspace_file" 2>/dev/null)
+            done < <(jq -r '.[] | "\(.displayName):\(.projectName):\(.startupCmd // ""):\(.shutdownCmd // "")"' "$workspace_file" 2>/dev/null)
         fi
 
         # Display projects for this workspace
         if [ ${#workspace_projects[@]} -eq 0 ]; then
-            printf " ${DIM} %-32s %-15s %-16s %-16s %-8s${NC}\n" "No projects configured" "---" "---" "---"
-            echo ""
+            echo -e "  ${DIM}No projects configured${NC}"
         else
-            for j in "${!workspace_projects[@]}"; do
-                IFS=':' read -r project_display_name folder_name startup_cmd shutdown_cmd <<< "${workspace_projects[j]}"
+            for project_info in "${workspace_projects[@]}"; do
+                IFS=':' read -r project_display_name folder_name startup_cmd shutdown_cmd <<< "$project_info"
 
-                # Truncate if longer than max width
-                [ ${#project_display_name} -gt 32 ] && project_display_name=$(printf "%.29s..." "$project_display_name")
-                [ ${#folder_name} -gt 15 ] && folder_name=$(printf "%.12s..." "$folder_name")
-                [ ${#startup_cmd} -gt 16 ] && startup_cmd=$(printf "%.13s..." "$startup_cmd")
-                [ ${#shutdown_cmd} -gt 16 ] && shutdown_cmd=$(printf "%.13s..." "$shutdown_cmd")
+                # Use dash for empty values
+                [[ -z "$startup_cmd" || "$startup_cmd" == "null" ]] && startup_cmd="—"
+                [[ -z "$shutdown_cmd" || "$shutdown_cmd" == "null" ]] && shutdown_cmd="—"
 
-                printf " ${BRIGHT_WHITE} %-32s${NC} ${DIM}%-15s %-16s %-16s %-8s${NC}\n" "$project_display_name" "$folder_name"/ "$startup_cmd" "$shutdown_cmd"
+                # Truncate long values
+                [[ ${#folder_name} -gt 22 ]] && folder_name="${folder_name:0:19}..."
+                [[ ${#startup_cmd} -gt 18 ]] && startup_cmd="${startup_cmd:0:15}..."
+                [[ ${#shutdown_cmd} -gt 18 ]] && shutdown_cmd="${shutdown_cmd:0:15}..."
+
+                # Fixed-width columns
+                local formatted_name=$(printf "%-24s" "$project_display_name")
+                local formatted_folder=$(printf "%-24s" "$folder_name")
+                local formatted_startup=$(printf "%-20s" "$startup_cmd")
+                local formatted_shutdown=$(printf "%-20s" "$shutdown_cmd")
+
+                echo -e "  ${BRIGHT_WHITE}${formatted_name}${NC}${DIM}${formatted_folder}${formatted_startup}${formatted_shutdown}${NC}"
             done
-                echo ""
         fi
+        echo ""
         counter=$((counter + 1))
     done
 }
