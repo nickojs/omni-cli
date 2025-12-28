@@ -164,26 +164,13 @@ activate_workspace() {
         projects_folder=$(dirname "$workspace_file")
     fi
 
-    local temp_file=$(mktemp)
-
-    if jq --arg workspace_file "$workspace_basename" \
-       --arg projects_path "$projects_folder" \
-       '.activeConfig = (.activeConfig + [$workspace_file] | unique) |
-        .projectsPath = $projects_path |
-        .availableConfigs = (.availableConfigs + [$workspace_file] | unique) |
-        .workspacePaths = (.workspacePaths // {} | . + {($workspace_file): $projects_path})' \
-       "$workspaces_file" > "$temp_file"; then
-
-        if mv "$temp_file" "$workspaces_file"; then
-            return 0
-        else
-            rm -f "$temp_file"
-            return 1
-        fi
-    else
-        rm -f "$temp_file"
-        return 1
-    fi
+    json_update_file "$workspaces_file" \
+        '.activeConfig = (.activeConfig + [$workspace_file] | unique) |
+         .projectsPath = $projects_path |
+         .availableConfigs = (.availableConfigs + [$workspace_file] | unique) |
+         .workspacePaths = (.workspacePaths // {} | . + {($workspace_file): $projects_path})' \
+        --arg workspace_file "$workspace_basename" \
+        --arg projects_path "$projects_folder"
 }
 
 # Function to deactivate a workspace (remove from activeConfig only)
@@ -205,22 +192,10 @@ deactivate_workspace() {
     workspace_basename=$(basename "$workspace_file")
 
     local workspaces_file=$(get_workspaces_file_path)
-    local temp_file=$(mktemp)
 
-    if jq --arg workspace_file "$workspace_basename" \
-       '.activeConfig = (.activeConfig - [$workspace_file])' \
-       "$workspaces_file" > "$temp_file"; then
-
-        if mv "$temp_file" "$workspaces_file"; then
-            return 0
-        else
-            rm -f "$temp_file"
-            return 1
-        fi
-    else
-        rm -f "$temp_file"
-        return 1
-    fi
+    json_update_file "$workspaces_file" \
+        '.activeConfig = (.activeConfig - [$workspace_file])' \
+        --arg workspace_file "$workspace_basename"
 }
 
 # Function to register a new workspace (add to availableConfigs)
@@ -247,24 +222,12 @@ register_workspace() {
     workspace_basename=$(basename "$workspace_file")
 
     local workspaces_file=$(get_workspaces_file_path)
-    local temp_file=$(mktemp)
 
-    if jq --arg workspace_file "$workspace_basename" \
-       --arg projects_path "$projects_folder" \
-       '.availableConfigs = (.availableConfigs + [$workspace_file] | unique) |
-        .workspacePaths = (.workspacePaths // {} | . + {($workspace_file): $projects_path})' \
-       "$workspaces_file" > "$temp_file"; then
-
-        if mv "$temp_file" "$workspaces_file"; then
-            return 0
-        else
-            rm -f "$temp_file"
-            return 1
-        fi
-    else
-        rm -f "$temp_file"
-        return 1
-    fi
+    json_update_file "$workspaces_file" \
+        '.availableConfigs = (.availableConfigs + [$workspace_file] | unique) |
+         .workspacePaths = (.workspacePaths // {} | . + {($workspace_file): $projects_path})' \
+        --arg workspace_file "$workspace_basename" \
+        --arg projects_path "$projects_folder"
 }
 
 # Function to completely remove a workspace from the system
@@ -286,24 +249,12 @@ unregister_workspace() {
     workspace_basename=$(basename "$workspace_file")
 
     local workspaces_file=$(get_workspaces_file_path)
-    local temp_file=$(mktemp)
 
-    if jq --arg workspace_file "$workspace_basename" \
-       '.activeConfig = (.activeConfig - [$workspace_file]) |
-        .availableConfigs = (.availableConfigs - [$workspace_file]) |
-        .workspacePaths = (.workspacePaths | del(.[$workspace_file]))' \
-       "$workspaces_file" > "$temp_file"; then
-
-        if mv "$temp_file" "$workspaces_file"; then
-            return 0
-        else
-            rm -f "$temp_file"
-            return 1
-        fi
-    else
-        rm -f "$temp_file"
-        return 1
-    fi
+    json_update_file "$workspaces_file" \
+        '.activeConfig = (.activeConfig - [$workspace_file]) |
+         .availableConfigs = (.availableConfigs - [$workspace_file]) |
+         .workspacePaths = (.workspacePaths | del(.[$workspace_file]))' \
+        --arg workspace_file "$workspace_basename"
 }
 
 # Function to get projects folder path for a workspace
@@ -386,7 +337,6 @@ clean_orphaned_workspaces() {
     fi
 
     local workspaces_file=$(get_workspaces_file_path)
-    local temp_file=$(mktemp)
 
     # Build arrays of existing workspace files
     local active_workspaces=()
@@ -409,19 +359,8 @@ clean_orphaned_workspaces() {
     local active_json=$(printf '%s\n' "${valid_active[@]}" | jq -R . | jq -s .)
     local available_json=$(printf '%s\n' "${valid_available[@]}" | jq -R . | jq -s .)
 
-    if jq --argjson active "$active_json" \
-       --argjson available "$available_json" \
-       '.activeConfig = $active | .availableConfigs = $available' \
-       "$workspaces_file" > "$temp_file"; then
-
-        if mv "$temp_file" "$workspaces_file"; then
-            return 0
-        else
-            rm -f "$temp_file"
-            return 1
-        fi
-    else
-        rm -f "$temp_file"
-        return 1
-    fi
+    json_update_file "$workspaces_file" \
+        '.activeConfig = $active | .availableConfigs = $available' \
+        --argjson active "$active_json" \
+        --argjson available "$available_json"
 }

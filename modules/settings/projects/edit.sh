@@ -58,24 +58,15 @@ edit_project_in_workspace() {
     show_edit_project_confirmation_screen "$new_display" "$new_startup" "$new_shutdown"
 
     if prompt_yes_no_confirmation "Save changes?"; then
-        # Update the project using jq
-        local temp_file=$(mktemp)
-
-        if jq --arg display_name "$new_display" \
-              --arg startup_cmd "$new_startup" \
-              --arg shutdown_cmd "$new_shutdown" \
+        if json_update_file "$workspace_file" \
               ".[$selected_index].displayName = \$display_name | .[$selected_index].startupCmd = \$startup_cmd | .[$selected_index].shutdownCmd = \$shutdown_cmd" \
-              "$workspace_file" > "$temp_file"; then
-            if mv "$temp_file" "$workspace_file"; then
-                echo ""
-                print_success "Project updated successfully"
-            else
-                print_error "Failed to update workspace file"
-                rm -f "$temp_file"
-            fi
+              --arg display_name "$new_display" \
+              --arg startup_cmd "$new_startup" \
+              --arg shutdown_cmd "$new_shutdown"; then
+            echo ""
+            print_success "Project updated successfully"
         else
-            print_error "Failed to process workspace file"
-            rm -f "$temp_file"
+            print_error "Failed to update workspace file"
         fi
     else
         echo ""

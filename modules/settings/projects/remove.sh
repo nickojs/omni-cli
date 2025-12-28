@@ -30,20 +30,11 @@ remove_project_from_workspace() {
 
     # Confirm removal
     if prompt_yes_no_confirmation "${BRIGHT_WHITE}Remove this project?${NC}"; then
-        # Remove the project using jq
-        local temp_file=$(mktemp)
-
-        if jq "del(.[${selected_index}])" "$workspace_file" > "$temp_file"; then
-            if mv "$temp_file" "$workspace_file"; then
-                echo ""
-                print_success "Project removed successfully"
-            else
-                print_error "Failed to update workspace file"
-                rm -f "$temp_file"
-            fi
+        if json_update_file "$workspace_file" "del(.[${selected_index}])"; then
+            echo ""
+            print_success "Project removed successfully"
         else
-            print_error "Failed to process workspace file"
-            rm -f "$temp_file"
+            print_error "Failed to update workspace file"
         fi
     else
         echo ""

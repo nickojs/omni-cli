@@ -36,6 +36,28 @@ validate_json_config() {
     return 0
 }
 
+# Function to atomically update a JSON file using jq
+# Uses temp file + move pattern for safe writes
+# Parameters: file_path, jq_filter, [jq_args...]
+# Returns: 0 if successful, 1 if error
+# Usage: json_update_file "$file" 'del(.[0])'
+# Usage: json_update_file "$file" '.foo = $val' --arg val "bar"
+json_update_file() {
+    local file="$1"
+    local jq_filter="$2"
+    shift 2
+    local jq_args=("$@")
+
+    local temp_file=$(mktemp)
+    if jq "${jq_args[@]}" "$jq_filter" "$file" > "$temp_file" 2>/dev/null; then
+        if mv "$temp_file" "$file"; then
+            return 0
+        fi
+    fi
+    rm -f "$temp_file"
+    return 1
+}
+
 # Function to get projects root for a specific workspace
 # Parameters: workspace_file_path
 # Returns: projects root directory via echo, empty if error
