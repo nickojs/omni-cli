@@ -1,4 +1,10 @@
-# From Menu module
+#!/bin/bash
+
+# ========================================
+# Documentation Module
+# ========================================
+# Help screens for menu and settings
+# Usage: source modules/docs.sh
 
 # Function to show menu help
 show_menu_help() {
@@ -47,27 +53,35 @@ show_settings_help() {
     echo -e "${BRIGHT_WHITE}Manage your workspaces and projects${NC}"
     echo ""
 
-    echo -e "${BRIGHT_BLUE}Available Commands${NC}"
-    echo -e "  ${BRIGHT_CYAN}a${NC} add workspace      Create a new workspace"
-    echo -e "  ${BRIGHT_CYAN}m${NC} manage workspace   Add, edit, or remove projects from a workspace"
-    echo -e "  ${BRIGHT_CYAN}t${NC} toggle workspace   Activate or deactivate a workspace"
-    echo -e "  ${BRIGHT_CYAN}b${NC} back              Return to main menu"
-    echo -e "  ${BRIGHT_CYAN}h${NC} help              Show this help screen"
+    echo -e "${BRIGHT_BLUE}Settings Commands${NC}"
+    echo -e "  ${BRIGHT_CYAN}a${NC}                  Add a new workspace"
+    echo -e "  ${BRIGHT_CYAN}m1-mx${NC}              Manage workspace by number"
+    echo -e "  ${BRIGHT_CYAN}t1-tx${NC}              Toggle workspace active/inactive by number"
+    echo -e "  ${BRIGHT_CYAN}b${NC}                  Return to main menu"
+    echo -e "  ${BRIGHT_CYAN}h${NC}                  Show this help screen"
+    echo ""
+
+    echo -e "${BRIGHT_BLUE}Workspace Management Commands${NC}"
+    echo -e "  ${BRIGHT_CYAN}a${NC}                  Add a project to the workspace"
+    echo -e "  ${BRIGHT_CYAN}e1-ex${NC}              Edit project by number"
+    echo -e "  ${BRIGHT_CYAN}r1-rx${NC}              Remove project by number"
+    echo -e "  ${BRIGHT_CYAN}d${NC}                  Delete the workspace"
+    echo -e "  ${BRIGHT_CYAN}b${NC}                  Go back to settings"
     echo ""
 
     echo -e "${BRIGHT_BLUE}What are Workspaces?${NC}"
     echo -e "  Workspaces organize projects by location or category."
-    echo -e "  Each workspace has"
-    echo -e "    • A name (e.g., 'Personal', 'Work', 'Clients')"
-    echo -e "    • A projects folder (where your project directories live)"
-    echo -e "    • Multiple projects with custom startup/shutdown commands"
+    echo -e "  Each workspace has:"
+    echo -e "    - A name (e.g., 'Personal', 'Work', 'Clients')"
+    echo -e "    - A projects folder (where your project directories live)"
+    echo -e "    - Multiple projects with custom startup/shutdown commands"
     echo ""
 
     echo -e "${BRIGHT_BLUE}Workflow${NC}"
     echo -e "  1. Add a workspace using ${BRIGHT_CYAN}a${NC}"
-    echo -e "  2. Select the workspace to manage using ${BRIGHT_CYAN}m${NC}"
-    echo -e "  3. Add projects from the workspace's folder"
-    echo -e "  4. Edit or remove projects as needed"
+    echo -e "  2. Manage the workspace using ${BRIGHT_CYAN}m1${NC}, ${BRIGHT_CYAN}m2${NC}, etc."
+    echo -e "  3. Add projects using ${BRIGHT_CYAN}a${NC} in the workspace screen"
+    echo -e "  4. Edit or remove projects using ${BRIGHT_CYAN}e1${NC}/${BRIGHT_CYAN}r1${NC}, etc."
     echo ""
 
     wait_for_enter

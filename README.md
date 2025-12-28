@@ -179,12 +179,8 @@ The masquerade script safely swaps your configs with generated mock workspaces, 
 ## 🔮 Future Features
 
 - **Global Blacklist File**: Configurable blacklist file to avoid displaying specific projects by folder name
-- **Better Input Parsing**: Improve input validation to prevent breaking the application flow with non-allowed characters
-- **Revamped Settings Menu**:
-  - Use `m1-mx` format to manage workspaces directly by number, removing the 'in-between' menu, improving UX
-  - Same for toggling workspace (`t1-tx`)
-  - Add global blacklist management interface config in settings
-  - Add logic to extend 'custom command' to support terminals other than kgx
+
+- **Custom Terminal Support**: Extend 'custom command' to support terminals other than kgx
 
 ## 🤝 Contributing
 
