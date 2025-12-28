@@ -67,14 +67,12 @@ format_workspace_display_name() {
     echo "$workspace_name" | sed 's/[_-]/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)} 1'
 }
 
-# Function to scan a directory for folders and display them with managed status
-# Parameters: projects_root, is_managed_check_function
+# Function to scan a directory for folders and let user select one
+# Parameters: projects_root
 # Returns: selected folder name via echo (to stdout), or empty if cancelled
-# The is_managed_check_function should take (folder_name) and return 0 if managed, 1 if not
 # NOTE: All UI output goes to stderr (>&2) so only the selected folder goes to stdout
 scan_and_display_available_folders() {
     local projects_root="$1"
-    local is_managed_check_fn="$2"
 
     echo "" >&2
     print_color "$BRIGHT_CYAN" "Scanning projects directory: $projects_root" >&2
@@ -89,7 +87,6 @@ scan_and_display_available_folders() {
 
     # Find all subdirectories
     local -a available_folders=()
-    local -a managed_status=()
 
     while IFS= read -r -d '' dir; do
         local folder_name=$(basename "$dir")
@@ -97,13 +94,6 @@ scan_and_display_available_folders() {
         # Skip hidden directories
         if [[ ! "$folder_name" =~ ^\. ]]; then
             available_folders+=("$folder_name")
-
-            # Check if this folder is already managed using provided function
-            if $is_managed_check_fn "$folder_name"; then
-                managed_status+=("managed")
-            else
-                managed_status+=("available")
-            fi
         fi
     done < <(find "$projects_root" -mindepth 1 -maxdepth 1 -type d -print0 | sort -z)
 
@@ -113,31 +103,20 @@ scan_and_display_available_folders() {
         return 1
     fi
 
-    # Display table header (to stderr)
-    printf "  ${BRIGHT_WHITE}%-2s  %-40s  %-10s${NC}\n" "#" "Folder Name" "Status" >&2
-    printf "  ${DIM}%-2s  %-40s  %-10s${NC}\n" "─" "────────────────────────────────────────" "──────────" >&2
-
-    # Display all folders with their managed status (to stderr)
+    # Display folders
     for i in "${!available_folders[@]}"; do
         local counter=$((i + 1))
         local folder="${available_folders[i]}"
-        local status="${managed_status[i]}"
 
         # Truncate long folder names
-        local truncated_folder=$(printf "%.40s" "$folder")
-        [ ${#folder} -gt 40 ] && truncated_folder="${truncated_folder}.."
+        local truncated_folder=$(printf "%.50s" "$folder")
+        [ ${#folder} -gt 50 ] && truncated_folder="${truncated_folder}.."
 
-        if [ "$status" = "managed" ]; then
-            # Already managed - show in very dim text
-            printf "  ${DIM}%-2s  %-40s  %s${NC}\n" "$counter" "$truncated_folder" "$status" >&2
-        else
-            # Available to add - show in white with blue number
-            printf "  ${DIM}%-2s${NC}  ${BRIGHT_WHITE}%-40s${NC}  ${BRIGHT_GREEN}%s${NC}\n" "$counter" "$truncated_folder" "$status" >&2
-        fi
+        printf "  ${BRIGHT_CYAN}%-2s${NC}  ${BRIGHT_WHITE}%s${NC}\n" "$counter" "$truncated_folder" >&2
     done
 
     echo "" >&2
-    echo -e "${BRIGHT_WHITE}Select a folder to add (enter number), or press Enter to go back${NC}" >&2
+    echo -e "${BRIGHT_WHITE}Select a folder (enter number), or press Enter to go back${NC}" >&2
     echo -ne "${BRIGHT_CYAN}>${NC} " >&2
 
     read -r folder_choice
@@ -164,16 +143,8 @@ scan_and_display_available_folders() {
     # Get selected folder
     local selected_index=$((folder_choice - 1))
     local selected_folder="${available_folders[selected_index]}"
-    local selected_status="${managed_status[selected_index]}"
 
-    # Check if folder is already managed
-    if [ "$selected_status" = "managed" ]; then
-        print_error "Folder '$selected_folder' is already managed." >&2
-        wait_for_enter
-        return 1
-    fi
-
-    # Return selected folder name to stdout (only this goes to stdout!)
+    # Return selected folder name to stdout
     echo "$selected_folder"
     return 0
 }

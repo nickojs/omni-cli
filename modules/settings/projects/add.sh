@@ -19,15 +19,9 @@ add_project_to_workspace() {
     clear
     print_header "Add Project to Workspace"
 
-    # Create a check function for folder managed status
-    check_folder_managed() {
-        local folder_name="$1"
-        is_folder_managed "$folder_name" "$projects_root"
-    }
-
     # Scan and let user select a folder
     local selected_folder
-    selected_folder=$(scan_and_display_available_folders "$projects_root" check_folder_managed)
+    selected_folder=$(scan_and_display_available_folders "$projects_root")
     local scan_result=$?
 
     if [ $scan_result -ne 0 ] || [ -z "$selected_folder" ]; then
