@@ -11,17 +11,10 @@
 CONFIG_DIR="$(dirname "${BASH_SOURCE[0]}")"
 
 # Import all configuration modules in dependency order
-source "$CONFIG_DIR/utils.sh"           # Common configuration utilities
 source "$CONFIG_DIR/json.sh"            # JSON parsing and data loading
-source "$CONFIG_DIR/validation.sh"      # Configuration validation
 source "$CONFIG_DIR/setup.sh"          # Setup functions
-source "$CONFIG_DIR/loader.sh"         # Main configuration loading logic
 
 # Export a function to verify config modules are loaded
 config_modules_loaded() {
-    echo "✓ Configuration modules loaded successfully"
-    echo "  - JSON Parser: $(type load_projects_from_json &>/dev/null && echo "✓" || echo "✗")"
-    echo "  - Validation: $(type validate_config &>/dev/null && echo "✓" || echo "✗")"
-    echo "  - Setup: $(type check_and_setup_config &>/dev/null && echo "✓" || echo "✗")"
-    echo "  - Loader: $(type load_config &>/dev/null && echo "✓" || echo "✗")"
+# TODO CLAUDE: needs to recalculate this based on new config (see lines 13~16)
 }

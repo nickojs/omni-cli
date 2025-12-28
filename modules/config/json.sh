@@ -11,6 +11,35 @@ declare -g -a projects=()
 # Global workspace tracking array (parallel to projects array)
 declare -g -a project_workspaces=()
 
+# Function to validate configuration format
+validate_config() {
+    local json_file="$JSON_CONFIG_FILE"
+    
+    if [ ! -f "$json_file" ]; then
+        return 1
+    fi
+    
+    # Basic JSON validation - check for required fields
+    if ! grep -q '"displayName"' "$json_file" || \
+       ! grep -q '"projectName"' "$json_file" || \
+       ! grep -q '"startupCmd"' "$json_file"; then
+        return 1
+    fi
+    
+    return 0
+}
+
+# Function to get the config directory path
+# Returns: config directory path via echo
+# Uses IS_INSTALLED and BASE_DIR variables set in startup.sh
+get_config_directory() {
+    if [ "$IS_INSTALLED" = true ]; then
+        echo "$HOME/.cache/fm-manager"
+    else
+        echo "$BASE_DIR/config"
+    fi
+}
+
 # Function to load projects from active workspaces only
 load_projects_from_json() {
     # Clear global arrays
@@ -123,6 +152,20 @@ load_projects_from_workspace() {
 
     return 0
 }
+
+# Load the project configuration (silent - no user prompts)
+load_config() {
+    # Try to load projects, but don't show errors
+    if ! load_projects_from_json 2>/dev/null; then
+        # Set empty projects array to allow menu to load
+        projects=()
+        project_workspaces=()
+    fi
+
+    # Return success regardless - menu will handle empty state
+    return 0
+}
+
 
 reload_config() {
     if load_projects_from_json; then

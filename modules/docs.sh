@@ -1,10 +1,4 @@
-#!/bin/bash
-
-# ========================================
-# Menu Documentation & Help Module
-# ========================================
-# This module contains help text and documentation for the menu
-# Usage: source modules/menu/docs.sh
+# From Menu module
 
 # Function to show menu help
 show_menu_help() {
@@ -44,3 +38,5 @@ show_menu_help() {
 
     wait_for_enter
 }
+
+

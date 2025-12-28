@@ -15,14 +15,7 @@ handle_menu_choice() {
         handle_quit_command
         return
     fi
-    
-    
-    # Handle custom config command
-    if [[ $choice =~ ^[Cc]$ ]]; then
-        handle_custom_config_command
-        return
-    fi
-
+       
     # Handle settings command
     if [[ $choice =~ ^[Ss]$ ]]; then
         handle_settings_command
