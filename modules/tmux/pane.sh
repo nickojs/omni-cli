@@ -31,7 +31,7 @@ kill_project() {
     if [[ -n "$pane_id" ]]; then
         tmux send-keys -t "$pane_id" C-c 2>/dev/null
 
-        if [[ -n "$shutdown_cmd" ]] && [[ "$shutdown_cmd" != "null" ]] && [[ "$shutdown_cmd" != "echo 'No shutdown command configured'" ]]; then
+        if [[ -n "$shutdown_cmd" ]] && [[ "$shutdown_cmd" != "null" ]]; then
             tmux send-keys -t "$pane_id" "$shutdown_cmd; exit" Enter 2>/dev/null
         else
             tmux send-keys -t "$pane_id" "exit" Enter 2>/dev/null
@@ -56,7 +56,7 @@ restart_project() {
 
     tmux send-keys -t "$pane_id" C-c 2>/dev/null
 
-    if [[ -n "$shutdown_cmd" ]] && [[ "$shutdown_cmd" != "null" ]] && [[ "$shutdown_cmd" != "echo 'No shutdown command configured'" ]]; then
+    if [[ -n "$shutdown_cmd" ]] && [[ "$shutdown_cmd" != "null" ]]; then
         tmux send-keys -t "$pane_id" "$shutdown_cmd; $startup_command" Enter 2>/dev/null
     else
         tmux send-keys -t "$pane_id" "$startup_command" Enter 2>/dev/null
@@ -90,7 +90,7 @@ kill_all_projects() {
 
         tmux send-keys -t "$pane_id" C-c 2>/dev/null
 
-        if [[ -n "$shutdown_cmd" ]] && [[ "$shutdown_cmd" != "null" ]] && [[ "$shutdown_cmd" != "echo 'No shutdown command configured'" ]]; then
+        if [[ -n "$shutdown_cmd" ]] && [[ "$shutdown_cmd" != "null" ]]; then
             tmux send-keys -t "$pane_id" "$shutdown_cmd; exit" Enter 2>/dev/null
         else
             tmux send-keys -t "$pane_id" "exit" Enter 2>/dev/null
