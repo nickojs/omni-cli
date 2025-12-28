@@ -27,20 +27,94 @@ handle_settings_choice() {
         return 0
     fi
 
-    # Handle manage workspace command
-    if [[ $choice =~ ^[Mm]$ ]]; then
-        show_workspace_selection_menu
+    # Handle manage workspace commands (m1, m2, etc.)
+    if [[ $choice =~ ^[Mm]([0-9]+)$ ]]; then
+        local workspace_choice="${BASH_REMATCH[1]}"
+        handle_manage_workspace_command "$workspace_choice"
         return 0
     fi
 
-    # Handle toggle workspace command
-    if [[ $choice =~ ^[Tt]$ ]]; then
-        show_toggle_workspace_menu
+    # Handle toggle workspace commands (t1, t2, etc.)
+    if [[ $choice =~ ^[Tt]([0-9]+)$ ]]; then
+        local workspace_choice="${BASH_REMATCH[1]}"
+        handle_toggle_workspace_command "$workspace_choice"
         return 0
+    fi
+
+    # Build error message based on available workspaces
+    local workspace_hint=""
+    if [ ${#settings_workspaces[@]} -gt 0 ]; then
+        if [ ${#settings_workspaces[@]} -eq 1 ]; then
+            workspace_hint="m1 (manage), t1 (toggle), "
+        else
+            workspace_hint="m1-m${#settings_workspaces[@]} (manage), t1-t${#settings_workspaces[@]} (toggle), "
+        fi
     fi
 
     # Invalid command
-    print_error "Invalid command. Use a (add workspace), m (manage workspace), t (toggle workspace), b (back) or h (help)"
+    print_error "Invalid command. Use a (add workspace), ${workspace_hint}b (back) or h (help)"
     wait_for_enter
+    return 0
+}
+
+# Function to handle manage workspace command with workspace number
+handle_manage_workspace_command() {
+    local workspace_choice="$1"
+
+    # Validate workspace number
+    if [ "$workspace_choice" -lt 1 ] || [ "$workspace_choice" -gt "${#settings_workspaces[@]}" ]; then
+        if [ ${#settings_workspaces[@]} -eq 0 ]; then
+            print_error "No workspaces available"
+        elif [ ${#settings_workspaces[@]} -eq 1 ]; then
+            print_error "Invalid workspace. Use m1"
+        else
+            print_error "Invalid workspace. Use m1-m${#settings_workspaces[@]}"
+        fi
+        wait_for_enter
+        return 1
+    fi
+
+    # Get selected workspace
+    local selected_index=$((workspace_choice - 1))
+    local selected_workspace_basename="${settings_workspaces[selected_index]}"
+
+    # Construct full path from config_dir and basename
+    local config_dir=$(get_config_directory)
+    local selected_workspace="$config_dir/$selected_workspace_basename"
+
+    # Open workspace management screen
+    manage_workspace "$selected_workspace"
+
+    return 0
+}
+
+# Function to handle toggle workspace command with workspace number
+handle_toggle_workspace_command() {
+    local workspace_choice="$1"
+
+    # Validate workspace number
+    if [ "$workspace_choice" -lt 1 ] || [ "$workspace_choice" -gt "${#settings_workspaces[@]}" ]; then
+        if [ ${#settings_workspaces[@]} -eq 0 ]; then
+            print_error "No workspaces available"
+        elif [ ${#settings_workspaces[@]} -eq 1 ]; then
+            print_error "Invalid workspace. Use t1"
+        else
+            print_error "Invalid workspace. Use t1-t${#settings_workspaces[@]}"
+        fi
+        wait_for_enter
+        return 1
+    fi
+
+    # Get selected workspace
+    local selected_index=$((workspace_choice - 1))
+    local selected_workspace_basename="${settings_workspaces[selected_index]}"
+
+    # Construct full path from config_dir and basename
+    local config_dir=$(get_config_directory)
+    local selected_workspace="$config_dir/$selected_workspace_basename"
+
+    # Toggle the workspace
+    toggle_workspace "$selected_workspace"
+
     return 0
 }

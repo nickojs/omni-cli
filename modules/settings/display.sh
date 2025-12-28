@@ -6,6 +6,9 @@
 # This module handles settings menu display and UI functionality
 # Usage: source modules/settings/display.sh
 
+# Global array to store available workspaces for command routing
+declare -a settings_workspaces=()
+
 # Interactive settings menu with command handling
 show_settings_menu() {
     # Check if any projects are running
@@ -26,10 +29,28 @@ show_settings_menu() {
         clear
         print_header "Settings"
 
-        # Display workspaces from .workspaces.json
+        # Display workspaces from .workspaces.json (also populates settings_workspaces)
         display_workspaces_info
 
-        echo -e "${BRIGHT_GREEN}a${NC} add workspace    ${BRIGHT_GREEN}m${NC} manage workspace    ${BRIGHT_BLUE}t${NC} toggle workspace    ${BRIGHT_PURPLE}b${NC} back    ${BRIGHT_PURPLE}h${NC} help"
+        # Build workspace command displays based on workspace count
+        local manage_cmd=""
+        local toggle_cmd=""
+        if [ ${#settings_workspaces[@]} -gt 0 ]; then
+            if [ ${#settings_workspaces[@]} -eq 1 ]; then
+                manage_cmd="${BRIGHT_GREEN}m1${NC} manage"
+                toggle_cmd="${BRIGHT_BLUE}t1${NC} toggle"
+            else
+                manage_cmd="${BRIGHT_GREEN}m1-m${#settings_workspaces[@]}${NC} manage"
+                toggle_cmd="${BRIGHT_BLUE}t1-t${#settings_workspaces[@]}${NC} toggle"
+            fi
+        fi
+
+        # Display command line
+        if [ -n "$manage_cmd" ]; then
+            echo -e "${BRIGHT_GREEN}a${NC} add workspace    ${manage_cmd}    ${toggle_cmd}    ${BRIGHT_PURPLE}b${NC} back    ${BRIGHT_PURPLE}h${NC} help"
+        else
+            echo -e "${BRIGHT_GREEN}a${NC} add workspace    ${BRIGHT_PURPLE}b${NC} back    ${BRIGHT_PURPLE}h${NC} help"
+        fi
         echo ""
 
         # Get user input with better prompt
@@ -52,6 +73,9 @@ display_workspaces_info() {
     local config_dir=$(get_config_directory)
     local workspaces_file="$config_dir/.workspaces.json"
 
+    # Reset global workspaces array
+    settings_workspaces=()
+
     # Get all available workspaces
     local available_workspaces=()
     if [ ! -f "$workspaces_file" ] || ! get_available_workspaces available_workspaces || [ ${#available_workspaces[@]} -eq 0 ]; then
@@ -61,6 +85,9 @@ display_workspaces_info() {
         echo ""
         return 0
     fi
+
+    # Populate global array for command routing
+    settings_workspaces=("${available_workspaces[@]}")
 
     # Display all workspaces (both active and inactive) as numbered list
     # Table header
