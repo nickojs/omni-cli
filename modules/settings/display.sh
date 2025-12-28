@@ -65,7 +65,7 @@ display_workspaces_info() {
     # Display all workspaces (both active and inactive) as numbered list
     # Table header
     echo ""
-    printf "${BOLD}%-33s %-15s %-16s %-16s %-8s${NC}\n" "display name" "folder" "startup cmd" "shutdown cmd" "has custom cmd"
+    printf "${BOLD}%-33s %-15s %-16s %-16s %-8s${NC}\n" "display name" "folder" "startup cmd" "shutdown cmd"
     echo ""
 
     local counter=1
@@ -89,16 +89,16 @@ display_workspaces_info() {
         if command -v jq >/dev/null 2>&1 && [ -f "$workspace_file" ]; then
             while IFS= read -r line; do
                 workspace_projects+=("$line")
-            done < <(jq -r '.[] | "\(.displayName):\(.projectName):\(.startupCmd):\(.shutdownCmd):\(if .customCommands and (.customCommands | length) > 0 then "true" else "false" end)"' "$workspace_file" 2>/dev/null)
+            done < <(jq -r '.[] | "\(.displayName):\(.projectName):\(.startupCmd):\(.shutdownCmd)"' "$workspace_file" 2>/dev/null)
         fi
 
         # Display projects for this workspace
         if [ ${#workspace_projects[@]} -eq 0 ]; then
-            printf " ${DIM} %-32s %-15s %-16s %-16s %-8s${NC}\n" "No projects configured" "---" "---" "---" "---"
+            printf " ${DIM} %-32s %-15s %-16s %-16s %-8s${NC}\n" "No projects configured" "---" "---" "---"
             echo ""
         else
             for j in "${!workspace_projects[@]}"; do
-                IFS=':' read -r project_display_name folder_name startup_cmd shutdown_cmd has_custom_cmd <<< "${workspace_projects[j]}"
+                IFS=':' read -r project_display_name folder_name startup_cmd shutdown_cmd <<< "${workspace_projects[j]}"
 
                 # Truncate if longer than max width
                 [ ${#project_display_name} -gt 32 ] && project_display_name=$(printf "%.29s..." "$project_display_name")
@@ -106,7 +106,7 @@ display_workspaces_info() {
                 [ ${#startup_cmd} -gt 16 ] && startup_cmd=$(printf "%.13s..." "$startup_cmd")
                 [ ${#shutdown_cmd} -gt 16 ] && shutdown_cmd=$(printf "%.13s..." "$shutdown_cmd")
 
-                printf " ${BRIGHT_WHITE} %-32s${NC} ${DIM}%-15s %-16s %-16s %-8s${NC}\n" "$project_display_name" "$folder_name"/ "$startup_cmd" "$shutdown_cmd" "$has_custom_cmd"
+                printf " ${BRIGHT_WHITE} %-32s${NC} ${DIM}%-15s %-16s %-16s %-8s${NC}\n" "$project_display_name" "$folder_name"/ "$startup_cmd" "$shutdown_cmd"
             done
                 echo ""
         fi

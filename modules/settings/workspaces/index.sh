@@ -141,14 +141,6 @@ manage_workspace() {
                     wait_for_enter
                 fi
                 ;;
-            c)
-                if [ $project_count -gt 0 ]; then
-                    custom_commands_for_project "$workspace_file"
-                else
-                    print_error "No projects available"
-                    wait_for_enter
-                fi
-                ;;
             r)
                 if [ $project_count -gt 0 ]; then
                     remove_project_from_workspace "$workspace_file"
