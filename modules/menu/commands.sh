@@ -42,6 +42,13 @@ handle_menu_choice() {
         return
     fi
 
+    # Handle restart commands (r1, r2, etc.)
+    if [[ $choice =~ ^[Rr]([0-9]+)$ ]]; then
+        local restart_choice="${BASH_REMATCH[1]}"
+        handle_restart_command "$restart_choice"
+        return
+    fi
+
     # Handle custom/terminal commands (c1, c2, etc.)
     if [[ $choice =~ ^[Cc]([0-9]+)$ ]]; then
         local custom_choice="${BASH_REMATCH[1]}"

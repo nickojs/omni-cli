@@ -16,6 +16,8 @@ show_menu_help() {
 
     echo -e "${BRIGHT_BLUE}Available Commands${NC}"
     echo -e "  ${BRIGHT_CYAN}1-9${NC}              Start a project by its number"
+    echo -e "  ${BRIGHT_CYAN}c1-c9${NC}            Open terminal in project folder"
+    echo -e "  ${BRIGHT_CYAN}r1-r9${NC}            Restart a running project"
     echo -e "  ${BRIGHT_CYAN}k1-k9${NC}            Kill (stop) a project by its number"
     echo -e "  ${BRIGHT_CYAN}ka${NC}               Kill all running projects"
     echo -e "  ${BRIGHT_CYAN}s${NC}                Open settings menu"
@@ -27,6 +29,11 @@ show_menu_help() {
     echo -e "  Each project in your workspaces is numbered in the menu."
     echo -e "  Simply type the number and press Enter to start it."
     echo -e "  Projects run in separate tmux panes with their configured startup commands."
+    echo ""
+
+    echo -e "${BRIGHT_BLUE}Restarting Projects${NC}"
+    echo -e "  Use '${BRIGHT_CYAN}r${NC}' followed by the project number (e.g., ${BRIGHT_CYAN}r1${NC}) to restart a running project."
+    echo -e "  This kills the process but keeps the pane, then re-runs the startup command."
     echo ""
 
     echo -e "${BRIGHT_BLUE}Stopping Projects${NC}"

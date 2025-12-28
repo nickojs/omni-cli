@@ -64,6 +64,32 @@ handle_kill_command() {
     fi
 }
 
+# Function to handle restart command with global project array
+handle_restart_command() {
+    local restart_choice="$1"
+
+    if [ "$restart_choice" -ge 1 ] && [ "$restart_choice" -le "${#projects[@]}" ]; then
+        local project_index=$((restart_choice - 1))
+        IFS=':' read -r display_name folder_name startup_command shutdown_command <<< "${projects[$project_index]}"
+
+        if is_project_running "$display_name"; then
+            show_loading "Restarting $display_name" 1
+            if restart_project "$display_name" "$startup_command" "$shutdown_command"; then
+                print_success "$display_name restarted"
+            else
+                print_error "Failed to restart $display_name"
+            fi
+        else
+            print_warning "$display_name is not running"
+            print_info "Use '$restart_choice' to start it first"
+        fi
+        wait_for_enter
+    else
+        print_error "Invalid restart command. Use r1-r${#projects[@]}"
+        sleep 2
+    fi
+}
+
 # Function to handle start command with global project array
 handle_start_command() {
     local choice="$1"

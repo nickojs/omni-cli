@@ -79,6 +79,48 @@ kill_project() {
     return 1
 }
 
+# Function to restart a project (kill process but keep pane, then re-run startup command)
+restart_project() {
+    local display_name="$1"
+    local startup_command="$2"
+    local shutdown_cmd="$3"
+
+    local pane_id
+    pane_id=$(get_project_pane "$display_name")
+
+    if [[ -z "$pane_id" ]]; then
+        return 1
+    fi
+
+    # Run shutdown command if provided
+    if [[ -n "$shutdown_cmd" ]] && [[ "$shutdown_cmd" != "null" ]] && [[ "$shutdown_cmd" != "echo 'No shutdown command configured'" ]]; then
+        tmux send-keys -t "$pane_id" C-c 2>/dev/null
+        sleep 0.5
+        tmux send-keys -t "$pane_id" "$shutdown_cmd" Enter 2>/dev/null
+        sleep 2
+    else
+        # Just send Ctrl+C to interrupt current process
+        tmux send-keys -t "$pane_id" C-c 2>/dev/null
+        sleep 0.5
+    fi
+
+    # Kill process group (but NOT the pane)
+    local pane_pid
+    pane_pid=$(tmux list-panes -t "$pane_id" -F "#{pane_pid}" 2>/dev/null)
+    if [[ -n "$pane_pid" ]]; then
+        kill -TERM -"$pane_pid" 2>/dev/null
+        sleep 0.5
+        kill -KILL -"$pane_pid" 2>/dev/null
+    fi
+
+    sleep 0.5
+
+    # Send startup command to the same pane
+    tmux send-keys -t "$pane_id" "$startup_command" Enter
+
+    return 0
+}
+
 # Function to list all project panes
 list_project_panes() {
     tmux list-panes -t "$SESSION_NAME" -F "#{pane_id}:#{pane_title}" 2>/dev/null | grep -v "^%0:"
