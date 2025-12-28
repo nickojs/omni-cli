@@ -12,7 +12,6 @@ SETTINGS_DIR="$(dirname "${BASH_SOURCE[0]}")"
 
 # Import all settings modules
 source "$SETTINGS_DIR/utils.sh"          # Configuration utilities (shared functions)
-source "$SETTINGS_DIR/docs.sh"           # Docs
 source "$SETTINGS_DIR/ui_helpers.sh"     # UI interaction helpers
 source "$SETTINGS_DIR/state.sh"          # Workspace state management
 source "$SETTINGS_DIR/workspaces/index.sh" # Workspace management operations
@@ -25,10 +24,4 @@ settings_modules_loaded() {
     echo "✓ Settings modules loaded successfully"
     echo "  - Display: $(type show_settings_menu &>/dev/null && echo "✓" || echo "✗")"
     echo "  - Commands: $(type handle_settings_choice &>/dev/null && echo "✓" || echo "✗")"
-}
-
-# Function to initialize settings modules
-init_settings() {
-    # Any initialization logic for settings modules can go here
-    return 0
 }

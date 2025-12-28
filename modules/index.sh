@@ -56,9 +56,3 @@ modules_loaded() {
         settings_modules_loaded
     fi
 }
-
-# Function to initialize all modules
-init_modules() {
-    # Any initialization logic for modules can go here
-    return 0
-}

@@ -11,7 +11,6 @@
 TMUX_DIR="$(dirname "${BASH_SOURCE[0]}")"
 
 # Import all tmux modules in dependency order
-source "$TMUX_DIR/utils.sh"        # Utility functions
 source "$TMUX_DIR/session.sh"      # Session management
 source "$TMUX_DIR/pane.sh"         # Pane management
 source "$TMUX_DIR/project.sh"      # Project-specific operations
@@ -19,14 +18,7 @@ source "$TMUX_DIR/project.sh"      # Project-specific operations
 # Export a function to verify tmux modules are loaded
 tmux_modules_loaded() {
     echo "✓ Tmux modules loaded successfully"
-    echo "  - Utils: $(type check_tmux &>/dev/null && echo "✓" || echo "✗")"
     echo "  - Session: $(type setup_tmux_session &>/dev/null && echo "✓" || echo "✗")"
     echo "  - Pane: $(type get_project_pane &>/dev/null && echo "✓" || echo "✗")"
     echo "  - Project: $(type start_project_in_tmux &>/dev/null && echo "✓" || echo "✗")"
-}
-
-# Function to initialize tmux modules
-init_tmux() {
-    # Any initialization logic for tmux modules can go here
-    return 0
 }
