@@ -43,43 +43,65 @@ manage_workspace() {
         echo -ne "${BRIGHT_CYAN}>${NC} "
         read_with_instant_back choice
 
-        case "${choice,,}" in
-            a)
-                add_project_to_workspace "$workspace_file" "$projects_root"
-                ;;
-            e)
-                if [ $project_count -gt 0 ]; then
-                    edit_project_in_workspace "$workspace_file"
-                else
-                    print_error "No projects to edit"
-                    wait_for_enter
-                fi
-                ;;
-            r)
-                if [ $project_count -gt 0 ]; then
-                    remove_project_from_workspace "$workspace_file"
-                else
-                    print_error "No projects to remove"
-                    wait_for_enter
-                fi
-                ;;
-            d)
+        # Handle back command
+        if [[ $choice =~ ^[Bb]$ ]]; then
+            return 0
+        fi
+
+        # Handle add project command
+        if [[ $choice =~ ^[Aa]$ ]]; then
+            add_project_to_workspace "$workspace_file" "$projects_root"
+            continue
+        fi
+
+        # Handle edit project commands (e1, e2, etc.)
+        if [[ $choice =~ ^[Ee]([0-9]+)$ ]]; then
+            local project_choice="${BASH_REMATCH[1]}"
+            if [ "$project_choice" -ge 1 ] && [ "$project_choice" -le "$project_count" ]; then
+                local project_index=$((project_choice - 1))
+                edit_project_in_workspace "$workspace_file" "$project_index"
+            else
                 if [ $project_count -eq 0 ]; then
-                    if delete_workspace "$workspace_file"; then
-                        return 0  # Exit to workspace selection menu
-                    fi
+                    print_error "No projects to edit"
+                elif [ $project_count -eq 1 ]; then
+                    print_error "Invalid project. Use e1"
                 else
-                    print_error "Cannot delete workspace with projects. Remove all projects first."
-                    wait_for_enter
+                    print_error "Invalid project. Use e1-e${project_count}"
                 fi
-                ;;
-            b)
-                return 0
-                ;;
-            *)
-                print_error "Invalid command"
                 wait_for_enter
-                ;;
-        esac
+            fi
+            continue
+        fi
+
+        # Handle remove project commands (r1, r2, etc.)
+        if [[ $choice =~ ^[Rr]([0-9]+)$ ]]; then
+            local project_choice="${BASH_REMATCH[1]}"
+            if [ "$project_choice" -ge 1 ] && [ "$project_choice" -le "$project_count" ]; then
+                local project_index=$((project_choice - 1))
+                remove_project_from_workspace "$workspace_file" "$project_index"
+            else
+                if [ $project_count -eq 0 ]; then
+                    print_error "No projects to remove"
+                elif [ $project_count -eq 1 ]; then
+                    print_error "Invalid project. Use r1"
+                else
+                    print_error "Invalid project. Use r1-r${project_count}"
+                fi
+                wait_for_enter
+            fi
+            continue
+        fi
+
+        # Handle delete workspace command
+        if [[ $choice =~ ^[Dd]$ ]]; then
+            if delete_workspace "$workspace_file"; then
+                return 0  # Exit to settings menu
+            fi
+            continue
+        fi
+
+        # Invalid command
+        print_error "Invalid command"
+        wait_for_enter
     done
 }

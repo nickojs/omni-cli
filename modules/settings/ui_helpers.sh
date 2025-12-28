@@ -8,28 +8,54 @@
 
 # Function to read user input with instant back key handling
 # The 'b' key will trigger immediately without needing Enter
-# All other input requires pressing Enter
+# Handles backspace properly for full editing support
 # Returns: user input via variable name passed as parameter
 # Usage: read_with_instant_back choice
 read_with_instant_back() {
     local -n result_var=$1  # nameref to result variable
-    local first_char
+    local input=""
+    local char
 
-    # Read first character without waiting for Enter
-    read -n 1 -r first_char
+    while true; do
+        # Read single character without echo
+        IFS= read -r -s -n 1 char
 
-    # If it's 'b', return immediately
-    if [ "$first_char" = "b" ]; then
-        result_var="b"
-        echo ""  # Add newline since -n 1 doesn't auto-newline
-        return 0
-    fi
+        # Handle Enter (empty char from read -n 1)
+        if [[ -z "$char" ]]; then
+            echo ""  # Add newline
+            result_var="$input"
+            return 0
+        fi
 
-    # Otherwise, read the rest of the line
-    local rest_of_line
-    read -r rest_of_line
-    result_var="${first_char}${rest_of_line}"
-    return 0
+        # Handle backspace (ASCII 127) or ctrl-H (ASCII 8)
+        if [[ "$char" == $'\x7f' ]] || [[ "$char" == $'\x08' ]]; then
+            if [[ -n "$input" ]]; then
+                # Remove last character from input
+                input="${input%?}"
+                # Move cursor back, overwrite with space, move back again
+                echo -ne "\b \b"
+            fi
+            continue
+        fi
+
+        # Handle Ctrl+C
+        if [[ "$char" == $'\x03' ]]; then
+            echo ""
+            result_var=""
+            return 1
+        fi
+
+        # If first character is 'b' and input is empty, return immediately
+        if [[ -z "$input" ]] && [[ "$char" == "b" ]]; then
+            echo "b"  # Echo the character and newline
+            result_var="b"
+            return 0
+        fi
+
+        # Add character to input and echo it
+        input+="$char"
+        echo -n "$char"
+    done
 }
 
 # Function to format workspace filename into display name

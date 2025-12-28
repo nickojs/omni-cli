@@ -37,11 +37,11 @@ show_settings_menu() {
         local toggle_cmd=""
         if [ ${#settings_workspaces[@]} -gt 0 ]; then
             if [ ${#settings_workspaces[@]} -eq 1 ]; then
-                manage_cmd="${BRIGHT_GREEN}m1${NC} manage"
-                toggle_cmd="${BRIGHT_BLUE}t1${NC} toggle"
+                manage_cmd="${BRIGHT_GREEN}m1${NC} manage workspace"
+                toggle_cmd="${BRIGHT_BLUE}t1${NC} toggle workspace"
             else
-                manage_cmd="${BRIGHT_GREEN}m1-m${#settings_workspaces[@]}${NC} manage"
-                toggle_cmd="${BRIGHT_BLUE}t1-t${#settings_workspaces[@]}${NC} toggle"
+                manage_cmd="${BRIGHT_GREEN}m1-m${#settings_workspaces[@]}${NC} manage workspace"
+                toggle_cmd="${BRIGHT_BLUE}t1-t${#settings_workspaces[@]}${NC} toggle workspace"
             fi
         fi
 
