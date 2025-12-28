@@ -32,9 +32,9 @@ kill_project() {
         tmux send-keys -t "$pane_id" C-c 2>/dev/null
 
         if [[ -n "$shutdown_cmd" ]] && [[ "$shutdown_cmd" != "null" ]]; then
-            tmux send-keys -t "$pane_id" "$shutdown_cmd; exit" Enter 2>/dev/null
+            tmux send-keys -t "$pane_id" "$shutdown_cmd; tmux send-keys -t $SESSION_NAME:0.0 '' Enter; exit" Enter 2>/dev/null
         else
-            tmux send-keys -t "$pane_id" "exit" Enter 2>/dev/null
+            tmux send-keys -t "$pane_id" "tmux send-keys -t $SESSION_NAME:0.0 '' Enter; exit" Enter 2>/dev/null
         fi
         return 0
     fi
@@ -91,9 +91,9 @@ kill_all_projects() {
         tmux send-keys -t "$pane_id" C-c 2>/dev/null
 
         if [[ -n "$shutdown_cmd" ]] && [[ "$shutdown_cmd" != "null" ]]; then
-            tmux send-keys -t "$pane_id" "$shutdown_cmd; exit" Enter 2>/dev/null
+            tmux send-keys -t "$pane_id" "$shutdown_cmd; tmux send-keys -t $SESSION_NAME:0.0 '' Enter; exit" Enter 2>/dev/null
         else
-            tmux send-keys -t "$pane_id" "exit" Enter 2>/dev/null
+            tmux send-keys -t "$pane_id" "tmux send-keys -t $SESSION_NAME:0.0 '' Enter; exit" Enter 2>/dev/null
         fi
     done
 }
