@@ -9,15 +9,15 @@
 # Function to get pane info for a specific project
 get_project_pane() {
     local display_name="$1"
-    
-    # Get all panes with their titles
-    tmux list-panes -t "$SESSION_NAME" -F "#{pane_id}:#{pane_title}" 2>/dev/null | while IFS=':' read -r pane_id pane_title; do
+    local pane_id pane_title
+
+    while IFS=':' read -r pane_id pane_title; do
         if [[ "$pane_title" == "$display_name" ]]; then
             echo "$pane_id"
             return 0
         fi
-    done
-    
+    done < <(tmux list-panes -t "$SESSION_NAME" -F "#{pane_id}:#{pane_title}" 2>/dev/null)
+
     return 1
 }
 
@@ -29,51 +29,13 @@ kill_project() {
     pane_id=$(get_project_pane "$display_name")
 
     if [[ -n "$pane_id" ]]; then
-        # Execute shutdown command if provided
+        tmux send-keys -t "$pane_id" C-c 2>/dev/null
+
         if [[ -n "$shutdown_cmd" ]] && [[ "$shutdown_cmd" != "null" ]] && [[ "$shutdown_cmd" != "echo 'No shutdown command configured'" ]]; then
-            tmux send-keys -t "$pane_id" C-c 2>/dev/null  # Send Ctrl+C to interrupt current process
-            sleep 0.5
-
-            # Send shutdown command and wait for it to complete
-            tmux send-keys -t "$pane_id" "$shutdown_cmd" Enter 2>/dev/null
-
-            # Monitor command completion by checking if shell prompt is back
-            while true; do
-                # Check if there are any running processes in the pane
-                local pane_pid
-                pane_pid=$(tmux list-panes -t "$pane_id" -F "#{pane_pid}" 2>/dev/null)
-
-                if [[ -n "$pane_pid" ]]; then
-                    # Check if any child processes are still running
-                    local child_procs
-                    child_procs=$(pgrep -P "$pane_pid" 2>/dev/null | wc -l)
-
-                    # If no child processes, the shutdown command has completed
-                    if [[ "$child_procs" -eq 0 ]]; then
-                        break
-                    fi
-                fi
-
-                sleep 0.5
-            done
-
-            # Additional 2-second buffer after shutdown command completes
-            sleep 2
+            tmux send-keys -t "$pane_id" "$shutdown_cmd; exit" Enter 2>/dev/null
+        else
+            tmux send-keys -t "$pane_id" "exit" Enter 2>/dev/null
         fi
-
-        # Get the shell PID running in the pane
-        local pane_pid
-        pane_pid=$(tmux list-panes -t "$pane_id" -F "#{pane_pid}" 2>/dev/null)
-
-        if [[ -n "$pane_pid" ]]; then
-            # Kill the entire process group (graceful first, then force)
-            kill -TERM -"$pane_pid" 2>/dev/null
-            sleep 0.5
-            kill -KILL -"$pane_pid" 2>/dev/null
-        fi
-
-        # Kill the pane
-        tmux kill-pane -t "$pane_id" 2>/dev/null
         return 0
     fi
     return 1
@@ -92,31 +54,13 @@ restart_project() {
         return 1
     fi
 
-    # Run shutdown command if provided
+    tmux send-keys -t "$pane_id" C-c 2>/dev/null
+
     if [[ -n "$shutdown_cmd" ]] && [[ "$shutdown_cmd" != "null" ]] && [[ "$shutdown_cmd" != "echo 'No shutdown command configured'" ]]; then
-        tmux send-keys -t "$pane_id" C-c 2>/dev/null
-        sleep 0.5
-        tmux send-keys -t "$pane_id" "$shutdown_cmd" Enter 2>/dev/null
-        sleep 2
+        tmux send-keys -t "$pane_id" "$shutdown_cmd; $startup_command" Enter 2>/dev/null
     else
-        # Just send Ctrl+C to interrupt current process
-        tmux send-keys -t "$pane_id" C-c 2>/dev/null
-        sleep 0.5
+        tmux send-keys -t "$pane_id" "$startup_command" Enter 2>/dev/null
     fi
-
-    # Kill process group (but NOT the pane)
-    local pane_pid
-    pane_pid=$(tmux list-panes -t "$pane_id" -F "#{pane_pid}" 2>/dev/null)
-    if [[ -n "$pane_pid" ]]; then
-        kill -TERM -"$pane_pid" 2>/dev/null
-        sleep 0.5
-        kill -KILL -"$pane_pid" 2>/dev/null
-    fi
-
-    sleep 0.5
-
-    # Send startup command to the same pane
-    tmux send-keys -t "$pane_id" "$startup_command" Enter
 
     return 0
 }
@@ -128,7 +72,6 @@ list_project_panes() {
 
 # Function to kill all project panes (except main menu)
 kill_all_projects() {
-    # Get pane info with titles to match against projects
     local pane_info
     mapfile -t pane_info < <(tmux list-panes -t "$SESSION_NAME" -F "#{pane_id}:#{pane_title}" 2>/dev/null | grep -v "^%0:")
 
@@ -145,50 +88,12 @@ kill_all_projects() {
             fi
         done
 
-        # Execute shutdown command if provided
+        tmux send-keys -t "$pane_id" C-c 2>/dev/null
+
         if [[ -n "$shutdown_cmd" ]] && [[ "$shutdown_cmd" != "null" ]] && [[ "$shutdown_cmd" != "echo 'No shutdown command configured'" ]]; then
-            tmux send-keys -t "$pane_id" C-c 2>/dev/null  # Send Ctrl+C to interrupt current process
-            sleep 0.5
-
-            # Send shutdown command and wait for it to complete
-            tmux send-keys -t "$pane_id" "$shutdown_cmd" Enter 2>/dev/null
-
-            # Monitor command completion by checking if shell prompt is back
-            while true; do
-                # Check if there are any running processes in the pane
-                local pane_pid_check
-                pane_pid_check=$(tmux list-panes -t "$pane_id" -F "#{pane_pid}" 2>/dev/null)
-
-                if [[ -n "$pane_pid_check" ]]; then
-                    # Check if any child processes are still running
-                    local child_procs
-                    child_procs=$(pgrep -P "$pane_pid_check" 2>/dev/null | wc -l)
-
-                    # If no child processes, the shutdown command has completed
-                    if [[ "$child_procs" -eq 0 ]]; then
-                        break
-                    fi
-                fi
-
-                sleep 0.5
-            done
-
-            # Additional 2-second buffer after shutdown command completes
-            sleep 2
+            tmux send-keys -t "$pane_id" "$shutdown_cmd; exit" Enter 2>/dev/null
+        else
+            tmux send-keys -t "$pane_id" "exit" Enter 2>/dev/null
         fi
-
-        # Get the shell PID running in the pane
-        local pane_pid
-        pane_pid=$(tmux list-panes -t "$pane_id" -F "#{pane_pid}" 2>/dev/null)
-
-        if [[ -n "$pane_pid" ]]; then
-            # Kill the entire process group (graceful first, then force)
-            kill -TERM -"$pane_pid" 2>/dev/null
-            sleep 0.2
-            kill -KILL -"$pane_pid" 2>/dev/null
-        fi
-
-        # Kill the pane
-        tmux kill-pane -t "$pane_id" 2>/dev/null
     done
 }
