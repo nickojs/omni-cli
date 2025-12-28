@@ -264,15 +264,11 @@ prompt_yes_no_confirmation() {
     read -r confirm_choice
 
     case "${confirm_choice,,}" in
-        ""|"y"|"yes")
-            # Empty input or explicit yes
+        "y"|"yes")
             return 0
             ;;
-        "n"|"no")
-            return 1
-            ;;
         *)
-            return 2
+            return 1
             ;;
     esac
 }
