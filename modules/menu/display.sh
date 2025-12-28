@@ -144,16 +144,19 @@ display_workspaces() {
 
                 # Get status (works for any workspace since we have global project array)
                 local status_display=""
-                local status_icon=""
                 if is_project_running "$project_display_name"; then
-                    status_icon="${BRIGHT_GREEN}●${NC}"
-                    status_display="${GREEN}running${NC}"
-                elif [ -d "$folder_name" ]; then
-                    status_icon="${DIM}○${NC}"
-                    status_display="${DIM}stopped${NC}"
+                    if is_project_stopping "$project_display_name"; then
+                        status_display="${BRIGHT_YELLOW}stopping${NC}"
+                    else
+                        status_display="${GREEN}running${NC}"
+                    fi
                 else
-                    status_icon="${BRIGHT_RED}✗${NC}"
-                    status_display="${RED}not found${NC}"
+                    clear_project_stopping "$project_display_name"
+                    if [ -d "$folder_name" ]; then
+                        status_display="${DIM}stopped${NC}"
+                    else
+                        status_display="${RED}not found${NC}"
+                    fi
                 fi
 
                 # Format project name with fixed width for alignment

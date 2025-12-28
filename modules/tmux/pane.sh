@@ -6,6 +6,21 @@
 # This module handles tmux pane management
 # Usage: source modules/tmux/pane.sh
 
+# Track projects being stopped
+declare -A stopping_projects=()
+
+mark_project_stopping() {
+    stopping_projects["$1"]=1
+}
+
+is_project_stopping() {
+    [[ -n "${stopping_projects[$1]}" ]]
+}
+
+clear_project_stopping() {
+    unset stopping_projects["$1"]
+}
+
 # Function to get pane info for a specific project
 get_project_pane() {
     local display_name="$1"
