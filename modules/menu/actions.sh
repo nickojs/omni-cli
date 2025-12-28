@@ -46,21 +46,8 @@ handle_kill_command() {
         local workspace_file="${project_workspaces[$project_index]}"
 
         if is_project_running "$display_name"; then
-            show_loading "Killing $display_name" 1
-
-            # Kill project with workspace context (shutdown command execution needs proper context)
-            if with_workspace_context "$workspace_file" kill_project "$display_name" "$shutdown_command"; then
-                print_success "$display_name stopped successfully"
-            else
-                print_error "Failed to stop $display_name"
-            fi
-        else
-            print_warning "$display_name is not running"
+            with_workspace_context "$workspace_file" kill_project "$display_name" "$shutdown_command"
         fi
-        wait_for_enter
-    else
-        print_error "Invalid kill command. Use k1-k${#projects[@]}"
-        sleep 2
     fi
 }
 
@@ -73,20 +60,8 @@ handle_restart_command() {
         IFS=':' read -r display_name folder_name startup_command shutdown_command <<< "${projects[$project_index]}"
 
         if is_project_running "$display_name"; then
-            show_loading "Restarting $display_name" 1
-            if restart_project "$display_name" "$startup_command" "$shutdown_command"; then
-                print_success "$display_name restarted"
-            else
-                print_error "Failed to restart $display_name"
-            fi
-        else
-            print_warning "$display_name is not running"
-            print_info "Use '$restart_choice' to start it first"
+            restart_project "$display_name" "$startup_command" "$shutdown_command"
         fi
-        wait_for_enter
-    else
-        print_error "Invalid restart command. Use r1-r${#projects[@]}"
-        sleep 2
     fi
 }
 

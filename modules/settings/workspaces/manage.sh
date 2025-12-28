@@ -60,15 +60,6 @@ manage_workspace() {
             if [ "$project_choice" -ge 1 ] && [ "$project_choice" -le "$project_count" ]; then
                 local project_index=$((project_choice - 1))
                 edit_project_in_workspace "$workspace_file" "$project_index"
-            else
-                if [ $project_count -eq 0 ]; then
-                    print_error "No projects to edit"
-                elif [ $project_count -eq 1 ]; then
-                    print_error "Invalid project. Use e1"
-                else
-                    print_error "Invalid project. Use e1-e${project_count}"
-                fi
-                wait_for_enter
             fi
             continue
         fi
@@ -79,15 +70,6 @@ manage_workspace() {
             if [ "$project_choice" -ge 1 ] && [ "$project_choice" -le "$project_count" ]; then
                 local project_index=$((project_choice - 1))
                 remove_project_from_workspace "$workspace_file" "$project_index"
-            else
-                if [ $project_count -eq 0 ]; then
-                    print_error "No projects to remove"
-                elif [ $project_count -eq 1 ]; then
-                    print_error "Invalid project. Use r1"
-                else
-                    print_error "Invalid project. Use r1-r${project_count}"
-                fi
-                wait_for_enter
             fi
             continue
         fi
@@ -99,9 +81,5 @@ manage_workspace() {
             fi
             continue
         fi
-
-        # Invalid command
-        print_error "Invalid command"
-        wait_for_enter
     done
 }

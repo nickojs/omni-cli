@@ -40,21 +40,6 @@ handle_settings_choice() {
         handle_toggle_workspace_command "$workspace_choice"
         return 0
     fi
-
-    # Build error message based on available workspaces
-    local workspace_hint=""
-    if [ ${#settings_workspaces[@]} -gt 0 ]; then
-        if [ ${#settings_workspaces[@]} -eq 1 ]; then
-            workspace_hint="m1 (manage), t1 (toggle), "
-        else
-            workspace_hint="m1-m${#settings_workspaces[@]} (manage), t1-t${#settings_workspaces[@]} (toggle), "
-        fi
-    fi
-
-    # Invalid command
-    print_error "Invalid command. Use a (add workspace), ${workspace_hint}b (back) or h (help)"
-    wait_for_enter
-    return 0
 }
 
 # Function to handle manage workspace command with workspace number
@@ -63,14 +48,6 @@ handle_manage_workspace_command() {
 
     # Validate workspace number
     if [ "$workspace_choice" -lt 1 ] || [ "$workspace_choice" -gt "${#settings_workspaces[@]}" ]; then
-        if [ ${#settings_workspaces[@]} -eq 0 ]; then
-            print_error "No workspaces available"
-        elif [ ${#settings_workspaces[@]} -eq 1 ]; then
-            print_error "Invalid workspace. Use m1"
-        else
-            print_error "Invalid workspace. Use m1-m${#settings_workspaces[@]}"
-        fi
-        wait_for_enter
         return 1
     fi
 
@@ -94,14 +71,6 @@ handle_toggle_workspace_command() {
 
     # Validate workspace number
     if [ "$workspace_choice" -lt 1 ] || [ "$workspace_choice" -gt "${#settings_workspaces[@]}" ]; then
-        if [ ${#settings_workspaces[@]} -eq 0 ]; then
-            print_error "No workspaces available"
-        elif [ ${#settings_workspaces[@]} -eq 1 ]; then
-            print_error "Invalid workspace. Use t1"
-        else
-            print_error "Invalid workspace. Use t1-t${#settings_workspaces[@]}"
-        fi
-        wait_for_enter
         return 1
     fi
 

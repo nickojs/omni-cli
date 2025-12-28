@@ -61,8 +61,4 @@ handle_menu_choice() {
         handle_start_command "$choice"
         return
     fi
-    
-    # Invalid command
-    print_error "Invalid command."
-    wait_for_enter
 }
