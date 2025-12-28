@@ -55,6 +55,5 @@ start_project_in_tmux() {
     # Switch back to the main pane (menu pane)
     tmux select-pane -t "$SESSION_NAME:0.0"
 
-    print_success "$display_name started successfully in tmux pane ($new_pane_id)"
     return 0
 }

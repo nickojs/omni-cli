@@ -24,6 +24,10 @@ setup_tmux_session() {
     tmux set-option -t "$SESSION_NAME" mouse on
     tmux set-option -t "$SESSION_NAME" history-limit 10000
     tmux set-option -t "$SESSION_NAME" mode-keys vi
+
+    # Show project names on pane borders
+    tmux set-option -t "$SESSION_NAME" pane-border-status top
+    tmux set-option -t "$SESSION_NAME" pane-border-format " #{pane_title} "
 }
 
 # Function to check if tmux is available
