@@ -16,7 +16,14 @@ delete_workspace() {
     # Show warning
     show_delete_workspace_warning "$display_name" "$workspace_file"
 
-    if prompt_yes_no_confirmation "Are you sure you want to delete this workspace?"; then
+    echo -e "${DIM}Press Esc to cancel${NC}"
+    echo ""
+
+    local confirm_result
+    prompt_yes_no_confirmation "Are you sure you want to delete this workspace?"
+    confirm_result=$?
+
+    if [ $confirm_result -eq 0 ]; then
         # Remove from configuration (both active and available)
         if unregister_workspace "$workspace_file"; then
             # Delete the workspace file
@@ -37,6 +44,9 @@ delete_workspace() {
             wait_for_enter
             return 1
         fi
+    elif [ $confirm_result -eq 2 ]; then
+        # Esc pressed - just return silently
+        return 1
     else
         echo ""
         print_info "Cancelled"

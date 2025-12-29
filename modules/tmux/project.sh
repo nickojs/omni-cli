@@ -50,6 +50,8 @@ start_project_in_tmux() {
     tmux send-keys -t "$new_pane_id" "$startup_command" Enter
 
     # Apply main-horizontal layout to keep manager on top and projects evenly distributed below
+    # Set main pane to 50% height so projects get the other 50%
+    tmux set-window-option -t "$SESSION_NAME" main-pane-height 50%
     tmux select-layout -t "$SESSION_NAME" main-horizontal
 
     # Switch back to the main pane (menu pane)

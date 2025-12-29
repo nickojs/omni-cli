@@ -18,7 +18,15 @@ show_add_workspace_screen() {
 
         # Show workspace name prompt
         show_workspace_name_prompt "$projects_folder" "$default_name"
-        read -r workspace_name
+        local workspace_name
+        read_with_esc_cancel workspace_name
+        local read_result=$?
+
+        # Handle Esc key - return to previous screen
+        if [ $read_result -eq 2 ]; then
+            unset SELECTED_PROJECTS_DIR
+            return 0
+        fi
 
         # Use default if empty
         if [ -z "$workspace_name" ]; then

@@ -28,7 +28,12 @@ edit_project_in_workspace() {
     # Get new display name
     echo -e "${BRIGHT_WHITE}Enter new display name:${NC}"
     echo -ne "${DIM}(press Enter to keep '$current_display')${NC} ${BRIGHT_CYAN}>${NC} "
-    read -r new_display
+    local new_display
+    read_with_esc_cancel new_display
+    if [ $? -eq 2 ]; then
+        unset JSON_CONFIG_FILE
+        return 0
+    fi
 
     if [ -z "$new_display" ]; then
         new_display="$current_display"
@@ -38,7 +43,12 @@ edit_project_in_workspace() {
     echo ""
     echo -e "${BRIGHT_WHITE}Enter new startup command:${NC}"
     echo -ne "${DIM}(press Enter to keep current)${NC} ${BRIGHT_CYAN}>${NC} "
-    read -r new_startup
+    local new_startup
+    read_with_esc_cancel new_startup
+    if [ $? -eq 2 ]; then
+        unset JSON_CONFIG_FILE
+        return 0
+    fi
 
     if [ -z "$new_startup" ]; then
         new_startup="$current_start"
@@ -48,7 +58,12 @@ edit_project_in_workspace() {
     echo ""
     echo -e "${BRIGHT_WHITE}Enter new shutdown command:${NC}"
     echo -ne "${DIM}(press Enter to keep current)${NC} ${BRIGHT_CYAN}>${NC} "
-    read -r new_shutdown
+    local new_shutdown
+    read_with_esc_cancel new_shutdown
+    if [ $? -eq 2 ]; then
+        unset JSON_CONFIG_FILE
+        return 0
+    fi
 
     if [ -z "$new_shutdown" ]; then
         new_shutdown="$current_stop"
@@ -57,7 +72,11 @@ edit_project_in_workspace() {
     # Show confirmation screen
     show_edit_project_confirmation_screen "$new_display" "$new_startup" "$new_shutdown"
 
-    if prompt_yes_no_confirmation "Save changes?"; then
+    local confirm_result
+    prompt_yes_no_confirmation "Save changes?"
+    confirm_result=$?
+
+    if [ $confirm_result -eq 0 ]; then
         if json_update_file "$workspace_file" \
               ".[$selected_index].displayName = \$display_name | .[$selected_index].startupCmd = \$startup_cmd | .[$selected_index].shutdownCmd = \$shutdown_cmd" \
               --arg display_name "$new_display" \
@@ -68,12 +87,17 @@ edit_project_in_workspace() {
         else
             print_error "Failed to update workspace file"
         fi
+        wait_for_enter
+    elif [ $confirm_result -eq 2 ]; then
+        # Esc pressed - just return silently
+        unset JSON_CONFIG_FILE
+        return 0
     else
         echo ""
         print_info "Cancelled"
+        wait_for_enter
     fi
 
     unset JSON_CONFIG_FILE
-    wait_for_enter
     return 0
 }

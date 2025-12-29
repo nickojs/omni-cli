@@ -27,21 +27,32 @@ remove_project_from_workspace() {
     echo ""
     echo -e "  ${BRIGHT_WHITE}${proj_display}${NC} ${DIM}(${proj_name})${NC}"
     echo ""
+    echo -e "${DIM}Press Esc to cancel${NC}"
+    echo ""
 
     # Confirm removal
-    if prompt_yes_no_confirmation "${BRIGHT_WHITE}Remove this project?${NC}"; then
+    local confirm_result
+    prompt_yes_no_confirmation "${BRIGHT_WHITE}Remove this project?${NC}"
+    confirm_result=$?
+
+    if [ $confirm_result -eq 0 ]; then
         if json_update_file "$workspace_file" "del(.[${selected_index}])"; then
             echo ""
             print_success "Project removed successfully"
         else
             print_error "Failed to update workspace file"
         fi
+        wait_for_enter
+    elif [ $confirm_result -eq 2 ]; then
+        # Esc pressed - just return silently
+        unset JSON_CONFIG_FILE
+        return 0
     else
         echo ""
         print_info "Cancelled"
+        wait_for_enter
     fi
 
     unset JSON_CONFIG_FILE
-    wait_for_enter
     return 0
 }

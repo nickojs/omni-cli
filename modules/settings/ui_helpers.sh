@@ -254,16 +254,78 @@ prompt_project_input_fields() {
     echo "$shutdown_cmd"
 }
 
-# Function to prompt for yes/no confirmation
+# Function to read input with Esc key cancellation support
+# Parameters: variable name to store result
+# Returns: 0 for normal input, 2 for Esc pressed
+# Usage: read_with_esc_cancel result_variable
+read_with_esc_cancel() {
+    local -n result_var=$1  # nameref to result variable
+    local input=""
+    local char
+
+    while true; do
+        # Read single character without echo
+        IFS= read -r -s -n 1 char
+
+        # Handle Escape key (ASCII 27)
+        if [[ "$char" == $'\x1b' ]]; then
+            # Read any remaining escape sequence characters (for arrow keys, etc.)
+            read -r -s -n 2 -t 0.01 _ 2>/dev/null || true
+            echo ""
+            result_var=""
+            return 2
+        fi
+
+        # Handle Enter (empty char from read -n 1)
+        if [[ -z "$char" ]]; then
+            echo ""  # Add newline
+            result_var="$input"
+            return 0
+        fi
+
+        # Handle backspace (ASCII 127) or ctrl-H (ASCII 8)
+        if [[ "$char" == $'\x7f' ]] || [[ "$char" == $'\x08' ]]; then
+            if [[ -n "$input" ]]; then
+                # Remove last character from input
+                input="${input%?}"
+                # Move cursor back, overwrite with space, move back again
+                echo -ne "\b \b"
+            fi
+            continue
+        fi
+
+        # Handle Ctrl+C
+        if [[ "$char" == $'\x03' ]]; then
+            echo ""
+            result_var=""
+            return 2
+        fi
+
+        # Add character to input and echo it
+        input+="$char"
+        echo -n "$char"
+    done
+}
+
+# Function to prompt for yes/no confirmation with Esc support
 # Parameters: prompt_message
-# Returns: 0 for yes, 1 for no, 2 for invalid
+# Returns: 0 for yes, 1 for no, 2 for Esc/cancel
 prompt_yes_no_confirmation() {
     local prompt_message="$1"
+    local confirm_input=""
 
     echo -ne "${BRIGHT_WHITE}${prompt_message} (y/n): ${NC}"
-    read -r confirm_choice
 
-    case "${confirm_choice,,}" in
+    # Use read_with_esc_cancel to get input with Esc support
+    read_with_esc_cancel confirm_input
+    local result=$?
+
+    # Handle Esc/Ctrl+C
+    if [ $result -eq 2 ]; then
+        return 2
+    fi
+
+    case "${confirm_input,,}" in
         "y"|"yes")
             return 0
             ;;
