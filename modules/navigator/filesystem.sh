@@ -47,8 +47,8 @@ show_manual_path_entry() {
 
 # Function to show interactive filesystem browser
 show_interactive_browser() {
-    # Start from current directory and immediately enter browsing mode
-    local current_dir="."
+    # Start from home directory and immediately enter browsing mode
+    local current_dir="$HOME"
     CURRENT_SELECTION=1
 
     while true; do
@@ -56,7 +56,7 @@ show_interactive_browser() {
         show_directory_listing "$current_dir"
 
         # In browsing mode - capture single keystrokes
-        echo -e "${BRIGHT_YELLOW}↑ w  ↓ s${NC} navigate    ${BRIGHT_GREEN}enter${NC} open folder    ${BRIGHT_BLUE}space${NC} select here    ${BRIGHT_RED}b${NC} return "
+        echo -e "${BRIGHT_YELLOW}↑ w  ↓ s${NC} navigate    ${BRIGHT_CYAN}#${NC} jump    ${BRIGHT_GREEN}enter${NC} open    ${BRIGHT_BLUE}space${NC} select    ${BRIGHT_RED}b${NC} back"
         IFS= read -r -n1 -s choice
         echo ""  # Add newline after key capture
 
@@ -82,7 +82,7 @@ show_interactive_browser() {
 
             # Check parent directory first (if it exists)
             local current_real_path=$(realpath "$current_dir")
-            if [ "$current_real_path" != "/" ]; then
+            if [ "$current_real_path" != "$HOME" ]; then
                 if [ "$counter" -eq "$CURRENT_SELECTION" ]; then
                     selected_dir=$(realpath "$current_dir/..")
                 fi
@@ -125,16 +125,18 @@ show_directory_listing() {
     clear
     print_header "DIRECTORY BROWSER"
     echo ""
-    print_color "$BRIGHT_CYAN" "Current location: ${BRIGHT_WHITE}$(realpath "$dir")${NC}"
+    local absolute_path=$(realpath "$dir")
+    local display_path="${absolute_path/#$HOME/\~}"
+    print_color "$BRIGHT_CYAN" "Current location: ${BRIGHT_WHITE}${display_path}${NC}"
     echo ""
 
     # Get directories in current location
     local -a directories=()
     local -a display_names=()
 
-    # Add parent directory option (always show unless we're at filesystem root)
+    # Add parent directory option (always show unless we're at home directory)
     local current_real_path=$(realpath "$dir")
-    if [ "$current_real_path" != "/" ]; then
+    if [ "$current_real_path" != "$HOME" ]; then
         directories+=("$dir/..")
         display_names+=(".. (parent directory)")
     fi
@@ -191,9 +193,9 @@ handle_browsing_key() {
     # Get current directory listing for navigation (same logic as display)
     local -a directories=()
 
-    # Add parent directory option (always show unless we're at filesystem root)
+    # Add parent directory option (restricted to $HOME level)
     local current_real_path=$(realpath "$current_dir")
-    if [ "$current_real_path" != "/" ]; then
+    if [ "$current_real_path" != "$HOME" ]; then
         directories+=("$current_dir/..")
     fi
 
@@ -247,15 +249,45 @@ handle_browsing_key() {
             ;;
         ' ')
             # Space key - select current directory as projects directory
-            local relative_path=$(realpath --relative-to="." "$current_dir")
+            local absolute_path=$(realpath "$current_dir")
+            # Display with tilde, store absolute
+            local display_path="${absolute_path/#$HOME/\~}"
             echo ""
-            print_success "Selected directory: $relative_path"
-            export SELECTED_PROJECTS_DIR="$relative_path"
+            print_success "Selected directory: $display_path"
+            export SELECTED_PROJECTS_DIR="$absolute_path"
             return 1  # Signal selection made
             ;;
         b|B)
             # Return without selecting
             return 2
+            ;;
+        [0-9])
+            # Numeric input - collect full number and jump to that index
+            local number="$key"
+            echo -ne "${BRIGHT_CYAN}Go to: ${number}${NC}"
+
+            # Keep reading digits until Enter or non-digit
+            while true; do
+                local next_char
+                IFS= read -r -n1 -s next_char
+
+                if [[ "$next_char" =~ [0-9] ]]; then
+                    number="${number}${next_char}"
+                    echo -ne "${next_char}"
+                elif [[ -z "$next_char" || "$next_char" == $'\n' || "$next_char" == $'\r' ]]; then
+                    # Enter pressed - jump to index
+                    echo ""
+                    if [ "$number" -ge 1 ] && [ "$number" -le "${#directories[@]}" ]; then
+                        CURRENT_SELECTION=$number
+                    fi
+                    break
+                else
+                    # Non-digit pressed - cancel
+                    echo ""
+                    break
+                fi
+            done
+            return 0
             ;;
         *)
             # Silently ignore invalid keys

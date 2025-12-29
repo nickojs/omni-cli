@@ -238,10 +238,6 @@ prompt_project_input_fields() {
     echo -ne "${DIM}(e.g., 'npm start', 'yarn dev')${NC} ${BRIGHT_CYAN}>${NC} " >&2
     read -r startup_cmd
 
-    if [ -z "$startup_cmd" ]; then
-        startup_cmd="No startup command configured"
-    fi
-
     # Get shutdown command
     echo "" >&2
     echo -e "${BRIGHT_WHITE}Enter shutdown command:${NC}" >&2
