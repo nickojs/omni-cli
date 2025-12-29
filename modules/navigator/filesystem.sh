@@ -57,6 +57,7 @@ show_interactive_browser() {
 
         # In browsing mode - capture single keystrokes
         echo -e "${BRIGHT_YELLOW}↑ w  ↓ s${NC} navigate    ${BRIGHT_CYAN}#${NC} jump    ${BRIGHT_GREEN}enter${NC} open    ${BRIGHT_BLUE}space${NC} select    ${BRIGHT_RED}b${NC} back"
+        printf '\033[?25h'  # Show cursor for input
         IFS= read -r -n1 -s choice
         echo ""  # Add newline after key capture
 
@@ -122,6 +123,7 @@ CURRENT_SELECTION=1
 show_directory_listing() {
     local dir="$1"
 
+    printf '\033[?25l'  # Hide cursor during redraw
     clear
     print_header "DIRECTORY BROWSER"
     echo ""

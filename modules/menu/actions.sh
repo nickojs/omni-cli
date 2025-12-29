@@ -123,10 +123,7 @@ handle_kill_all_command() {
         return
     fi
 
-    show_loading "Killing all running projects" 2
     kill_all_projects
-    print_success "All projects stopped successfully"
-    wait_for_enter
 }
 
 # Function to handle help command

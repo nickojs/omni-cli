@@ -49,6 +49,7 @@ show_workspace_management_header() {
     local projects_root="$2"
     local project_count="$3"
 
+    printf '\033[?25l'  # Hide cursor during redraw
     clear
     print_header "Manage Workspace: $display_name"
     echo ""

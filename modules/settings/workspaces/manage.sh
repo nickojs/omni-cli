@@ -40,6 +40,7 @@ manage_workspace() {
         show_workspace_management_commands "$project_count"
 
         # Get user input
+        printf '\033[?25h'  # Show cursor for input
         echo -ne "${BRIGHT_CYAN}>${NC} "
         read_with_instant_back choice
 
