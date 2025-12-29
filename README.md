@@ -11,6 +11,9 @@ A powerful terminal-based project manager with tmux integration and workspace or
 - **🔧 Modular Design**: Clean architecture with reusable components
 - **📊 Status Monitoring**: Real-time project status tracking
 - **🏠 Flexible Deployment**: Run locally for development or install system-wide
+- **🔒 Restricted Mode**: Access settings while projects run (toggle workspaces only)
+- **🛡️ Smart Protection**: Can't deactivate workspaces with running projects
+- **⎋ Esc Key Support**: Cancel out of any dialog with Escape
 
 ## 📋 Requirements
 
@@ -177,8 +180,6 @@ For development testing, use the included test environment:
 The masquerade script safely swaps your configs with generated mock workspaces, backing up the originals. Mock projects are simple processes (`echo + sleep 999999`) perfect for testing without interfering with actual projects.
 
 ## 🔮 Future Features
-
-- **Global Blacklist File**: Configurable blacklist file to avoid displaying specific projects by folder name
 
 - **Custom Terminal Support**: Extend 'custom command' to support terminals other than kgx
 
