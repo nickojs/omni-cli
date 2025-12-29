@@ -9,6 +9,7 @@
 # Function to handle settings menu choices
 handle_settings_choice() {
     local choice="$1"
+    local restricted_mode="${2:-false}"
 
     # Handle back command
     if [[ $choice =~ ^[Bb]$ ]]; then
@@ -21,23 +22,33 @@ handle_settings_choice() {
         return 0
     fi
 
-    # Handle add workspace command
+    # Handle add workspace command - blocked in restricted mode
     if [[ $choice =~ ^[Aa]$ ]]; then
+        if [[ "$restricted_mode" == true ]]; then
+            print_error "Cannot add workspaces while projects are running"
+            sleep 1
+            return 0
+        fi
         show_add_workspace_screen
         return 0
     fi
 
-    # Handle manage workspace commands (m1, m2, etc.)
+    # Handle manage workspace commands (m1, m2, etc.) - blocked in restricted mode
     if [[ $choice =~ ^[Mm]([0-9]+)$ ]]; then
+        if [[ "$restricted_mode" == true ]]; then
+            print_error "Cannot manage workspaces while projects are running"
+            sleep 1
+            return 0
+        fi
         local workspace_choice="${BASH_REMATCH[1]}"
         handle_manage_workspace_command "$workspace_choice"
         return 0
     fi
 
-    # Handle toggle workspace commands (t1, t2, etc.)
+    # Handle toggle workspace commands (t1, t2, etc.) - allowed with restrictions
     if [[ $choice =~ ^[Tt]([0-9]+)$ ]]; then
         local workspace_choice="${BASH_REMATCH[1]}"
-        handle_toggle_workspace_command "$workspace_choice"
+        handle_toggle_workspace_command "$workspace_choice" "$restricted_mode"
         return 0
     fi
 }
@@ -68,6 +79,7 @@ handle_manage_workspace_command() {
 # Function to handle toggle workspace command with workspace number
 handle_toggle_workspace_command() {
     local workspace_choice="$1"
+    local restricted_mode="${2:-false}"
 
     # Validate workspace number
     if [ "$workspace_choice" -lt 1 ] || [ "$workspace_choice" -gt "${#settings_workspaces[@]}" ]; then
@@ -82,8 +94,8 @@ handle_toggle_workspace_command() {
     local config_dir=$(get_config_directory)
     local selected_workspace="$config_dir/$selected_workspace_basename"
 
-    # Toggle the workspace
-    toggle_workspace "$selected_workspace"
+    # Toggle the workspace - pass restricted_mode flag
+    toggle_workspace "$selected_workspace" "$restricted_mode"
 
     return 0
 }

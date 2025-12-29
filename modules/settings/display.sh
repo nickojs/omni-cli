@@ -11,45 +11,70 @@ declare -a settings_workspaces=()
 
 # Interactive settings menu with command handling
 show_settings_menu() {
-    # Check if any projects are running
+    # Check if any projects are running - determines restricted mode
     local running_projects
     running_projects=$(list_project_panes)
 
+    local restricted_mode=false
     if [[ -n "$running_projects" ]]; then
-        clear
-        print_header "Settings"
-        echo ""
-        print_error "Cannot access settings while projects are running"
-        echo ""
-        wait_for_enter
-        return 0
+        restricted_mode=true
     fi
 
     while true; do
         clear
         print_header "Settings"
 
+        # Show restricted mode indicator if applicable
+        if [[ "$restricted_mode" == true ]]; then
+            echo -e "${BRIGHT_YELLOW}(Restricted Mode - projects running)${NC}"
+        fi
+
         # Display workspaces from .workspaces.json (also populates settings_workspaces)
         display_workspaces_info
 
-        # Build workspace command displays based on workspace count
+        # Build workspace command displays based on workspace count and mode
         local manage_cmd=""
         local toggle_cmd=""
+        local add_cmd=""
+
         if [ ${#settings_workspaces[@]} -gt 0 ]; then
+            # Toggle is always available
             if [ ${#settings_workspaces[@]} -eq 1 ]; then
-                manage_cmd="${BRIGHT_GREEN}m1${NC} manage workspace"
                 toggle_cmd="${BRIGHT_BLUE}t1${NC} toggle workspace"
             else
-                manage_cmd="${BRIGHT_GREEN}m1-m${#settings_workspaces[@]}${NC} manage workspace"
                 toggle_cmd="${BRIGHT_BLUE}t1-t${#settings_workspaces[@]}${NC} toggle workspace"
+            fi
+
+            # Manage only in unrestricted mode
+            if [[ "$restricted_mode" != true ]]; then
+                if [ ${#settings_workspaces[@]} -eq 1 ]; then
+                    manage_cmd="${BRIGHT_GREEN}m1${NC} manage workspace"
+                else
+                    manage_cmd="${BRIGHT_GREEN}m1-m${#settings_workspaces[@]}${NC} manage workspace"
+                fi
             fi
         fi
 
-        # Display command line
-        if [ -n "$manage_cmd" ]; then
-            echo -e "${BRIGHT_GREEN}a${NC} add workspace    ${manage_cmd}    ${toggle_cmd}    ${BRIGHT_PURPLE}b${NC} back    ${BRIGHT_PURPLE}h${NC} help"
+        # Add only in unrestricted mode
+        if [[ "$restricted_mode" != true ]]; then
+            add_cmd="${BRIGHT_GREEN}a${NC} add workspace"
+        fi
+
+        # Display command line based on mode
+        if [[ "$restricted_mode" == true ]]; then
+            # Restricted mode: only toggle and navigation
+            if [ -n "$toggle_cmd" ]; then
+                echo -e "${toggle_cmd}    ${BRIGHT_PURPLE}b${NC} back"
+            else
+                echo -e "${BRIGHT_PURPLE}b${NC} back"
+            fi
         else
-            echo -e "${BRIGHT_GREEN}a${NC} add workspace    ${BRIGHT_PURPLE}b${NC} back    ${BRIGHT_PURPLE}h${NC} help"
+            # Full mode: all commands
+            if [ -n "$manage_cmd" ]; then
+                echo -e "${add_cmd}    ${manage_cmd}    ${toggle_cmd}    ${BRIGHT_PURPLE}b${NC} back    ${BRIGHT_PURPLE}h${NC} help"
+            else
+                echo -e "${add_cmd}    ${BRIGHT_PURPLE}b${NC} back    ${BRIGHT_PURPLE}h${NC} help"
+            fi
         fi
         echo ""
 
@@ -57,8 +82,8 @@ show_settings_menu() {
         echo -ne "${BRIGHT_CYAN}>${NC} "
         read_with_instant_back choice
 
-        # Handle user input
-        handle_settings_choice "$choice"
+        # Handle user input - pass restricted_mode flag
+        handle_settings_choice "$choice" "$restricted_mode"
         local result=$?
 
         # Exit loop if back was selected
