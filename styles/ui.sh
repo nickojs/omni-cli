@@ -32,6 +32,7 @@ get_terminal_width() {
 print_header() {
     local title="$1"
 
+    echo ""
     echo -e "${BRIGHT_WHITE}${BOLD}${title}${NC}"
     echo -e "${BRIGHT_CYAN}$(printf '─%.0s' $(seq 1 ${#title}))${NC}"
 }

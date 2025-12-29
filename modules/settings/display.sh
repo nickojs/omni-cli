@@ -62,11 +62,11 @@ show_settings_menu() {
 
         # Display command line based on mode
         if [[ "$restricted_mode" == true ]]; then
-            # Restricted mode: only toggle and navigation
+            # Restricted mode: only toggle, navigation, and help
             if [ -n "$toggle_cmd" ]; then
-                echo -e "${toggle_cmd}    ${BRIGHT_PURPLE}b${NC} back"
+                echo -e "${toggle_cmd}    ${BRIGHT_PURPLE}b${NC} back    ${BRIGHT_PURPLE}h${NC} help"
             else
-                echo -e "${BRIGHT_PURPLE}b${NC} back"
+                echo -e "${BRIGHT_PURPLE}b${NC} back    ${BRIGHT_PURPLE}h${NC} help"
             fi
         else
             # Full mode: all commands
