@@ -37,9 +37,9 @@ initialize_first_time_config() {
 # Function to show first-time welcome screen (for use inside tmux)
 show_first_time_welcome() {
     clear
-    print_header "WELCOME TO FM-MANAGER"
+    print_header "WELCOME"
     echo ""
-    print_info "This appears to be your first time running fm-manager."
+    print_info "This appears to be your first time running $PROJECT_DISPLAY_NAME."
     print_info "You'll need to create at least one workspace to get started."
     echo ""
     print_color "$BRIGHT_CYAN" "Quick Start Guide:"

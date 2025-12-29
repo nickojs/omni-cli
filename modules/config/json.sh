@@ -34,7 +34,7 @@ validate_config() {
 # Uses IS_INSTALLED and BASE_DIR variables set in startup.sh
 get_config_directory() {
     if [ "$IS_INSTALLED" = true ]; then
-        echo "$HOME/.cache/fm-manager"
+        echo "$HOME/.cache/$PROJECT_FOLDER_NAME"
     else
         echo "$BASE_DIR/config"
     fi
