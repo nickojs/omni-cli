@@ -61,12 +61,10 @@ display_projects_list() {
     local project_count=${#projects_list[@]}
 
     if [ $project_count -gt 0 ]; then
-        echo -e "  ${BRIGHT_WHITE}Projects"
-
         local counter=1
         for project_info in "${projects_list[@]}"; do
             IFS=':' read -r proj_display proj_name proj_start proj_stop <<< "$project_info"
-            echo -e "    ${BRIGHT_CYAN}${counter}.${NC} ${BRIGHT_WHITE}${proj_display}${NC} ${DIM}(${proj_name})${NC}"
+            echo -e "  ${BRIGHT_CYAN}${counter}.${NC} ${BRIGHT_WHITE}${proj_display}${NC} ${DIM}(${proj_name})${NC}"
             counter=$((counter + 1))
         done
         echo ""
@@ -81,22 +79,18 @@ display_projects_list() {
 show_workspace_management_commands() {
     local project_count="$1"
 
-    local edit_cmd=""
-    local remove_cmd=""
+    local commands="${BRIGHT_GREEN}a${NC} add project"
+
     if [ $project_count -eq 1 ]; then
-        edit_cmd="${BRIGHT_BLUE}e1${NC} edit project"
-        remove_cmd="${BRIGHT_RED}r1${NC} remove project"
+        commands="$commands    ${BRIGHT_BLUE}e1${NC} edit project    ${BRIGHT_RED}x1${NC} remove project"
     elif [ $project_count -gt 1 ]; then
-        edit_cmd="${BRIGHT_BLUE}e1-e${project_count}${NC} edit project"
-        remove_cmd="${BRIGHT_RED}r1-r${project_count}${NC} remove project"
+        commands="$commands    ${BRIGHT_BLUE}e1-e${project_count}${NC} edit project    ${BRIGHT_RED}x1-x${project_count}${NC} remove project"
     fi
 
+    commands="$commands    ${BRIGHT_BLUE}r${NC} rename workspace    ${BRIGHT_RED}d${NC} delete workspace    ${BRIGHT_PURPLE}b${NC} back"
+
     echo ""
-    if [ $project_count -gt 0 ]; then
-        echo -e "${BRIGHT_GREEN}a${NC} add project    ${edit_cmd}    ${remove_cmd}    ${BRIGHT_RED}d${NC} delete workspace    ${BRIGHT_PURPLE}b${NC} back"
-    else
-        echo -e "${BRIGHT_GREEN}a${NC} add project    ${BRIGHT_RED}d${NC} delete workspace    ${BRIGHT_PURPLE}b${NC} back"
-    fi
+    echo -e "$commands"
     echo ""
 }
 

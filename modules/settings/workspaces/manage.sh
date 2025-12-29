@@ -64,8 +64,18 @@ manage_workspace() {
             continue
         fi
 
-        # Handle remove project commands (r1, r2, etc.)
-        if [[ $choice =~ ^[Rr]([0-9]+)$ ]]; then
+        # Handle rename workspace command
+        if [[ $choice =~ ^[Rr]$ ]]; then
+            rename_workspace "$workspace_file" "$display_name"
+            if [ -n "$RENAMED_WORKSPACE_FILE" ] && [ -f "$RENAMED_WORKSPACE_FILE" ]; then
+                workspace_file="$RENAMED_WORKSPACE_FILE"
+                display_name=$(format_workspace_display_name "$workspace_file")
+            fi
+            continue
+        fi
+
+        # Handle remove project commands (x1, x2, etc.)
+        if [[ $choice =~ ^[Xx]([0-9]+)$ ]]; then
             local project_choice="${BASH_REMATCH[1]}"
             if [ "$project_choice" -ge 1 ] && [ "$project_choice" -le "$project_count" ]; then
                 local project_index=$((project_choice - 1))

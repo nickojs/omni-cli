@@ -61,6 +61,7 @@ show_settings_menu() {
         fi
 
         # Display command line based on mode
+        echo ""
         if [[ "$restricted_mode" == true ]]; then
             # Restricted mode: only toggle, navigation, and help
             if [ -n "$toggle_cmd" ]; then
