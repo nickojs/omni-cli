@@ -61,23 +61,38 @@ show_edit_project_screen() {
     echo ""
 }
 
-# Function to show edit project confirmation screen
-# Parameters: new_display, new_startup, new_shutdown
+# Helper function to show a diff line
+# Parameters: label, old_value, new_value
+show_diff_line() {
+    local label="$1"
+    local old="$2"
+    local new="$3"
+
+    echo -e "  ${BRIGHT_WHITE}${label}${NC}"
+    if [ "$old" = "$new" ]; then
+        # Unchanged - show value dimmed
+        echo -e "  ${DIM}${old:-—}${NC}"
+    else
+        # Changed - show old (dimmed) → new (green)
+        echo -e "  ${DIM}${old:-—}${NC} → ${BRIGHT_GREEN}${new:-—}${NC}"
+    fi
+    echo ""
+}
+
+# Function to show edit project confirmation screen with diff
+# Parameters: old_display, old_startup, old_shutdown, new_display, new_startup, new_shutdown
 show_edit_project_confirmation_screen() {
-    local new_display="$1"
-    local new_startup="$2"
-    local new_shutdown="$3"
+    local old_display="$1"
+    local old_startup="$2"
+    local old_shutdown="$3"
+    local new_display="$4"
+    local new_startup="$5"
+    local new_shutdown="$6"
 
     clear
     print_header "Confirm Project Changes"
     echo ""
-    echo -e "  ${DIM}Display Name${NC}"
-    echo -e "  ${BRIGHT_WHITE}${new_display}${NC}"
-    echo ""
-    echo -e "  ${DIM}Startup Command${NC}"
-    echo -e "  ${BRIGHT_WHITE}${new_startup}${NC}"
-    echo ""
-    echo -e "  ${DIM}Shutdown Command${NC}"
-    echo -e "  ${BRIGHT_WHITE}${new_shutdown}${NC}"
-    echo ""
+    show_diff_line "Display Name" "$old_display" "$new_display"
+    show_diff_line "Startup Command" "$old_startup" "$new_startup"
+    show_diff_line "Shutdown Command" "$old_shutdown" "$new_shutdown"
 }

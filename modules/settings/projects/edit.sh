@@ -69,8 +69,8 @@ edit_project_in_workspace() {
         new_shutdown="$current_stop"
     fi
 
-    # Show confirmation screen
-    show_edit_project_confirmation_screen "$new_display" "$new_startup" "$new_shutdown"
+    # Show confirmation screen with diff
+    show_edit_project_confirmation_screen "$current_display" "$current_start" "$current_stop" "$new_display" "$new_startup" "$new_shutdown"
 
     local confirm_result
     prompt_yes_no_confirmation "Save changes?"
