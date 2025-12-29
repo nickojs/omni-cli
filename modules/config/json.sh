@@ -143,8 +143,8 @@ load_projects_from_workspace() {
             continue  # Skip if neither field is available
         fi
 
-        # Add to global projects array
-        if [ -n "$display_name" ] && [ -n "$folder_path" ] && [ -n "$startup_cmd" ]; then
+        # Add to global projects array (startup_cmd can be empty)
+        if [ -n "$display_name" ] && [ -n "$folder_path" ]; then
             projects+=("$display_name:$folder_path:$startup_cmd:$shutdown_cmd")
             project_workspaces+=("$json_file")
         fi

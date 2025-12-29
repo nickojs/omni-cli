@@ -20,9 +20,19 @@ start_project_in_tmux() {
     local folder_name="$2"
     local startup_command="$3"
 
+    # Determine the project directory (absolute or relative path)
+    local project_dir
+    if [[ "$folder_name" = /* ]]; then
+        # Absolute path - use directly
+        project_dir="$folder_name"
+    else
+        # Relative path - prepend PWD
+        project_dir="$PWD/$folder_name"
+    fi
+
     # Check if folder exists
-    if [ ! -d "$folder_name" ]; then
-        print_error "Project folder '$folder_name' not found"
+    if [ ! -d "$project_dir" ]; then
+        print_error "Project folder '$project_dir' not found"
         return 1
     fi
 
@@ -35,12 +45,12 @@ start_project_in_tmux() {
     local new_pane_id
     if [[ "$project_pane_count" -eq 0 ]]; then
         # First project: create below the main menu (vertical split)
-        new_pane_id=$(tmux split-window -v -t "$SESSION_NAME:0.0" -c "$PWD/$folder_name" -P -F "#{pane_id}")
+        new_pane_id=$(tmux split-window -v -t "$SESSION_NAME:0.0" -c "$project_dir" -P -F "#{pane_id}")
     else
         # Subsequent projects: split horizontally from the last project pane
         local last_project_pane
         last_project_pane=$(tmux list-panes -t "$SESSION_NAME" -F "#{pane_id}" 2>/dev/null | grep -v "^%0$" | tail -n1)
-        new_pane_id=$(tmux split-window -h -t "$last_project_pane" -c "$PWD/$folder_name" -P -F "#{pane_id}")
+        new_pane_id=$(tmux split-window -h -t "$last_project_pane" -c "$project_dir" -P -F "#{pane_id}")
     fi
 
     # Set pane title FIRST (important!)
