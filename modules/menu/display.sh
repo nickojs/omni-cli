@@ -14,6 +14,7 @@ show_project_menu_tmux() {
     fi
 
     while true; do
+        printf '\033[?25l'  # Hide cursor during redraw
         clear
 
         # Clean header
@@ -35,6 +36,7 @@ show_project_menu_tmux() {
 
         # Get user input with clean prompt
         echo ""
+        printf '\033[?25h'  # Show cursor for input
         echo -ne "${BRIGHT_CYAN}>${NC} "
         read -r choice
 

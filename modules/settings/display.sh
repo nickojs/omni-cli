@@ -21,6 +21,7 @@ show_settings_menu() {
     fi
 
     while true; do
+        printf '\033[?25l'  # Hide cursor during redraw
         clear
         print_header "Settings"
 
@@ -80,6 +81,7 @@ show_settings_menu() {
         echo ""
 
         # Get user input with better prompt
+        printf '\033[?25h'  # Show cursor for input
         echo -ne "${BRIGHT_CYAN}>${NC} "
         read_with_instant_back choice
 
