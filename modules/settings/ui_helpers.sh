@@ -362,3 +362,31 @@ format_project_columns() {
     # Return formatted row
     echo -e "  $prefix ${BRIGHT_WHITE}${col1}${NC} | ${DIM}${col2}${NC} | ${DIM}${col3}${NC} | ${DIM}${col4}${NC}"
 }
+
+# Function to get files in a directory (not directories)
+# Parameters: directory_path, array_name_ref
+# Returns: populates array with filenames (skips hidden files)
+# Usage: get_files_in_directory "/path/to/dir" files_array
+get_files_in_directory() {
+    local dir_path="$1"
+    local -n result_array=$2  # nameref to array
+
+    result_array=()
+
+    # Check if directory exists
+    if [ ! -d "$dir_path" ]; then
+        return 1
+    fi
+
+    # Find all files (not directories), skip hidden files
+    while IFS= read -r -d '' file; do
+        local filename=$(basename "$file")
+
+        # Skip hidden files
+        if [[ ! "$filename" =~ ^\. ]]; then
+            result_array+=("$filename")
+        fi
+    done < <(find "$dir_path" -mindepth 1 -maxdepth 1 -type f -print0 | sort -z)
+
+    return 0
+}
