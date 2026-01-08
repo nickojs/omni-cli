@@ -22,6 +22,12 @@ handle_settings_choice() {
         return 0
     fi
 
+    # Handle secrets command - always available
+    if [[ $choice =~ ^[Ss]$ ]]; then
+        show_secrets_menu
+        return 0
+    fi
+
     # Handle add workspace command - blocked in restricted mode
     if [[ $choice =~ ^[Aa]$ ]]; then
         if [[ "$restricted_mode" == true ]]; then

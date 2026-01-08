@@ -61,21 +61,23 @@ show_settings_menu() {
             add_cmd="${BRIGHT_GREEN}a${NC} add workspace"
         fi
 
+        local secrets_cmd="${BRIGHT_PURPLE}s${NC} secrets"
+
         # Display command line based on mode
         echo ""
         if [[ "$restricted_mode" == true ]]; then
-            # Restricted mode: only toggle, navigation, and help
+            # Restricted mode: only toggle, secrets, navigation, and help
             if [ -n "$toggle_cmd" ]; then
-                echo -e "${toggle_cmd}    ${BRIGHT_PURPLE}b${NC} back    ${BRIGHT_PURPLE}h${NC} help"
+                echo -e "${toggle_cmd}    ${secrets_cmd}    ${BRIGHT_PURPLE}b${NC} back    ${BRIGHT_PURPLE}h${NC} help"
             else
-                echo -e "${BRIGHT_PURPLE}b${NC} back    ${BRIGHT_PURPLE}h${NC} help"
+                echo -e "${secrets_cmd}    ${BRIGHT_PURPLE}b${NC} back    ${BRIGHT_PURPLE}h${NC} help"
             fi
         else
             # Full mode: all commands
             if [ -n "$manage_cmd" ]; then
-                echo -e "${add_cmd}    ${manage_cmd}    ${toggle_cmd}    ${BRIGHT_PURPLE}b${NC} back    ${BRIGHT_PURPLE}h${NC} help"
+                echo -e "${add_cmd}    ${manage_cmd}    ${toggle_cmd}    ${secrets_cmd}    ${BRIGHT_PURPLE}b${NC} back    ${BRIGHT_PURPLE}h${NC} help"
             else
-                echo -e "${add_cmd}    ${BRIGHT_PURPLE}b${NC} back    ${BRIGHT_PURPLE}h${NC} help"
+                echo -e "${add_cmd}    ${secrets_cmd}    ${BRIGHT_PURPLE}b${NC} back    ${BRIGHT_PURPLE}h${NC} help"
             fi
         fi
         echo ""
