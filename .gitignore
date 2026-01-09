@@ -1,6 +1,9 @@
 # Local projects_output.json file location
 config/
 
+# Test secrets folder
+.secrets/
+
 # Test area generated files
 test-area/*/
 test-area/*.json
