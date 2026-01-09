@@ -14,6 +14,7 @@ export WHITE=$'\033[0;37m'
 
 # Text styling
 export BOLD=$'\033[1m'
+export ITALIC=$'\033[3m'
 export DIM=$'\033[2m'
 export NC=$'\033[0m' # No Color
 

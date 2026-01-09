@@ -36,11 +36,19 @@ display_secrets_table() {
 # Display help copy
 display_secrets_help() {
     echo ""
-    echo -e "${DIM}Secrets are ${NC}${BRIGHT_WHITE}age${NC}${DIM} keypairs. This tool uses them to mount and unmount${NC}"
-    echo -e "${DIM}encrypted ${NC}${BRIGHT_WHITE}gocryptfs${NC}${DIM} volumes.${NC}"
+    echo -e "${DIM}This tool uses ${NC}${BOLD}user-generated ${NC}${BRIGHT_CYAN}age${NC}${DIM} keypairs to manage ${NC}${BRIGHT_CYAN}gocryptfs${NC}${DIM} volumes (aka vaults).${NC}"
     echo ""
-    echo -e "${DIM}This tool manages existing keypairs — it does not generate them.${NC}"
-    echo -e "${DIM}Create your keypairs with ${NC}${BRIGHT_WHITE}age-keygen${NC}${DIM}: ${NC}${BRIGHT_CYAN}https://github.com/FiloSottile/age${NC}"
+    echo -e "${DIM}You need to provide an identity file (${NC}${ITALIC}.age${NC}${DIM}) and its corresponding ${NC}${ITALIC}keypairs${NC}${DIM} to add a secret.${NC}"
+    echo -e "${DIM}Secrets are then used to create, mount and unmount ${NC}${ITALIC}vaults${NC}${DIM}. You can also provide your own vaults.${NC}"
+    echo ""
+    echo -e "${DIM}Optional auto-detect identity files: use your keypair name as prefix of your .age file(s), separated by underscore.${NC}"
+    echo -e "${DIM}This will only work if your public and private key shares the same file name.${NC}"
+    echo ""
+    echo -e "  ${BRIGHT_CYAN}mykey${NC}${DIM} - public/private key file name${NC}"
+    echo -e "  ${BRIGHT_CYAN}mykey${NC}${DIM}_${NC}${BOLD}anyfilename.age${NC}${DIM} - automatically detected, assigned to that keypair${NC}"
+    echo ""
+    echo -e "${BRIGHT_CYAN}age${NC} — simple, modern file encryption tool (${BRIGHT_CYAN}https://github.com/FiloSottile/age${NC})"
+    echo -e "${BRIGHT_CYAN}gocryptfs${NC} — encrypted overlay filesystem (${BRIGHT_CYAN}https://github.com/rfjakob/gocryptfs${NC})"
     echo ""
 }
 
@@ -55,7 +63,8 @@ show_secrets_help_screen() {
 # Display empty state (no secrets configured)
 display_secrets_empty() {
     echo ""
-    echo -e "${DIM}No secrets configured.${NC}"
+    echo -e "${BOLD}No secrets configured.${NC}"
+    echo ""
     display_secrets_help
 }
 
