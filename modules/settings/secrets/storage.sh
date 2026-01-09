@@ -38,15 +38,16 @@ load_secrets() {
 
     while IFS= read -r line; do
         [ -n "$line" ] && result_array+=("$line")
-    done < <(jq -r '.[] | "\(.name):\(.privateKey):\(.publicKey)"' "$secrets_file" 2>/dev/null)
+    done < <(jq -r '.[] | "\(.name):\(.privateKey):\(.publicKey):\(.identityFile)"' "$secrets_file" 2>/dev/null)
 }
 
 # Save a new secret
-# Parameters: name, private_key_path, public_key_path
+# Parameters: name, private_key_path, public_key_path, identity_file_path
 save_secret() {
     local name="$1"
     local private_key="$2"
     local public_key="$3"
+    local identity_file="$4"
 
     ensure_secrets_file
     local secrets_file=$(get_secrets_file)
@@ -55,7 +56,8 @@ save_secret() {
     if jq --arg name "$name" \
           --arg privateKey "$private_key" \
           --arg publicKey "$public_key" \
-          '. += [{"name": $name, "privateKey": $privateKey, "publicKey": $publicKey}]' \
+          --arg identityFile "$identity_file" \
+          '. += [{"name": $name, "privateKey": $privateKey, "publicKey": $publicKey, "identityFile": $identityFile}]' \
           "$secrets_file" > "$temp_file" 2>/dev/null; then
         mv "$temp_file" "$secrets_file"
         return 0

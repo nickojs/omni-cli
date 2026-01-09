@@ -12,22 +12,24 @@ display_secrets_table() {
     local -n secrets_ref=$1
 
     echo ""
-    printf "  ${DIM}%-14s %-28s %s${NC}\n" "Name" "Private Key" "Public Key"
+    printf "  ${DIM}%-14s %-22s %-22s %s${NC}\n" "Name" "Private Key" "Public Key" "Encrypted Passphrase"
 
     local counter=1
     for secret_info in "${secrets_ref[@]}"; do
-        IFS=':' read -r name private_key public_key <<< "$secret_info"
+        IFS=':' read -r name private_key public_key identity_file <<< "$secret_info"
 
-        # Display paths with ~ for home
-        local display_private="${private_key/#$HOME/\~}"
-        local display_public="${public_key/#$HOME/\~}"
+        # Display filenames only
+        local display_private=$(basename "$private_key")
+        local display_public=$(basename "$public_key")
+        local display_identity=$(basename "$identity_file")
 
         # Truncate if too long
-        [ ${#display_private} -gt 26 ] && display_private="${display_private:0:23}..."
-        [ ${#display_public} -gt 26 ] && display_public="${display_public:0:23}..."
+        [ ${#display_private} -gt 20 ] && display_private="${display_private:0:17}..."
+        [ ${#display_public} -gt 20 ] && display_public="${display_public:0:17}..."
+        [ ${#display_identity} -gt 20 ] && display_identity="${display_identity:0:17}..."
 
-        printf "${BRIGHT_CYAN}%s${NC} ${BRIGHT_WHITE}%-14s${NC} ${DIM}%-28s %s${NC}\n" \
-            "$counter" "$name" "$display_private" "$display_public"
+        printf "${BRIGHT_CYAN}%s${NC} ${BRIGHT_WHITE}%-14s${NC} ${DIM}%-22s %-22s %s${NC}\n" \
+            "$counter" "$name" "$display_private" "$display_public" "$display_identity"
         counter=$((counter + 1))
     done
     echo ""
