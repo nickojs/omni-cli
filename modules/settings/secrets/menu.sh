@@ -20,7 +20,7 @@ show_secrets_default_screen() {
     if [ "$secret_count" -eq 0 ]; then
         display_secrets_empty
 
-        echo -e "${BRIGHT_GREEN}a${NC} add secret    ${BRIGHT_PURPLE}b${NC} back"
+        echo -e "${BRIGHT_GREEN}a${NC} add secret    ${BRIGHT_PURPLE}h${NC} help    ${BRIGHT_PURPLE}b${NC} back"
         echo ""
 
         printf '\033[?25h'
@@ -30,6 +30,7 @@ show_secrets_default_screen() {
 
         case "$choice" in
             [Bb]) return 1 ;;
+            [Hh]) return 3 ;;
             [Aa])
                 if prompt_secrets_folder; then
                     return 2

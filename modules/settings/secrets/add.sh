@@ -79,10 +79,10 @@ file_in_array() {
     return 1
 }
 
-# Find identity files matching pattern {path/keyname}_*.age
+# Find encrypted passphrase files matching pattern {path/keyname}_*.age
 # Parameters: private_key_path, files_array_ref, results_array_ref
 # Populates results_array with matching files
-find_identity_files() {
+find_encrypted_passphrases() {
     local private_key_path="$1"
     local -n files_ref=$2
     local -n results_ref=$3
@@ -189,15 +189,15 @@ show_secrets_file_list_screen() {
     # Derive name from private key filename
     local secret_name=$(basename "$private_key")
 
-    # Try to auto-detect identity file (use full path for pattern matching)
-    local -a identity_matches=()
-    find_identity_files "$private_key" files identity_matches
-    local match_count=${#identity_matches[@]}
-    local identity_file=""
+    # Try to auto-detect encrypted passphrase file (use full path for pattern matching)
+    local -a passphrase_matches=()
+    find_encrypted_passphrases "$private_key" files passphrase_matches
+    local match_count=${#passphrase_matches[@]}
+    local encrypted_passphrase=""
 
     if [ "$match_count" -eq 1 ]; then
         # Exactly one match - auto-select
-        identity_file="${identity_matches[0]}"
+        encrypted_passphrase="${passphrase_matches[0]}"
     else
         # No match or multiple matches - filter to .age files and prompt
         local -a age_files=()
@@ -205,13 +205,13 @@ show_secrets_file_list_screen() {
         local age_count=${#age_files[@]}
 
         if [ "$age_count" -eq 0 ]; then
-            print_error "No .age identity files found in this directory"
+            print_error "No .age encrypted passphrase files found in this directory"
             sleep 1
             return 0
         fi
 
         while true; do
-            display_file_list_screen "$folder_path" age_files "${BRIGHT_WHITE}Select identity file (ESC to cancel):${NC}"
+            display_file_list_screen "$folder_path" age_files "${BRIGHT_WHITE}Select encrypted passphrase (ESC to cancel):${NC}"
 
             local choice
             read_with_esc_cancel choice
@@ -227,7 +227,7 @@ show_secrets_file_list_screen() {
             fi
 
             if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le "$age_count" ]; then
-                identity_file="${age_files[$((choice - 1))]}"
+                encrypted_passphrase="${age_files[$((choice - 1))]}"
                 break
             fi
         done
@@ -236,10 +236,10 @@ show_secrets_file_list_screen() {
     # Build full paths
     local private_key_path="${folder_path}/${private_key}"
     local public_key_path="${folder_path}/${public_key}"
-    local identity_file_path="${folder_path}/${identity_file}"
+    local encrypted_passphrase_path="${folder_path}/${encrypted_passphrase}"
 
     # Save secret
-    save_secret "$secret_name" "$private_key_path" "$public_key_path" "$identity_file_path"
+    save_secret "$secret_name" "$private_key_path" "$public_key_path" "$encrypted_passphrase_path"
 
     return 0
 }

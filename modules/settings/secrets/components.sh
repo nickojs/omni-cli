@@ -12,24 +12,24 @@ display_secrets_table() {
     local -n secrets_ref=$1
 
     echo ""
-    printf "  ${DIM}%-14s %-22s %-22s %s${NC}\n" "Name" "Private Key" "Public Key" "Encrypted Passphrase"
+    printf "${BOLD}%-4s %-14s %-22s %-22s %s${NC}\n" "#" "private key" "public key" "encrypted passphrase"
 
     local counter=1
     for secret_info in "${secrets_ref[@]}"; do
-        IFS=':' read -r name private_key public_key identity_file <<< "$secret_info"
+        IFS=':' read -r private_key public_key encrypted_passphrase <<< "$secret_info"
 
         # Display filenames only
         local display_private=$(basename "$private_key")
         local display_public=$(basename "$public_key")
-        local display_identity=$(basename "$identity_file")
+        local display_passphrase=$(basename "$encrypted_passphrase")
 
         # Truncate if too long
         [ ${#display_private} -gt 20 ] && display_private="${display_private:0:17}..."
         [ ${#display_public} -gt 20 ] && display_public="${display_public:0:17}..."
-        [ ${#display_identity} -gt 20 ] && display_identity="${display_identity:0:17}..."
+        [ ${#display_passphrase} -gt 20 ] && display_passphrase="${display_passphrase:0:17}..."
 
-        printf "${BRIGHT_CYAN}%s${NC} ${BRIGHT_WHITE}%-14s${NC} ${DIM}%-22s %-22s %s${NC}\n" \
-            "$counter" "$name" "$display_private" "$display_public" "$display_identity"
+        printf "${BRIGHT_CYAN}%-4s${NC} ${BRIGHT_WHITE}%-14s${NC} ${DIM}%-22s %-22s %s${NC}\n" \
+            "$counter" "$display_private" "$display_public" "$display_passphrase"
         counter=$((counter + 1))
     done
     echo ""
@@ -40,10 +40,13 @@ display_secrets_help() {
     echo ""
     echo -e "${DIM}This tool uses ${NC}${BOLD}user-generated ${NC}${BRIGHT_CYAN}age${NC}${DIM} keypairs to manage ${NC}${BRIGHT_CYAN}gocryptfs${NC}${DIM} volumes (aka vaults).${NC}"
     echo ""
-    echo -e "${DIM}You need to provide an identity file (${NC}${ITALIC}.age${NC}${DIM}) and its corresponding ${NC}${ITALIC}keypairs${NC}${DIM} to add a secret.${NC}"
-    echo -e "${DIM}Secrets are then used to create, mount and unmount ${NC}${ITALIC}vaults${NC}${DIM}. You can also provide your own vaults.${NC}"
+    echo -e "${DIM}To add a secret, provide an encrypted passphrase (${NC}${ITALIC}.age${NC}${DIM}) and its corresponding ${NC}${ITALIC}keypairs${NC}${DIM}.${NC}"
+    echo -e "${DIM}Secrets are then used to create, mount and unmount ${NC}${ITALIC}vaults${NC}${DIM}. Existing vaults that relies on .age can also be managed.${NC}"
     echo ""
-    echo -e "${DIM}Optional auto-detect identity files: use your keypair name as prefix of your .age file(s), separated by underscore.${NC}"
+    echo -e "${DIM}How it works:${NC}"
+    echo -e "  ${BRIGHT_WHITE}create passphrase${NC} ${DIM}→${NC} ${BRIGHT_WHITE}encrypt with age${NC} ${DIM}→${NC} ${BRIGHT_CYAN}.age file and keypair${NC} ${DIM}→${NC} ${BRIGHT_WHITE}add it here (a secret!)${NC} ${DIM}→${NC} ${BRIGHT_CYAN}manage vault(s)${NC}"
+    echo ""
+    echo -e "${BOLD}Optional auto-detect encrypted passphrases:${DIM} use your keypair name as prefix of your .age file(s), separated by underscore.${NC}"
     echo -e "${DIM}This will only work if your public and private key shares the same file name.${NC}"
     echo ""
     echo -e "  ${BRIGHT_CYAN}mykey${NC}${DIM} - public/private key file name${NC}"
@@ -51,6 +54,8 @@ display_secrets_help() {
     echo ""
     echo -e "${BRIGHT_CYAN}age${NC} — simple, modern file encryption tool (${BRIGHT_CYAN}https://github.com/FiloSottile/age${NC})"
     echo -e "${BRIGHT_CYAN}gocryptfs${NC} — encrypted overlay filesystem (${BRIGHT_CYAN}https://github.com/rfjakob/gocryptfs${NC})"
+    echo ""
+    echo -e "Check *this* project's documentation to understand this approach in deep. (${BRIGHT_CYAN}https://placeholder${NC})" # Placeholder URL, project's doc will be *this* project's doc
     echo ""
 }
 
@@ -67,7 +72,6 @@ display_secrets_empty() {
     echo ""
     echo -e "${BOLD}No secrets configured.${NC}"
     echo ""
-    display_secrets_help
 }
 
 # Display file list screen

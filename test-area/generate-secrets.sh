@@ -148,7 +148,7 @@ main() {
 
     # Scenario 1: Auto-detect (single .age match)
     generate_scenario "scenario1" "Auto-detect (single .age match)" \
-        "testkey" "testkey" "testkey_identity.age"
+        "testkey" "testkey" "testkey_passphrase.age"
 
     # Scenario 2: Multiple matches (prompts user)
     generate_scenario "scenario2" "Multiple matches (prompts user)" \
@@ -156,14 +156,14 @@ main() {
 
     # Scenario 3: Dissonant names (full manual)
     generate_scenario "scenario3" "Dissonant names (full manual)" \
-        "my_private_key" "the_public_key" "random_identity.age,another_file.age"
+        "my_private_key" "the_public_key" "random_passphrase.age,another_file.age"
 
     echo "Done! Test secrets created in: $SECRETS_DIR"
     echo ""
     echo "Test each scenario in the secrets UI:"
-    echo "  scenario1/ - should auto-select testkey_identity.age"
+    echo "  scenario1/ - should auto-select testkey_passphrase.age"
     echo "  scenario2/ - should prompt with 3 .age options"
-    echo "  scenario3/ - should prompt for public key, then identity file"
+    echo "  scenario3/ - should prompt for public key, then encrypted passphrase"
 }
 
 main "$@"
