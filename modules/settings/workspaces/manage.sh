@@ -85,6 +85,19 @@ manage_workspace() {
             continue
         fi
 
+        # Handle secure files commands (v1, v2, etc.)
+        if [[ $choice =~ ^[Vv]([0-9]+)$ ]]; then
+            local project_choice="${BASH_REMATCH[1]}"
+            if [ "$project_choice" -ge 1 ] && [ "$project_choice" -le "$project_count" ]; then
+                local project_index=$((project_choice - 1))
+                local project_info="${workspace_projects[$project_index]}"
+                IFS=':' read -r display_name project_name startup_cmd shutdown_cmd <<< "$project_info"
+                local project_path="${projects_root}/${project_name}"
+                show_secure_files_flow "$display_name" "$project_path"
+            fi
+            continue
+        fi
+
         # Handle delete workspace command
         if [[ $choice =~ ^[Dd]$ ]]; then
             if delete_workspace "$workspace_file"; then

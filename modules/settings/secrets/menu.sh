@@ -45,9 +45,9 @@ show_secrets_default_screen() {
     # Mount/unmount commands
     if [ "$vault_count" -gt 0 ]; then
         if [ "$vault_count" -eq 1 ]; then
-            menu_items+="    ${BRIGHT_CYAN}m1${NC} mount    ${BRIGHT_YELLOW}u1${NC} unmount"
+            menu_items+="    ${BRIGHT_CYAN}m1${NC} mount    ${BRIGHT_CYAN}u1${NC} unmount"
         else
-            menu_items+="    ${BRIGHT_CYAN}m1-m${vault_count}${NC} mount    ${BRIGHT_YELLOW}u1-u${vault_count}${NC} unmount"
+            menu_items+="    ${BRIGHT_CYAN}m1-m${vault_count}${NC} mount    ${BRIGHT_CYAN}u1-u${vault_count}${NC} unmount"
         fi
     fi
 

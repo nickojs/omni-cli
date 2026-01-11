@@ -83,12 +83,12 @@ show_workspace_management_commands() {
     local commands="${BRIGHT_GREEN}a${NC} add project"
 
     if [ $project_count -eq 1 ]; then
-        commands="$commands    ${BRIGHT_BLUE}e1${NC} edit project    ${BRIGHT_RED}x1${NC} remove project"
+        commands="$commands    ${BRIGHT_BLUE}e1${NC} edit    ${BRIGHT_CYAN}v1${NC} secure files    ${BRIGHT_RED}x1${NC} remove"
     elif [ $project_count -gt 1 ]; then
-        commands="$commands    ${BRIGHT_BLUE}e1-e${project_count}${NC} edit project    ${BRIGHT_RED}x1-x${project_count}${NC} remove project"
+        commands="$commands    ${BRIGHT_BLUE}e1-e${project_count}${NC} edit    ${BRIGHT_CYAN}v1-v${project_count}${NC} secure files    ${BRIGHT_RED}x1-x${project_count}${NC} remove"
     fi
 
-    commands="$commands    ${BRIGHT_BLUE}r${NC} rename workspace    ${BRIGHT_RED}d${NC} delete workspace    ${BRIGHT_PURPLE}b${NC} back"
+    commands="$commands    ${BRIGHT_BLUE}r${NC} rename    ${BRIGHT_RED}d${NC} delete    ${BRIGHT_PURPLE}b${NC} back"
 
     echo ""
     echo -e "$commands"

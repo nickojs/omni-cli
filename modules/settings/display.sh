@@ -61,7 +61,7 @@ show_settings_menu() {
             add_cmd="${BRIGHT_GREEN}a${NC} add workspace"
         fi
 
-        local secrets_cmd="${BRIGHT_PURPLE}s${NC} secrets"
+        local secrets_cmd="${BRIGHT_YELLOW}s${NC} secrets"
 
         # Display command line based on mode
         echo ""
