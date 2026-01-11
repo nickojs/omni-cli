@@ -23,6 +23,11 @@ A powerful terminal-based project manager with tmux integration and workspace or
 - **jq** (for JSON processing)
 - **git** (optional, for version control integration)
 
+### Secrets/Vaults Dependencies
+- **age** (for encryption/decryption)
+- **gocryptfs** (for encrypted volumes)
+- **uuidgen** (for generating unique IDs)
+
 ### Platform Support
 - Arch Linux btw
 - for macOS, windows, and other OS I recommend praying

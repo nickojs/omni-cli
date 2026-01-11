@@ -38,7 +38,7 @@ load_secrets() {
 
     while IFS= read -r line; do
         [ -n "$line" ] && result_array+=("$line")
-    done < <(jq -r '.[] | "\(.name):\(.privateKey):\(.publicKey):\(.encryptedPassphrase)"' "$secrets_file" 2>/dev/null)
+    done < <(jq -r '.[] | "\(.id // ""):\(.privateKey):\(.publicKey):\(.encryptedPassphrase)"' "$secrets_file" 2>/dev/null)
 }
 
 # Save a new secret
@@ -52,12 +52,16 @@ save_secret() {
     ensure_secrets_file
     local secrets_file=$(get_secrets_file)
 
+    # Generate UUID for this secret
+    local id=$(uuidgen)
+
     local temp_file=$(mktemp)
-    if jq --arg name "$name" \
+    if jq --arg id "$id" \
+          --arg name "$name" \
           --arg privateKey "$private_key" \
           --arg publicKey "$public_key" \
           --arg encryptedPassphrase "$encrypted_passphrase" \
-          '. += [{"name": $name, "privateKey": $privateKey, "publicKey": $publicKey, "encryptedPassphrase": $encryptedPassphrase}]' \
+          '. += [{"id": $id, "name": $name, "privateKey": $privateKey, "publicKey": $publicKey, "encryptedPassphrase": $encryptedPassphrase}]' \
           "$secrets_file" > "$temp_file" 2>/dev/null; then
         mv "$temp_file" "$secrets_file"
         return 0
