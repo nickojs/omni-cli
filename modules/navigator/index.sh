@@ -24,6 +24,7 @@ declare -g -a MARKED_FILES=()        # Absolute paths of marked files
 declare -g BROWSER_MODE="directory"  # "directory" or "files"
 declare -g NAV_PAGE=1                # Current page (1-indexed)
 declare -g NAV_PAGE_SIZE=15          # Items per page
+declare -g NAV_BOUNDARY="/home"      # Can't navigate above this directory
 
 # Check if a file is marked
 is_file_marked() {
@@ -77,9 +78,11 @@ show_manual_path_entry() {
 # Function to show interactive filesystem browser
 # Parameters: mode (optional) - "directory" (default) or "files"
 #             start_dir (optional) - starting directory (default: $HOME)
+#             boundary_dir (optional) - can't navigate above this (default: /home)
 show_interactive_browser() {
     BROWSER_MODE="${1:-directory}"
     local current_dir="${2:-$HOME}"
+    NAV_BOUNDARY="${3:-/home}"
     CURRENT_SELECTION=1
     NAV_PAGE=1
     MARKED_FILES=()

@@ -136,10 +136,11 @@ show_directory_listing() {
     NAV_DISPLAY_NAMES=()
     NAV_ITEM_TYPES=()
 
-    # Add parent directory option (don't go above /home)
+    # Add parent directory option (don't go above NAV_BOUNDARY)
     local current_real_path=$(realpath "$dir")
+    local boundary_real_path=$(realpath "$NAV_BOUNDARY" 2>/dev/null || echo "$NAV_BOUNDARY")
     local can_go_up=false
-    [ "$current_real_path" != "/home" ] && can_go_up=true
+    [ "$current_real_path" != "$boundary_real_path" ] && can_go_up=true
 
     if [ "$can_go_up" = true ]; then
         NAV_DIRECTORIES+=("$dir/..")
