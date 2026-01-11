@@ -185,7 +185,7 @@ show_secrets_menu() {
                 SECRETS_FOLDER=""
                 ;;
             3)              # Show help screen
-                show_secrets_help_screen
+                display_secrets_help
                 ;;
             4)              # Add vault
                 show_add_vault_screen

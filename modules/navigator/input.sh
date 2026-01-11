@@ -165,6 +165,11 @@ handle_browsing_key() {
             fi
             return 0
             ;;
+        h|H)
+            # Show help screen
+            display_navigator_help
+            return 0
+            ;;
         b|B)
             # Return without selecting
             return 2
