@@ -19,3 +19,4 @@ build/*
 .claude
 .vscode
 .python*
+.tldr*

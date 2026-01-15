@@ -33,10 +33,83 @@ mount_vault() {
     local secret_data
     if ! secret_data=$(get_secret_by_id "$secret_id"); then
         echo "Secret not found for vault '$name'"
-        return 1
+        echo ""
+        read -p "Reassign a secret to this vault? (y/n): " -r
+        echo
+
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            # Load available secrets
+            local -a secrets=()
+            load_secrets secrets
+
+            if [ ${#secrets[@]} -eq 0 ]; then
+                echo "No secrets available"
+                return 1
+            fi
+
+            # Get user selection (referencing list already on screen)
+            echo -n "Which secret? "
+            local secret_num
+            read -r secret_num
+
+            # Validate input
+            if ! [[ "$secret_num" =~ ^[0-9]+$ ]] || [ "$secret_num" -lt 1 ] || [ "$secret_num" -gt "${#secrets[@]}" ]; then
+                echo "Invalid selection"
+                return 1
+            fi
+
+            # Extract selected secret ID
+            local secret_index=$((secret_num - 1))
+            local selected_secret="${secrets[$secret_index]}"
+            IFS=':' read -r new_secret_id _ _ _ <<< "$selected_secret"
+
+            # Update vault configuration
+            if update_vault_secret "$vault_index" "$new_secret_id"; then
+                echo "Secret reassigned successfully"
+                # Update the local secret_id variable and retry
+                secret_id="$new_secret_id"
+                if ! secret_data=$(get_secret_by_id "$secret_id"); then
+                    echo "Failed to get reassigned secret"
+                    return 1
+                fi
+            else
+                echo "Failed to update vault configuration"
+                return 1
+            fi
+        else
+            echo "Secret reassignment cancelled"
+            return 1
+        fi
     fi
 
     IFS=':' read -r _ private_key _ encrypted_passphrase <<< "$secret_data"
+
+    # Check if cipher directory exists
+    if [ ! -d "$cipher_dir" ]; then
+        echo "Vault directory '$cipher_dir' does not exist for vault '$name'"
+        echo "The encrypted vault folder may have been deleted or moved"
+        echo ""
+        read -p "Recreate empty vault at this location? (y/n): " -r
+        echo
+
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            echo "Recreating vault '$name'..."
+
+            # Call init_vault to create fresh gocryptfs structure
+            if init_vault "$cipher_dir" "$secret_id"; then
+                echo "Vault structure recreated successfully"
+                echo "Attempting to mount..."
+
+                # Retry mount (fall through to existing mount logic below)
+            else
+                echo "Failed to recreate vault structure"
+                return 1
+            fi
+        else
+            echo "Vault recreation cancelled"
+            return 1
+        fi
+    fi
 
     # Ensure mount point exists
     if [ ! -d "$mount_point" ]; then
@@ -49,6 +122,7 @@ mount_vault() {
     fi
 
     echo "Failed to mount vault '$name'"
+    echo "This could be due to an incorrect passphrase, corrupted vault, or missing gocryptfs.conf"
     return 1
 }
 
@@ -117,4 +191,56 @@ init_vault() {
 
     echo "Failed to initialize vault"
     return 1
+}
+
+# Reassign secret to a vault (interactive)
+# Parameters: vault_index (0-based)
+# Returns: 0 on success, 1 on failure
+reassign_vault_secret() {
+    local vault_index="$1"
+
+    local -a vaults=()
+    load_vaults vaults
+
+    if [ "$vault_index" -lt 0 ] || [ "$vault_index" -ge "${#vaults[@]}" ]; then
+        echo "Invalid vault index"
+        return 1
+    fi
+
+    local vault_info="${vaults[$vault_index]}"
+    IFS=':' read -r name _ _ _ <<< "$vault_info"
+
+    # Load available secrets
+    local -a secrets=()
+    load_secrets secrets
+
+    if [ ${#secrets[@]} -eq 0 ]; then
+        echo "No secrets available"
+        return 1
+    fi
+
+    # Get user selection (referencing list already on screen)
+    echo -n "Which secret for vault '$name'? "
+    local secret_num
+    read -r secret_num
+
+    # Validate input
+    if ! [[ "$secret_num" =~ ^[0-9]+$ ]] || [ "$secret_num" -lt 1 ] || [ "$secret_num" -gt "${#secrets[@]}" ]; then
+        echo "Invalid selection"
+        return 1
+    fi
+
+    # Extract selected secret ID
+    local secret_index=$((secret_num - 1))
+    local selected_secret="${secrets[$secret_index]}"
+    IFS=':' read -r new_secret_id _ _ _ <<< "$selected_secret"
+
+    # Update vault configuration
+    if update_vault_secret "$vault_index" "$new_secret_id"; then
+        echo "Secret reassigned successfully"
+        return 0
+    else
+        echo "Failed to update vault configuration"
+        return 1
+    fi
 }

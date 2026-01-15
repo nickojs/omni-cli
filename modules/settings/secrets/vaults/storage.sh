@@ -85,6 +85,36 @@ delete_vault() {
     return 1
 }
 
+# Update vault's secret assignment
+# Parameters: vault_index (0-based), new_secret_id
+# Returns: 0 on success, 1 on failure
+update_vault_secret() {
+    local vault_index="$1"
+    local new_secret_id="$2"
+
+    local vaults_file=$(get_vaults_file)
+    if [ ! -f "$vaults_file" ]; then
+        return 1
+    fi
+
+    # Verify the new secret exists
+    if ! get_secret_by_id "$new_secret_id" >/dev/null 2>&1; then
+        echo "Secret ID not found: $new_secret_id"
+        return 1
+    fi
+
+    local temp_file=$(mktemp)
+    if jq --argjson idx "$vault_index" \
+          --arg secretId "$new_secret_id" \
+          '.[$idx].secretId = $secretId' \
+          "$vaults_file" > "$temp_file" 2>/dev/null; then
+        mv "$temp_file" "$vaults_file"
+        return 0
+    fi
+    rm -f "$temp_file"
+    return 1
+}
+
 # Get secret by UUID
 # Parameters: secret_id
 # Returns: id:privateKey:publicKey:encryptedPassphrase (echoes to stdout)

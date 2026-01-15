@@ -51,6 +51,15 @@ show_secrets_default_screen() {
         fi
     fi
 
+    # Switch/reassign secret commands
+    if [ "$vault_count" -gt 0 ] && [ "$secret_count" -gt 0 ]; then
+        if [ "$vault_count" -eq 1 ]; then
+            menu_items+="    ${BRIGHT_YELLOW}s1${NC} switch secret"
+        else
+            menu_items+="    ${BRIGHT_YELLOW}s1-s${vault_count}${NC} switch secret"
+        fi
+    fi
+
     # Delete secret commands
     if [ "$secret_count" -gt 0 ]; then
         if [ "$secret_count" -eq 1 ]; then
@@ -115,6 +124,18 @@ show_secrets_default_screen() {
         if [ "$unmount_num" -ge 1 ] && [ "$unmount_num" -le "$vault_count" ]; then
             local unmount_index=$((unmount_num - 1))
             if ! unmount_vault "$unmount_index"; then
+                wait_for_enter
+            fi
+        fi
+        return 0
+    fi
+
+    # Handle switch secret commands (s1, s2, etc.)
+    if [[ "$choice" =~ ^[Ss]([0-9]+)$ ]]; then
+        local switch_num="${BASH_REMATCH[1]}"
+        if [ "$switch_num" -ge 1 ] && [ "$switch_num" -le "$vault_count" ]; then
+            local switch_index=$((switch_num - 1))
+            if ! reassign_vault_secret "$switch_index"; then
                 wait_for_enter
             fi
         fi
