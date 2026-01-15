@@ -42,43 +42,6 @@ display_secrets_empty() {
     echo ""
 }
 
-# Display file list screen
-# Parameters: folder_path, files_array_ref, selection_prompt
-display_file_list_screen() {
-    local folder_path="$1"
-    local -n files_ref=$2
-    local selection_prompt="$3"
-    local display_path="${folder_path/#$HOME/\~}"
-
-    printf '\033[?25l'
-    clear
-    print_header "Secrets"
-
-    echo ""
-    echo -e "${DIM}Scanning: ${NC}${BRIGHT_WHITE}${display_path}${NC}"
-    echo ""
-    echo -e "${BRIGHT_WHITE}Files:${NC}"
-
-    if [ ${#files_ref[@]} -eq 0 ]; then
-        echo -e "${DIM}No files found in this directory.${NC}"
-    else
-        for i in "${!files_ref[@]}"; do
-            local num=$((i + 1))
-            local filename="${files_ref[i]}"
-            local file_color="${BRIGHT_WHITE}"
-            [[ "$filename" == *.pub ]] && file_color="${BRIGHT_BLUE}"
-            printf "${BRIGHT_CYAN}%2s${NC}  ${file_color}%s${NC}\n" "$num" "$filename"
-        done
-    fi
-    echo ""
-
-    echo -e "${BRIGHT_PURPLE}b${NC} back"
-    echo ""
-
-    printf '\033[?25h'
-    echo -ne "${selection_prompt} ${BRIGHT_CYAN}>${NC} "
-}
-
 # Display vaults as cards
 # Parameters: vaults_array_ref
 display_vaults_table() {

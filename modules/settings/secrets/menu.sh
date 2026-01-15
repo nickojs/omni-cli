@@ -93,9 +93,7 @@ show_secrets_default_screen() {
         [Bb]) return 1 ;;
         [Hh]) return 3 ;;
         [Aa])
-            if prompt_secrets_folder; then
-                return 2
-            fi
+            show_add_secret_flow
             return 0
             ;;
         [Vv])
@@ -192,8 +190,6 @@ show_secrets_default_screen() {
 
 # Main secrets menu entry point
 show_secrets_menu() {
-    SECRETS_FOLDER=""
-
     while true; do
         local result
         show_secrets_default_screen
@@ -201,10 +197,6 @@ show_secrets_menu() {
 
         case $result in
             1) return 0 ;;  # Back to settings
-            2)              # Show file list (add secret)
-                show_secrets_file_list_screen "$SECRETS_FOLDER"
-                SECRETS_FOLDER=""
-                ;;
             3)              # Show help screen
                 display_secrets_help
                 ;;
