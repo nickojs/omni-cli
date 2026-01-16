@@ -54,7 +54,7 @@ select_vault_screen() {
         clear
         print_header "SELECT VAULT"
         echo ""
-        echo -e "${DIM}Select a mounted vault to store secured files:${NC}"
+        echo -e "${DIM}Select a mounted vault:${NC}"
         echo ""
 
         local counter=1
@@ -74,7 +74,14 @@ select_vault_screen() {
         done
 
         echo ""
-        echo -e "${BRIGHT_RED}b${NC} back"
+
+        # Build inline menu based on number of vaults
+        local vault_count="${#mounted_indices[@]}"
+        if [ $vault_count -eq 1 ]; then
+            echo -e "${BRIGHT_GREEN}a1${NC} add to vault    ${BRIGHT_CYAN}m1${NC} move from vault    ${BRIGHT_RED}b${NC} back"
+        else
+            echo -e "${BRIGHT_GREEN}a1-a${vault_count}${NC} add to vault    ${BRIGHT_CYAN}m1-m${vault_count}${NC} move from vault    ${BRIGHT_RED}b${NC} back"
+        fi
         echo ""
         echo -ne "${BRIGHT_CYAN}>${NC} "
 
@@ -85,11 +92,26 @@ select_vault_screen() {
             return 1
         fi
 
-        if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le "${#mounted_indices[@]}" ]; then
-            local selected_idx="${mounted_indices[$((choice - 1))]}"
-            local vault_info="${vaults[$selected_idx]}"
-            IFS=':' read -r SELECTED_VAULT_NAME _ SELECTED_VAULT_MOUNT _ <<< "$vault_info"
-            return 0
+        # Check for add operation (a1, a2, etc.)
+        if [[ "$choice" =~ ^[Aa]([0-9]+)$ ]]; then
+            local vault_num="${BASH_REMATCH[1]}"
+            if [ "$vault_num" -ge 1 ] && [ "$vault_num" -le "$vault_count" ]; then
+                local selected_idx="${mounted_indices[$((vault_num - 1))]}"
+                local vault_info="${vaults[$selected_idx]}"
+                IFS=':' read -r SELECTED_VAULT_NAME _ SELECTED_VAULT_MOUNT _ <<< "$vault_info"
+                return 10  # Return code for "add"
+            fi
+        fi
+
+        # Check for move operation (m1, m2, etc.)
+        if [[ "$choice" =~ ^[Mm]([0-9]+)$ ]]; then
+            local vault_num="${BASH_REMATCH[1]}"
+            if [ "$vault_num" -ge 1 ] && [ "$vault_num" -le "$vault_count" ]; then
+                local selected_idx="${mounted_indices[$((vault_num - 1))]}"
+                local vault_info="${vaults[$selected_idx]}"
+                IFS=':' read -r SELECTED_VAULT_NAME _ SELECTED_VAULT_MOUNT _ <<< "$vault_info"
+                return 20  # Return code for "move"
+            fi
         fi
     done
 }
@@ -215,32 +237,47 @@ show_secure_files_flow() {
     local project_path="$2"
     local project_name=$(basename "$project_path")
 
-    # Step 1: Select vault
-    if ! select_vault_screen; then
-        return 1
-    fi
+    # Step 1: Select vault and operation
+    select_vault_screen
+    local operation=$?
 
-    # Step 2: Browse and mark files
-    show_interactive_browser "files" "$project_path" "$project_path"
+    if [ $operation -eq 1 ]; then
+        return 1  # User cancelled
+    elif [ $operation -eq 10 ]; then
+        # Add to vault operation
+        # Step 2: Browse and mark files
+        show_interactive_browser "files" "$project_path" "$project_path"
 
-    # Check if any files were marked
-    if [ ${#MARKED_FILES[@]} -eq 0 ]; then
+        # Check if any files were marked
+        if [ ${#MARKED_FILES[@]} -eq 0 ]; then
+            echo ""
+            print_warning "No files selected."
+            sleep 1
+            return 1
+        fi
+
+        # Step 3: Confirm
+        if ! confirm_secure_files "$project_name" "$project_path"; then
+            echo ""
+            print_warning "Operation cancelled."
+            wait_for_enter
+            return 1
+        fi
+
+        # Step 4: Execute
+        execute_secure_files "$project_name" "$project_path"
+    elif [ $operation -eq 20 ]; then
+        # Move from vault operation
+        clear
+        print_header "MOVE FROM VAULT"
         echo ""
-        print_warning "No files selected."
-        sleep 1
-        return 1
-    fi
-
-    # Step 3: Confirm
-    if ! confirm_secure_files "$project_name" "$project_path"; then
+        echo -e "${DIM}This feature is coming soon.${NC}"
         echo ""
-        print_warning "Operation cancelled."
+        echo -e "${DIM}It will allow you to browse the vault and select files to restore back to the project.${NC}"
+        echo ""
         wait_for_enter
         return 1
     fi
-
-    # Step 4: Execute
-    execute_secure_files "$project_name" "$project_path"
 
     return 0
 }
