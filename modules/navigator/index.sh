@@ -25,6 +25,8 @@ declare -g BROWSER_MODE="directory"  # "directory" or "files"
 declare -g NAV_PAGE=1                # Current page (1-indexed)
 declare -g NAV_PAGE_SIZE=15          # Items per page
 declare -g NAV_BOUNDARY="/home"      # Can't navigate above this directory
+declare -g NAV_TITLE="FILE BROWSER"  # Title to display
+declare -g NAV_SINGLE_MARK_MODE=false # If true, only one file can be marked at a time
 
 # Check if a file is marked
 is_file_marked() {
@@ -79,10 +81,26 @@ show_manual_path_entry() {
 # Parameters: mode (optional) - "directory" (default) or "files"
 #             start_dir (optional) - starting directory (default: $HOME)
 #             boundary_dir (optional) - can't navigate above this (default: /home)
+#             title (optional) - browser title (default: "FILE BROWSER" or "DIRECTORY BROWSER")
+#             single_mark_mode (optional) - "true" or "false" (default: false)
 show_interactive_browser() {
     BROWSER_MODE="${1:-directory}"
     local current_dir="${2:-$HOME}"
     NAV_BOUNDARY="${3:-/home}"
+    local title="${4:-}"
+    NAV_SINGLE_MARK_MODE="${5:-false}"
+
+    # Set default title based on mode if not provided
+    if [ -z "$title" ]; then
+        if [ "$BROWSER_MODE" = "files" ]; then
+            NAV_TITLE="FILE BROWSER"
+        else
+            NAV_TITLE="DIRECTORY BROWSER"
+        fi
+    else
+        NAV_TITLE="$title"
+    fi
+
     CURRENT_SELECTION=1
     NAV_PAGE=1
     MARKED_FILES=()
@@ -96,7 +114,11 @@ show_interactive_browser() {
 
             # In browsing mode - capture single keystrokes
             if [ "$BROWSER_MODE" = "files" ]; then
-                echo -e "${BRIGHT_YELLOW}↑ w  ↓ s${NC} navigate    ${BRIGHT_CYAN}[ ]${NC} page    ${BRIGHT_CYAN}#${NC} go to    ${BRIGHT_GREEN}enter${NC} open    ${BRIGHT_PURPLE}m${NC} mark    ${BRIGHT_CYAN}l${NC} list    ${BRIGHT_BLUE}space${NC} confirm    ${BRIGHT_PURPLE}h${NC} help    ${BRIGHT_RED}b${NC} back"
+                if [ "$NAV_SINGLE_MARK_MODE" = "true" ]; then
+                    echo -e "${BRIGHT_YELLOW}↑ w  ↓ s${NC} navigate    ${BRIGHT_CYAN}[ ]${NC} page    ${BRIGHT_CYAN}#${NC} go to    ${BRIGHT_GREEN}enter${NC} open    ${BRIGHT_PURPLE}m${NC} mark    ${BRIGHT_BLUE}space${NC} confirm    ${BRIGHT_PURPLE}h${NC} help    ${BRIGHT_RED}b${NC} back"
+                else
+                    echo -e "${BRIGHT_YELLOW}↑ w  ↓ s${NC} navigate    ${BRIGHT_CYAN}[ ]${NC} page    ${BRIGHT_CYAN}#${NC} go to    ${BRIGHT_GREEN}enter${NC} open    ${BRIGHT_PURPLE}m${NC} mark    ${BRIGHT_CYAN}l${NC} list    ${BRIGHT_BLUE}space${NC} confirm    ${BRIGHT_PURPLE}h${NC} help    ${BRIGHT_RED}b${NC} back"
+                fi
             else
                 echo -e "${BRIGHT_YELLOW}↑ w  ↓ s${NC} navigate    ${BRIGHT_CYAN}[ ]${NC} page    ${BRIGHT_CYAN}#${NC} go to    ${BRIGHT_GREEN}enter${NC} open    ${BRIGHT_BLUE}space${NC} select    ${BRIGHT_PURPLE}h${NC} help    ${BRIGHT_RED}b${NC} back"
             fi

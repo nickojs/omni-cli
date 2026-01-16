@@ -91,7 +91,7 @@ handle_browsing_key() {
                 fi
                 # If it's a file, do nothing (enter doesn't open files)
             fi
-            return 0
+            return 8  # No action needed, skip redraw
             ;;
         ' ')
             if [ "$BROWSER_MODE" = "files" ]; then
@@ -134,13 +134,19 @@ handle_browsing_key() {
                         MARKED_FILES=("${new_marked[@]}")
                     else
                         # Mark: add to array
-                        MARKED_FILES+=("$abs_path")
+                        if [ "$NAV_SINGLE_MARK_MODE" = "true" ]; then
+                            # Single mark mode: replace previous mark
+                            MARKED_FILES=("$abs_path")
+                        else
+                            # Multi mark mode: append to array
+                            MARKED_FILES+=("$abs_path")
+                        fi
                     fi
                     # Partial page update to show mark change and update counter
                     return 7
                 fi
             fi
-            return 0
+            return 8  # Not a file, skip redraw
             ;;
         l|L)
             # List marked files (files mode only)
@@ -213,8 +219,8 @@ handle_browsing_key() {
             return 0
             ;;
         *)
-            # Silently ignore invalid keys
-            return 0
+            # Silently ignore invalid keys - no redraw
+            return 8
             ;;
     esac
 }

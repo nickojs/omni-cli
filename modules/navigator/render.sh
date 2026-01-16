@@ -54,13 +54,15 @@ update_selection_display() {
 
     # Move to old selection line and redraw as unselected
     local old_line=$((NAV_LIST_START_LINE + old_page_pos - 1))
-    printf '\033[%d;1H\033[K' "$old_line"  # Move to line, clear it
+    printf '\033[%d;1H' "$old_line"  # Move to line
     render_directory_line $((old_sel - 1)) 0
+    printf '\033[K'  # Clear any trailing characters
 
     # Move to new selection line and redraw as selected
     local new_line=$((NAV_LIST_START_LINE + new_page_pos - 1))
-    printf '\033[%d;1H\033[K' "$new_line"  # Move to line, clear it
+    printf '\033[%d;1H' "$new_line"  # Move to line
     render_directory_line $((new_sel - 1)) 1
+    printf '\033[K'  # Clear any trailing characters
 
     # Move cursor below menu line (fixed height: list + blank + menu + 1)
     local input_line=$((NAV_LIST_START_LINE + NAV_PAGE_SIZE + 2))
@@ -86,7 +88,12 @@ update_page_display() {
     local last_item=$((end_index + 1))
     local marked_info=""
     if [ "$BROWSER_MODE" = "files" ] && [ ${#MARKED_FILES[@]} -gt 0 ]; then
-        marked_info="  ${BRIGHT_GREEN}● ${#MARKED_FILES[@]} files marked${NC}"
+        if [ "$NAV_SINGLE_MARK_MODE" = "true" ]; then
+            local marked_file=$(basename "${MARKED_FILES[0]}")
+            marked_info="  ${BRIGHT_GREEN}●${NC} ${BRIGHT_WHITE}${marked_file}${NC} ${DIM}selected${NC}"
+        else
+            marked_info="  ${BRIGHT_GREEN}● ${#MARKED_FILES[@]} files marked${NC}"
+        fi
     fi
     echo -e "${NC}Page ${NAV_PAGE}/${total_pages}  [${first_item}-${last_item} of ${total_items}]${marked_info}${NC}"
 
@@ -96,10 +103,10 @@ update_page_display() {
     # Redraw all list lines
     local items_on_page=$((end_index - start_index + 1))
     for (( i=start_index; i<=end_index; i++ )); do
-        printf '\033[K'  # Clear line
         local is_selected=0
         [[ $((i + 1)) -eq "$CURRENT_SELECTION" ]] && is_selected=1
         render_directory_line "$i" "$is_selected"
+        printf '\033[K'  # Clear trailing characters
         echo ""
     done
 
@@ -120,11 +127,7 @@ show_directory_listing() {
 
     printf '\033[?25l'  # Hide cursor during redraw
     clear
-    if [ "$BROWSER_MODE" = "files" ]; then
-        print_header "FILE BROWSER"
-    else
-        print_header "DIRECTORY BROWSER"
-    fi
+    print_header "$NAV_TITLE"
     echo ""
     local absolute_path=$(realpath "$dir")
     local display_path="${absolute_path/#$HOME/\~}"
@@ -208,7 +211,12 @@ show_directory_listing() {
     local last_item=$((end_index + 1))
     local marked_info=""
     if [ "$BROWSER_MODE" = "files" ] && [ ${#MARKED_FILES[@]} -gt 0 ]; then
-        marked_info="  ${BRIGHT_GREEN}● ${#MARKED_FILES[@]} files marked${NC}"
+        if [ "$NAV_SINGLE_MARK_MODE" = "true" ]; then
+            local marked_file=$(basename "${MARKED_FILES[0]}")
+            marked_info="  ${BRIGHT_GREEN}●${NC} ${BRIGHT_WHITE}${marked_file}${NC} ${DIM}selected${NC}"
+        else
+            marked_info="  ${BRIGHT_GREEN}● ${#MARKED_FILES[@]} files marked${NC}"
+        fi
     fi
     echo -e "${NC}Page ${NAV_PAGE}/${total_pages}  [${first_item}-${last_item} of ${total_items}]${marked_info}${NC}"
     echo ""
