@@ -104,10 +104,7 @@ show_delete_workspace_warning() {
     clear
     print_header "Delete Workspace"
     echo ""
-    echo -e "${BRIGHT_RED}╔═══════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BRIGHT_RED}║                        ⚠️  WARNING  ⚠️                        ║${NC}"
-    echo -e "${BRIGHT_RED}╚═══════════════════════════════════════════════════════════════╝${NC}"
-    echo ""
+    print_warning_box
     echo -e "${BRIGHT_RED}You are about to DELETE workspace${NC}"
     echo -e "  ${BRIGHT_WHITE}${display_name}${NC}"
     echo ""

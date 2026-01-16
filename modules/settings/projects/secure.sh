@@ -105,10 +105,17 @@ confirm_secure_files() {
     clear
     print_header "CONFIRM SECURE FILES"
     echo ""
-    echo -e "${BRIGHT_YELLOW}WARNING: This operation will:${NC}"
-    echo -e "  ${DIM}1. Move the following files/folders to vault '${SELECTED_VAULT_NAME}'${NC}"
-    echo -e "  ${DIM}2. Delete them from the project directory${NC}"
-    echo -e "  ${DIM}3. Create symlinks in their place${NC}"
+    echo -e "${NC}(Dev note: currently just supporting files.)${NC}"
+    echo ""
+    print_warning_box
+    echo ""
+    echo -e "${BOLD}This operation will${NC}"
+    echo -e "  ${NC}1. Move the following files/folders to vault '${SELECTED_VAULT_NAME}'${NC}"
+    echo -e "  2. ${BRIGHT_RED}Delete${NC} them from the project directory${NC}"
+    echo -e "  3. Create symlinks in their place${NC}"
+    echo ""
+    echo -e "${BOLD}Moving to the vault is ${BRIGHT_RED}destructive${NC}: the original file/folder ${BOLD}will be deleted${NC}."
+    echo -e "This is ${BOLD}required${NC} so the symlink becomes the ${BOLD}only path${NC} to the data, preventing duplicate copies and confusion."
     echo ""
     echo -e "${BOLD}Files to secure (${#MARKED_FILES[@]}):${NC}"
     echo ""
@@ -125,11 +132,11 @@ confirm_secure_files() {
 
     echo ""
     echo -e "${BOLD}Destination:${NC}"
-    echo -e "  ${DIM}${SELECTED_VAULT_MOUNT}/${project_name}/...${NC}"
+    echo -e "  ${DIM}${SELECTED_VAULT_MOUNT}/${project_name}${NC}"
     echo ""
-    echo -e "${BRIGHT_RED}This action cannot be easily undone.${NC}"
+    echo -e "${ITALIC}(The file/folder is restored either when a vault is removed from the config, or via user choice)${NC}"
     echo ""
-    echo -ne "${BRIGHT_YELLOW}Type 'yes' to confirm: ${NC}"
+    echo -ne "${BOLD}Type 'yes' to confirm: ${NC}"
 
     local confirm
     read confirm
@@ -228,7 +235,7 @@ show_secure_files_flow() {
     if ! confirm_secure_files "$project_name" "$project_path"; then
         echo ""
         print_warning "Operation cancelled."
-        sleep 1
+        wait_for_enter
         return 1
     fi
 

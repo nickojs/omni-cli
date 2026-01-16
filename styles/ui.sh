@@ -68,6 +68,14 @@ print_step() {
     print_color "$BLUE" "→ $*"
 }
 
+# Function to print a boxed warning header
+print_warning_box() {
+    echo -e "${BRIGHT_RED}╔═══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BRIGHT_RED}║                        ⚠️  WARNING  ⚠️                        ║${NC}"
+    echo -e "${BRIGHT_RED}╚═══════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+}
+
 # Function to prompt user to press Enter to continue
 # Parameters: optional custom message
 wait_for_enter() {
