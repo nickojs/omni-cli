@@ -127,10 +127,9 @@ confirm_secure_files() {
     clear
     print_header "CONFIRM SECURE FILES"
     echo ""
-    echo -e "${NC}(Dev note: currently just supporting files.)${NC}"
+    echo -e "${DIM}(Dev note: currently just supporting files)${NC}"
     echo ""
     print_warning_box
-    echo ""
     echo -e "${BOLD}This operation will${NC}"
     echo -e "  ${NC}1. Move the following files/folders to vault '${SELECTED_VAULT_NAME}'${NC}"
     echo -e "  2. ${BRIGHT_RED}Delete${NC} them from the project directory${NC}"
@@ -138,6 +137,9 @@ confirm_secure_files() {
     echo ""
     echo -e "${BOLD}Moving to the vault is ${BRIGHT_RED}destructive${NC}: the original file/folder ${BOLD}will be deleted${NC}."
     echo -e "This is ${BOLD}required${NC} so the symlink becomes the ${BOLD}only path${NC} to the data, preventing duplicate copies and confusion."
+    echo ""
+    echo -e "${ITALIC}The file/folder is restored either when a vault is removed from the config, or via user choice${NC}"
+    echo ""
     echo ""
     echo -e "${BOLD}Files to secure (${#MARKED_FILES[@]}):${NC}"
     echo ""
@@ -156,7 +158,57 @@ confirm_secure_files() {
     echo -e "${BOLD}Destination:${NC}"
     echo -e "  ${DIM}${SELECTED_VAULT_MOUNT}/${project_name}${NC}"
     echo ""
-    echo -e "${ITALIC}(The file/folder is restored either when a vault is removed from the config, or via user choice)${NC}"
+    echo -e "${DIM}Note: If files are git-tracked, git will detect a type change${NC} ${BRIGHT_CYAN}(https://git-scm.com/docs/git-status#_output)${NC}."
+    echo -e "${DIM}This feature works best with untracked files like .env or secrets.${NC}"
+    echo ""
+    echo -ne "${BRIGHT_RED}Type 'yes' to confirm: ${NC}"
+
+    local confirm
+    read confirm
+
+    if [ "$confirm" = "yes" ]; then
+        return 0
+    fi
+    return 1
+}
+
+# Show confirmation screen for moving files from vault back to project
+# Parameters: project_name, project_path
+# Uses: MARKED_FILES array from navigator
+# Returns: 0 if confirmed, 1 if cancelled
+confirm_move_from_vault() {
+    local project_name="$1"
+    local project_path="$2"
+    local vault_project_dir="${SELECTED_VAULT_MOUNT}/${project_name}"
+
+    clear
+    print_header "CONFIRM MOVE FROM VAULT"
+    echo ""
+    print_warning_box
+    echo ""
+    echo -e "${BOLD}This operation will${NC}"
+    echo -e "  1. Move files from vault '${SELECTED_VAULT_NAME}' back to project"
+    echo -e "  2. ${BRIGHT_RED}Delete${NC} symlinks from the project directory"
+    echo -e "  3. Restore original files in their place"
+    echo ""
+    echo -e "${BOLD}Files to restore (${#MARKED_FILES[@]}):${NC}"
+    echo ""
+
+    for file in "${MARKED_FILES[@]}"; do
+        local relative_path="${file#$vault_project_dir/}"
+        if [ -d "$file" ]; then
+            echo -e "  ${BRIGHT_CYAN}📁${NC} ${relative_path}"
+        else
+            echo -e "  ${BRIGHT_WHITE}📄${NC} ${relative_path}"
+        fi
+    done
+
+    echo ""
+    echo -e "${BOLD}Source:${NC}"
+    echo -e "  ${DIM}${SELECTED_VAULT_MOUNT}/${project_name}${NC}"
+    echo ""
+    echo -e "${BOLD}Destination:${NC}"
+    echo -e "  ${DIM}${project_path}${NC}"
     echo ""
     echo -ne "${BOLD}Type 'yes' to confirm: ${NC}"
 
@@ -167,6 +219,74 @@ confirm_secure_files() {
         return 0
     fi
     return 1
+}
+
+# Execute the move from vault operation
+# Parameters: project_name, project_path
+# Uses: MARKED_FILES, SELECTED_VAULT_MOUNT
+# Returns: 0 on success
+execute_move_from_vault() {
+    local project_name="$1"
+    local project_path="$2"
+    local vault_project_dir="${SELECTED_VAULT_MOUNT}/${project_name}"
+
+    echo ""
+    echo -e "${DIM}Restoring files from vault...${NC}"
+    echo ""
+
+    local success_count=0
+    local fail_count=0
+
+    for vault_file in "${MARKED_FILES[@]}"; do
+        # Calculate relative path from vault project root
+        local relative_path="${vault_file#$vault_project_dir/}"
+
+        # Target path in project
+        local project_target="${project_path}/${relative_path}"
+        local project_target_dir=$(dirname "$project_target")
+
+        # Check if symlink exists at target location
+        if [ -L "$project_target" ]; then
+            # Remove the symlink
+            if ! rm "$project_target" 2>/dev/null; then
+                echo -e "  ${BRIGHT_RED}✗${NC} Failed to remove symlink: ${relative_path}"
+                fail_count=$((fail_count + 1))
+                continue
+            fi
+        elif [ -e "$project_target" ]; then
+            # File exists but is not a symlink - don't overwrite
+            echo -e "  ${BRIGHT_RED}✗${NC} File exists (not a symlink): ${relative_path}"
+            fail_count=$((fail_count + 1))
+            continue
+        fi
+
+        # Ensure target directory exists in project
+        if ! mkdir -p "$project_target_dir" 2>/dev/null; then
+            echo -e "  ${BRIGHT_RED}✗${NC} Failed to create directory: ${relative_path}"
+            fail_count=$((fail_count + 1))
+            continue
+        fi
+
+        # Move file from vault back to project
+        if ! mv "$vault_file" "$project_target" 2>/dev/null; then
+            echo -e "  ${BRIGHT_RED}✗${NC} Failed to move: ${relative_path}"
+            fail_count=$((fail_count + 1))
+            continue
+        fi
+
+        echo -e "  ${BRIGHT_GREEN}✓${NC} ${relative_path}"
+        success_count=$((success_count + 1))
+    done
+
+    echo ""
+    if [ $fail_count -eq 0 ]; then
+        echo -e "${BRIGHT_GREEN}Successfully restored ${success_count} item(s).${NC}"
+    else
+        echo -e "${BRIGHT_YELLOW}Restored ${success_count} item(s), ${fail_count} failed.${NC}"
+    fi
+    echo ""
+    wait_for_enter
+    return 0
 }
 
 # Execute the securing operation
@@ -268,15 +388,40 @@ show_secure_files_flow() {
         execute_secure_files "$project_name" "$project_path"
     elif [ $operation -eq 20 ]; then
         # Move from vault operation
-        clear
-        print_header "MOVE FROM VAULT"
-        echo ""
-        echo -e "${DIM}This feature is coming soon.${NC}"
-        echo ""
-        echo -e "${DIM}It will allow you to browse the vault and select files to restore back to the project.${NC}"
-        echo ""
-        wait_for_enter
-        return 1
+        local vault_project_dir="${SELECTED_VAULT_MOUNT}/${project_name}"
+
+        # Check if project directory exists in vault
+        if [ ! -d "$vault_project_dir" ]; then
+            clear
+            print_header "MOVE FROM VAULT"
+            echo ""
+            echo -e "${DIM}No files found for this project in vault '${SELECTED_VAULT_NAME}'.${NC}"
+            echo ""
+            wait_for_enter
+            return 1
+        fi
+
+        # Step 2: Browse vault and mark files to restore
+        show_interactive_browser "files" "$vault_project_dir" "$vault_project_dir"
+
+        # Check if any files were marked
+        if [ ${#MARKED_FILES[@]} -eq 0 ]; then
+            echo ""
+            print_warning "No files selected."
+            sleep 1
+            return 1
+        fi
+
+        # Step 3: Confirm
+        if ! confirm_move_from_vault "$project_name" "$project_path"; then
+            echo ""
+            print_warning "Operation cancelled."
+            wait_for_enter
+            return 1
+        fi
+
+        # Step 4: Execute
+        execute_move_from_vault "$project_name" "$project_path"
     fi
 
     return 0
