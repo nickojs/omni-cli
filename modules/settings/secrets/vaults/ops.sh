@@ -116,13 +116,31 @@ mount_vault() {
         mkdir -p "$mount_point"
     fi
 
+    # Verify passphrase can be decrypted
+    local passphrase
+    if ! passphrase=$(age -d -i "$private_key" "$encrypted_passphrase" 2>/dev/null); then
+        echo "Failed to decrypt passphrase for vault '$name'"
+        echo "The age private key may not match the encrypted passphrase file"
+        echo ""
+        echo "Debug info:"
+        echo "  Private key: ${private_key/#$HOME/\~}"
+        echo "  Encrypted passphrase: ${encrypted_passphrase/#$HOME/\~}"
+        return 1
+    fi
+
     # Mount using piped passphrase
-    if age -d -i "$private_key" "$encrypted_passphrase" 2>/dev/null | gocryptfs -q "$cipher_dir" "$mount_point" 2>/dev/null; then
+    if echo "$passphrase" | gocryptfs -q "$cipher_dir" "$mount_point" 2>/dev/null; then
         return 0
     fi
 
     echo "Failed to mount vault '$name'"
-    echo "This could be due to an incorrect passphrase, corrupted vault, or missing gocryptfs.conf"
+    echo "The passphrase was decrypted successfully, but gocryptfs rejected it."
+    echo "This vault may have been initialized with a different passphrase."
+    echo ""
+    echo "Debug info:"
+    echo "  Cipher dir: ${cipher_dir/#$HOME/\~}"
+    echo "  Mount point: ${mount_point/#$HOME/\~}"
+    echo "  Secret ID: $secret_id"
     return 1
 }
 
