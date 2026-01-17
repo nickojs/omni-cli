@@ -171,6 +171,40 @@ handle_browsing_key() {
             fi
             return 0
             ;;
+        c|C)
+            # Create directory
+            printf '\033[?25h'  # Show cursor for input
+            echo ""
+            echo -ne "${BRIGHT_WHITE}New directory name:${NC} "
+            local dir_name
+            read -r dir_name
+
+            if [ -z "$dir_name" ]; then
+                # Empty name - cancel
+                return 0
+            fi
+
+            local new_dir_path="$current_dir/$dir_name"
+
+            if [ -e "$new_dir_path" ]; then
+                echo ""
+                echo -e "${BRIGHT_RED}Error: '$dir_name' already exists${NC}"
+                sleep 2
+                return 0
+            fi
+
+            if mkdir -p "$new_dir_path" 2>/dev/null; then
+                echo ""
+                echo -e "${BRIGHT_GREEN}✓${NC} Created directory: $dir_name"
+                sleep 1
+                return 0  # Full redraw to show new directory
+            else
+                echo ""
+                echo -e "${BRIGHT_RED}Failed to create directory${NC}"
+                sleep 2
+                return 0
+            fi
+            ;;
         h|H)
             # Show help screen
             display_navigator_help

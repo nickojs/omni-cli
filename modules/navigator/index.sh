@@ -118,12 +118,12 @@ show_interactive_browser() {
             # In browsing mode - capture single keystrokes
             if [ "$BROWSER_MODE" = "files" ]; then
                 if [ "$NAV_SINGLE_MARK_MODE" = "true" ]; then
-                    echo -e "${BRIGHT_YELLOW}↑ w  ↓ s${NC} navigate    ${BRIGHT_CYAN}[ ]${NC} page    ${BRIGHT_CYAN}#${NC} go to    ${BRIGHT_GREEN}enter${NC} open    ${BRIGHT_PURPLE}m${NC} mark    ${BRIGHT_BLUE}space${NC} confirm    ${BRIGHT_PURPLE}h${NC} help    ${BRIGHT_RED}b${NC} back"
+                    echo -e "${BRIGHT_YELLOW}↑ w  ↓ s${NC} navigate    ${BRIGHT_CYAN}[ ]${NC} page    ${BRIGHT_CYAN}#${NC} go to    ${BRIGHT_GREEN}enter${NC} open    ${BRIGHT_PURPLE}m${NC} mark    ${BRIGHT_BLUE}space${NC} confirm    ${BRIGHT_CYAN}c${NC} create    ${BRIGHT_PURPLE}h${NC} help    ${BRIGHT_RED}b${NC} back"
                 else
-                    echo -e "${BRIGHT_YELLOW}↑ w  ↓ s${NC} navigate    ${BRIGHT_CYAN}[ ]${NC} page    ${BRIGHT_CYAN}#${NC} go to    ${BRIGHT_GREEN}enter${NC} open    ${BRIGHT_PURPLE}m${NC} mark    ${BRIGHT_CYAN}l${NC} list    ${BRIGHT_BLUE}space${NC} confirm    ${BRIGHT_PURPLE}h${NC} help    ${BRIGHT_RED}b${NC} back"
+                    echo -e "${BRIGHT_YELLOW}↑ w  ↓ s${NC} navigate    ${BRIGHT_CYAN}[ ]${NC} page    ${BRIGHT_CYAN}#${NC} go to    ${BRIGHT_GREEN}enter${NC} open    ${BRIGHT_PURPLE}m${NC} mark    ${BRIGHT_CYAN}l${NC} list    ${BRIGHT_BLUE}space${NC} confirm    ${BRIGHT_CYAN}c${NC} create    ${BRIGHT_PURPLE}h${NC} help    ${BRIGHT_RED}b${NC} back"
                 fi
             else
-                echo -e "${BRIGHT_YELLOW}↑ w  ↓ s${NC} navigate    ${BRIGHT_CYAN}[ ]${NC} page    ${BRIGHT_CYAN}#${NC} go to    ${BRIGHT_GREEN}enter${NC} open    ${BRIGHT_BLUE}space${NC} select    ${BRIGHT_PURPLE}h${NC} help    ${BRIGHT_RED}b${NC} back"
+                echo -e "${BRIGHT_YELLOW}↑ w  ↓ s${NC} navigate    ${BRIGHT_CYAN}[ ]${NC} page    ${BRIGHT_CYAN}#${NC} go to    ${BRIGHT_GREEN}enter${NC} open    ${BRIGHT_BLUE}space${NC} select    ${BRIGHT_CYAN}c${NC} create    ${BRIGHT_PURPLE}h${NC} help    ${BRIGHT_RED}b${NC} back"
             fi
         fi
 
