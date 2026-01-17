@@ -195,10 +195,16 @@ handle_browsing_key() {
                 if [[ "$next_char" =~ [0-9] ]]; then
                     number="${number}${next_char}"
                     echo -ne "${next_char}"
+                elif [[ "$next_char" == $'\x7f' ]] || [[ "$next_char" == $'\x08' ]]; then
+                    # Backspace (ASCII 127) or Ctrl-H (ASCII 8)
+                    if [ -n "$number" ]; then
+                        number="${number%?}"
+                        echo -ne "\b \b"
+                    fi
                 elif [[ -z "$next_char" || "$next_char" == $'\n' || "$next_char" == $'\r' ]]; then
                     # Enter pressed - jump to index and enter folder
                     echo ""
-                    if [ "$number" -ge 1 ] && [ "$number" -le "${#directories[@]}" ]; then
+                    if [ -n "$number" ] && [ "$number" -ge 1 ] && [ "$number" -le "${#directories[@]}" ]; then
                         CURRENT_SELECTION=$number
                         # Enter the folder directly
                         local selected_index=$((CURRENT_SELECTION - 1))
@@ -217,6 +223,44 @@ handle_browsing_key() {
                 fi
             done
             return 0
+            ;;
+        $'\e')
+            # Escape sequence - likely arrow keys
+            # Read next two characters to determine which arrow
+            local seq1 seq2
+            read -r -n1 -s -t 0.01 seq1
+            read -r -n1 -s -t 0.01 seq2
+
+            if [[ "$seq1" == "[" ]]; then
+                case "$seq2" in
+                    A)
+                        # Up arrow - same as 'w'
+                        PREVIOUS_SELECTION=$CURRENT_SELECTION
+                        if [ "$CURRENT_SELECTION" -gt "$page_start" ]; then
+                            CURRENT_SELECTION=$((CURRENT_SELECTION - 1))
+                        else
+                            CURRENT_SELECTION=$page_end
+                        fi
+                        return 6  # Partial update
+                        ;;
+                    B)
+                        # Down arrow - same as 's'
+                        PREVIOUS_SELECTION=$CURRENT_SELECTION
+                        if [ "$CURRENT_SELECTION" -lt "$page_end" ]; then
+                            CURRENT_SELECTION=$((CURRENT_SELECTION + 1))
+                        else
+                            CURRENT_SELECTION=$page_start
+                        fi
+                        return 6  # Partial update
+                        ;;
+                    *)
+                        # Other arrow keys - ignore
+                        return 8
+                        ;;
+                esac
+            fi
+            # ESC pressed alone - treat as cancel
+            return 2
             ;;
         *)
             # Silently ignore invalid keys - no redraw
