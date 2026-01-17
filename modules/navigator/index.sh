@@ -27,6 +27,7 @@ declare -g NAV_PAGE_SIZE=15          # Items per page
 declare -g NAV_BOUNDARY="/home"      # Can't navigate above this directory
 declare -g NAV_TITLE="FILE BROWSER"  # Title to display
 declare -g NAV_SINGLE_MARK_MODE=false # If true, only one file can be marked at a time
+declare -g NAV_SHOW_HIDDEN=false     # If true, show hidden files/folders (starting with .)
 
 # Check if a file is marked
 is_file_marked() {
@@ -83,12 +84,14 @@ show_manual_path_entry() {
 #             boundary_dir (optional) - can't navigate above this (default: /home)
 #             title (optional) - browser title (default: "FILE BROWSER" or "DIRECTORY BROWSER")
 #             single_mark_mode (optional) - "true" or "false" (default: false)
+#             show_hidden (optional) - "true" or "false" (default: false)
 show_interactive_browser() {
     BROWSER_MODE="${1:-directory}"
     local current_dir="${2:-$HOME}"
     NAV_BOUNDARY="${3:-/home}"
     local title="${4:-}"
     NAV_SINGLE_MARK_MODE="${5:-false}"
+    NAV_SHOW_HIDDEN="${6:-false}"
 
     # Set default title based on mode if not provided
     if [ -z "$title" ]; then

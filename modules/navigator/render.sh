@@ -169,11 +169,12 @@ show_directory_listing() {
             NAV_ITEM_TYPES+=("file")
         done < <(find "$dir" -mindepth 1 -maxdepth 1 -type f -print0 2>/dev/null | sort -z)
     else
-        # Directory mode: only directories, skip hidden
+        # Directory mode: only directories, optionally skip hidden
         while IFS= read -r -d '' subdir; do
             if [ -d "$subdir" ]; then
                 local basename_dir=$(basename "$subdir")
-                if [[ ! "$basename_dir" =~ ^\. ]]; then
+                # Skip hidden folders unless NAV_SHOW_HIDDEN is true
+                if [[ "$NAV_SHOW_HIDDEN" == "true" ]] || [[ ! "$basename_dir" =~ ^\. ]]; then
                     NAV_DIRECTORIES+=("$subdir")
                     NAV_DISPLAY_NAMES+=("$basename_dir/")
                     NAV_ITEM_TYPES+=("dir")

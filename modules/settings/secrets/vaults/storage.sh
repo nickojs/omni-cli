@@ -66,10 +66,124 @@ save_vault() {
     return 1
 }
 
+# Restore all files from a vault back to their original project locations
+# Parameters: vault_mount_point, vault_name (for display)
+# Returns: 0 on success
+restore_all_vault_files() {
+    local vault_mount="$1"
+    local vault_name="$2"
+
+    # Check if vault directory exists and has content
+    if [ ! -d "$vault_mount" ]; then
+        return 0
+    fi
+
+    echo ""
+    echo -e "${DIM}Restoring files from vault '$vault_name'...${NC}"
+    echo ""
+
+    local restored_count=0
+    local failed_count=0
+
+    # Find all project directories in the vault
+    for project_dir in "$vault_mount"/*/ ; do
+        [ ! -d "$project_dir" ] && continue
+
+        local project_name=$(basename "$project_dir")
+
+        # Try to find the corresponding project in workspaces
+        # Load all projects and look for matching name
+        local -a all_projects=()
+        load_projects_from_json
+
+        local project_path=""
+        for proj_info in "${projects[@]}"; do
+            IFS=':' read -r _ path _ _ <<< "$proj_info"
+            if [ "$(basename "$path")" = "$project_name" ]; then
+                project_path="$path"
+                break
+            fi
+        done
+
+        # If project not found in workspaces, skip it
+        if [ -z "$project_path" ]; then
+            echo -e "  ${BRIGHT_YELLOW}⚠${NC}  Project '$project_name' not found in workspaces, skipping"
+            continue
+        fi
+
+        # Restore all files from this project's vault directory
+        while IFS= read -r -d '' vault_file; do
+            # Get relative path from vault project directory
+            local relative_path="${vault_file#$project_dir}"
+            local project_target="$project_path/$relative_path"
+
+            # Check if symlink exists at target location
+            if [ -L "$project_target" ]; then
+                # Remove the symlink
+                if ! rm "$project_target" 2>/dev/null; then
+                    echo -e "  ${BRIGHT_RED}✗${NC} Failed to remove symlink: $relative_path"
+                    failed_count=$((failed_count + 1))
+                    continue
+                fi
+            elif [ -e "$project_target" ]; then
+                # File exists but is not a symlink - don't overwrite
+                echo -e "  ${BRIGHT_YELLOW}⚠${NC}  File exists (not a symlink): $relative_path"
+                failed_count=$((failed_count + 1))
+                continue
+            fi
+
+            # Ensure target directory exists
+            local project_target_dir=$(dirname "$project_target")
+            if ! mkdir -p "$project_target_dir" 2>/dev/null; then
+                echo -e "  ${BRIGHT_RED}✗${NC} Failed to create directory: $relative_path"
+                failed_count=$((failed_count + 1))
+                continue
+            fi
+
+            # Move file from vault back to project
+            if ! mv "$vault_file" "$project_target" 2>/dev/null; then
+                echo -e "  ${BRIGHT_RED}✗${NC} Failed to restore: $relative_path"
+                failed_count=$((failed_count + 1))
+                continue
+            fi
+
+            echo -e "  ${BRIGHT_GREEN}✓${NC} $project_name/$relative_path"
+            restored_count=$((restored_count + 1))
+        done < <(find "$project_dir" -type f -print0)
+    done
+
+    echo ""
+    if [ $failed_count -eq 0 ] && [ $restored_count -gt 0 ]; then
+        echo -e "${BRIGHT_GREEN}Successfully restored $restored_count file(s).${NC}"
+    elif [ $restored_count -eq 0 ]; then
+        echo -e "${DIM}No files to restore.${NC}"
+    else
+        echo -e "${BRIGHT_YELLOW}Restored $restored_count file(s), $failed_count failed.${NC}"
+    fi
+    echo ""
+
+    return 0
+}
+
 # Delete a vault by index (0-based)
 # Parameters: index
 delete_vault() {
     local index="$1"
+
+    # Get vault info before deletion
+    local -a vaults=()
+    load_vaults vaults
+
+    if [ "$index" -ge "${#vaults[@]}" ]; then
+        return 1
+    fi
+
+    local vault_info="${vaults[$index]}"
+    IFS=':' read -r name _ mount_point _ <<< "$vault_info"
+
+    # Restore all files from vault before deletion
+    restore_all_vault_files "$mount_point" "$name"
+    wait_for_enter
 
     local vaults_file=$(get_vaults_file)
     if [ ! -f "$vaults_file" ]; then
