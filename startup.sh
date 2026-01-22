@@ -6,6 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Project naming
 PROJECT_FOLDER_NAME="${PROJECT_FOLDER_NAME}"
 PROJECT_DISPLAY_NAME="${PROJECT_DISPLAY_NAME}"
+TERMINAL_EMULATOR="${TERMINAL_EMULATOR}"
 
 # Determine base directory
 if [[ "$SCRIPT_DIR" == *"/usr/bin"* ]]; then
@@ -61,6 +62,7 @@ setup_config_paths() {
     export SESSION_NAME
     export JSON_CONFIG_FOLDER
     export JSON_CONFIG_FILE
+    export TERMINAL_EMULATOR
 }
 
 # Import all modules after setting up paths

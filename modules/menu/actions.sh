@@ -148,9 +148,21 @@ handle_custom_command() {
 
         print_info "Opening terminal for $display_name in $folder_name"
 
-        # Open new kgx terminal window in the project folder
-        kgx --working-directory="$folder_name" &
-
+        local terminal_emulator="${TERMINAL_EMULATOR}"
+        
+        case "$terminal_emulator" in
+            konsole)
+                konsole --workdir="$folder_name" &
+                ;;
+            kgx|gnome-terminal)
+                kgx --working-directory="$folder_name" &
+                ;;
+            *)
+                print_warning "Unknown terminal emulator: $terminal_emulator"
+                return 1
+                ;;
+        esac
+        
         print_success "Terminal opened for $display_name"
         sleep 1
     else
