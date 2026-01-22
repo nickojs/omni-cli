@@ -157,7 +157,8 @@ add_project_to_config() {
               "relativePath": $relative_path,
               "startupCmd": $startup_cmd,
               "shutdownCmd": $shutdown_cmd,
-              "folderPath": $folder_path
+              "folderPath": $folder_path,
+              "assignedVaults": []
           }]' \
           "$JSON_CONFIG_FILE" > "$temp_file"; then
 
@@ -181,6 +182,55 @@ add_project_to_config() {
         fi
         return 1
     fi
+}
+
+# Function to assign a vault to a project
+# Parameters: workspace_file, project_path, vault_name
+# Returns: 0 on success, 1 on failure
+assign_vault_to_project() {
+    local workspace_file="$1"
+    local project_path="$2"
+    local vault_name="$3"
+
+    if [ ! -f "$workspace_file" ]; then
+        return 1
+    fi
+
+    local temp_file=$(mktemp)
+
+    # Add vault to assignedVaults if not already present
+    if jq --arg path "$project_path" \
+          --arg vault "$vault_name" \
+          'map(if .relativePath == $path then
+              if .assignedVaults == null then .assignedVaults = [] else . end |
+              if (.assignedVaults | index($vault)) == null then
+                  .assignedVaults += [$vault]
+              else . end
+           else . end)' \
+          "$workspace_file" > "$temp_file"; then
+
+        mv "$temp_file" "$workspace_file"
+        return 0
+    else
+        rm -f "$temp_file"
+        return 1
+    fi
+}
+
+# Function to get assigned vaults for a project
+# Parameters: workspace_file, project_path
+# Returns: array of vault names via echo (one per line)
+get_project_assigned_vaults() {
+    local workspace_file="$1"
+    local project_path="$2"
+
+    if [ ! -f "$workspace_file" ]; then
+        return 1
+    fi
+
+    jq -r --arg path "$project_path" \
+        '.[] | select(.relativePath == $path) | .assignedVaults[]? // empty' \
+        "$workspace_file" 2>/dev/null
 }
 
 # Function to validate numeric input is within range

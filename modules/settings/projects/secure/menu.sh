@@ -7,10 +7,16 @@
 # Usage: source modules/settings/projects/secure/menu.sh
 
 # Show vault selection screen
+# Parameters: workspace_file, project_path
 # Returns: 10 for add, 20 for move, 1 if cancelled/no vaults
 select_vault_screen() {
+    local workspace_file="$1"
+    local project_path="$2"
+
     local -a vaults=()
     load_vaults vaults
+
+    local project_name=$(basename "$project_path")
 
     if [ ${#vaults[@]} -eq 0 ]; then
         clear
@@ -56,12 +62,19 @@ select_vault_screen() {
             IFS=':' read -r name _ mount_point _ <<< "$vault_info"
 
             if get_vault_status "$mount_point"; then
-                echo -e "  ${BRIGHT_CYAN}${counter}${NC}  ${BRIGHT_GREEN}●${NC} ${BRIGHT_WHITE}${name}${NC}"
+                # Check if this vault is assigned to the project
+                local assigned_indicator=""
+                for assigned_vault in "${assigned_vaults[@]}"; do
+                    if [ "$assigned_vault" = "$name" ]; then
+                        assigned_indicator=" ${DIM}(in use)${NC}"
+                        break
+                    fi
+                done
+
+                echo -e "  ${BRIGHT_CYAN}${counter}${NC}  ${BRIGHT_GREEN}●${NC} ${BRIGHT_WHITE}${name}${NC}${assigned_indicator}"
                 echo -e "      ${DIM}${mount_point}${NC}"
                 mounted_indices+=("$i")
                 counter=$((counter + 1))
-            else
-                echo -e "      ${DIM}○ ${name} (not mounted)${NC}"
             fi
         done
 
@@ -78,9 +91,9 @@ select_vault_screen() {
         echo -ne "${BRIGHT_CYAN}>${NC} "
 
         local choice
-        read choice
+        read_with_instant_back choice
 
-        if [[ "$choice" =~ ^[Bb]$ ]]; then
+        if [[ "$choice" == "b" ]]; then
             return 1
         fi
 

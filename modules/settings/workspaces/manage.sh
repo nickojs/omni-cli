@@ -34,7 +34,7 @@ manage_workspace() {
         show_workspace_management_header "$display_name" "$projects_root" "$project_count"
 
         # Display projects
-        display_projects_list workspace_projects
+        display_projects_list workspace_projects "$workspace_file" "$projects_root"
 
         # Show commands
         show_workspace_management_commands "$project_count"
@@ -93,7 +93,7 @@ manage_workspace() {
                 local project_info="${workspace_projects[$project_index]}"
                 IFS=':' read -r display_name project_name startup_cmd shutdown_cmd <<< "$project_info"
                 local project_path="${projects_root}/${project_name}"
-                show_secure_files_flow "$display_name" "$project_path"
+                show_secure_files_flow "$workspace_file" "$display_name" "$project_path"
             fi
             continue
         fi
