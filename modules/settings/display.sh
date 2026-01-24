@@ -122,34 +122,19 @@ display_workspaces_info() {
 
     echo ""
 
-    # Table header with fixed column widths
-    local header_name=$(printf "%-24s" "Project name")
-    local header_folder=$(printf "%-24s" "Folder name")
-    local header_startup=$(printf "%-20s" "Startup cmd")
-    local header_shutdown=$(printf "%-20s" "Shutdown cmd")
-    local header_vaults=$(printf "%-20s" "Vaults")
-
     local counter=1
     for workspace_basename in "${available_workspaces[@]}"; do
         local workspace_file="$config_dir/$workspace_basename"
-        local workspace_name=$(basename "$workspace_basename" .json)
-        local display_name=$(echo "$workspace_name" | sed 's/[_-]/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)} 1')
+        local display_name=$(format_workspace_display_name "$workspace_file")
 
-        # Workspace header with status icon and text
-        local status_icon=""
-        local status_text=""
-        if is_workspace_active "$workspace_file"; then
-            status_icon="${BRIGHT_GREEN}●${NC}"
-            status_text="${DIM}active${NC}"
-        else
-            status_icon="${DIM}○${NC}"
-            status_text="${DIM}inactive${NC}"
-        fi
-        
-        printf " %s ${BRIGHT_CYAN}%s${NC} ${BOLD}%-25s${NC} %s" "$status_icon" "Workspace #$counter" "\"${display_name:0:45}\"" 
-        echo ""
-        echo ""
-        printf "  ${BRIGHT_WHITE}%s %s %s %s %s\n${NC}" "$header_name" "$header_folder" "$header_startup" "$header_shutdown" "$header_vaults" 
+        # Get workspace status using shared component
+        local status_result=$(get_workspace_status "$workspace_file")
+        local status_icon="${status_result%%|*}"
+        local status_text="${status_result#*|}"
+
+        # Render workspace header and table header
+        render_workspace_header "settings" "$display_name" "$counter" "$status_icon" "$status_text"
+        render_table_header "settings"
 
         # Parse projects from this workspace file
         local workspace_projects=()
@@ -170,30 +155,13 @@ display_workspaces_info() {
                 [[ -z "$startup_cmd" || "$startup_cmd" == "null" ]] && startup_cmd="—"
                 [[ -z "$shutdown_cmd" || "$shutdown_cmd" == "null" ]] && shutdown_cmd="—"
 
-                # Get assigned vaults for this project
-                local vault_text=""
-                if [ -f "$workspace_file" ] && command -v jq >/dev/null 2>&1; then
-                    vault_text=$(jq -r --arg path "$relative_path" \
-                        '.[] | select(.relativePath == $path) | .assignedVaults[]? // empty' \
-                        "$workspace_file" 2>/dev/null | tr '\n' ',' | sed 's/,$//')
-                fi
+                # Get vaults using shared component
+                local vault_text=$(get_project_vaults "$workspace_file" "$relative_path")
 
-                # Truncate long values
-                [[ ${#folder_name} -gt 24 ]] && folder_name="${folder_name:0:21}..."
-                [[ ${#startup_cmd} -gt 20 ]] && startup_cmd="${startup_cmd:0:17}..."
-                [[ ${#shutdown_cmd} -gt 20 ]] && shutdown_cmd="${shutdown_cmd:0:17}..."
-                [[ ${#vault_text} -gt 20 ]] && vault_text="${vault_text:0:17}..."
-
-                # Format columns with fixed widths
-                local col_name=$(printf "%-24s" "$project_display_name")
-                local col_folder=$(printf "%-24s" "$folder_name")
-                local col_startup=$(printf "%-20s" "$startup_cmd")
-                local col_shutdown=$(printf "%-22s" "$shutdown_cmd")
-                local col_vaults=$(printf "%-20s" "${vault_text:-}")
-
-                printf "  ${DIM}%s %s %s %s %s${NC}\n" "$col_name" "$col_folder" "$col_startup" "$col_shutdown" "$col_vaults"
+                # Render row using shared component
+                render_settings_project_row "$project_display_name" "$folder_name" "$startup_cmd" "$shutdown_cmd" "$vault_text"
             done
-        echo ""
+            echo ""
         fi
         echo ""
         counter=$((counter + 1))
