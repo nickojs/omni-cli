@@ -121,27 +121,42 @@ display_workspaces_info() {
     settings_workspaces=("${available_workspaces[@]}")
 
     echo ""
+
+    # Table header with fixed column widths
+    local header_name=$(printf "%-24s" "Project name")
+    local header_folder=$(printf "%-24s" "Folder name")
+    local header_startup=$(printf "%-20s" "Startup cmd")
+    local header_shutdown=$(printf "%-20s" "Shutdown cmd")
+    local header_vaults=$(printf "%-20s" "Vaults")
+
     local counter=1
     for workspace_basename in "${available_workspaces[@]}"; do
         local workspace_file="$config_dir/$workspace_basename"
         local workspace_name=$(basename "$workspace_basename" .json)
         local display_name=$(echo "$workspace_name" | sed 's/[_-]/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)} 1')
 
-        # Workspace header with status icon
+        # Workspace header with status icon and text
         local status_icon=""
+        local status_text=""
         if is_workspace_active "$workspace_file"; then
             status_icon="${BRIGHT_GREEN}●${NC}"
+            status_text="${DIM}active${NC}"
         else
             status_icon="${DIM}○${NC}"
+            status_text="${DIM}inactive${NC}"
         fi
-        echo -e "${BRIGHT_CYAN}${counter}${NC} ${BRIGHT_CYAN}${display_name}${NC}  ${status_icon}"
+        
+        printf " %s ${BRIGHT_CYAN}%s${NC} ${BOLD}%-25s${NC} %s" "$status_icon" "Workspace #$counter" "\"${display_name:0:45}\"" 
+        echo ""
+        echo ""
+        printf "  ${BRIGHT_WHITE}%s %s %s %s %s\n${NC}" "$header_name" "$header_folder" "$header_startup" "$header_shutdown" "$header_vaults" 
 
         # Parse projects from this workspace file
         local workspace_projects=()
         if command -v jq >/dev/null 2>&1 && [ -f "$workspace_file" ]; then
             while IFS= read -r line; do
                 workspace_projects+=("$line")
-            done < <(jq -r '.[] | "\(.displayName):\(.projectName):\(.startupCmd // ""):\(.shutdownCmd // "")"' "$workspace_file" 2>/dev/null)
+            done < <(jq -r '.[] | "\(.displayName):\(.projectName):\(.relativePath):\(.startupCmd // ""):\(.shutdownCmd // "")"' "$workspace_file" 2>/dev/null)
         fi
 
         # Display projects for this workspace
@@ -149,27 +164,39 @@ display_workspaces_info() {
             echo -e "  ${DIM}No projects configured${NC}"
         else
             for project_info in "${workspace_projects[@]}"; do
-                IFS=':' read -r project_display_name folder_name startup_cmd shutdown_cmd <<< "$project_info"
+                IFS=':' read -r project_display_name folder_name relative_path startup_cmd shutdown_cmd <<< "$project_info"
 
                 # Use dash for empty values
                 [[ -z "$startup_cmd" || "$startup_cmd" == "null" ]] && startup_cmd="—"
                 [[ -z "$shutdown_cmd" || "$shutdown_cmd" == "null" ]] && shutdown_cmd="—"
 
+                # Get assigned vaults for this project
+                local vault_text=""
+                if [ -f "$workspace_file" ] && command -v jq >/dev/null 2>&1; then
+                    vault_text=$(jq -r --arg path "$relative_path" \
+                        '.[] | select(.relativePath == $path) | .assignedVaults[]? // empty' \
+                        "$workspace_file" 2>/dev/null | tr '\n' ',' | sed 's/,$//')
+                fi
+
                 # Truncate long values
-                [[ ${#folder_name} -gt 22 ]] && folder_name="${folder_name:0:19}..."
-                [[ ${#startup_cmd} -gt 18 ]] && startup_cmd="${startup_cmd:0:15}..."
-                [[ ${#shutdown_cmd} -gt 18 ]] && shutdown_cmd="${shutdown_cmd:0:15}..."
+                [[ ${#folder_name} -gt 24 ]] && folder_name="${folder_name:0:21}..."
+                [[ ${#startup_cmd} -gt 20 ]] && startup_cmd="${startup_cmd:0:17}..."
+                [[ ${#shutdown_cmd} -gt 20 ]] && shutdown_cmd="${shutdown_cmd:0:17}..."
+                [[ ${#vault_text} -gt 20 ]] && vault_text="${vault_text:0:17}..."
 
-                # Fixed-width columns
-                local formatted_name=$(printf "%-24s" "$project_display_name")
-                local formatted_folder=$(printf "%-24s" "$folder_name")
-                local formatted_startup=$(printf "%-20s" "$startup_cmd")
-                local formatted_shutdown=$(printf "%-20s" "$shutdown_cmd")
+                # Format columns with fixed widths
+                local col_name=$(printf "%-24s" "$project_display_name")
+                local col_folder=$(printf "%-24s" "$folder_name")
+                local col_startup=$(printf "%-20s" "$startup_cmd")
+                local col_shutdown=$(printf "%-22s" "$shutdown_cmd")
+                local col_vaults=$(printf "%-20s" "${vault_text:-}")
 
-                echo -e "  ${BRIGHT_WHITE}${formatted_name}${NC}${DIM}${formatted_folder}${formatted_startup}${formatted_shutdown}${NC}"
+                printf "  ${DIM}%s %s %s %s %s${NC}\n" "$col_name" "$col_folder" "$col_startup" "$col_shutdown" "$col_vaults"
             done
+        echo ""
         fi
         echo ""
         counter=$((counter + 1))
     done
 }
+ 

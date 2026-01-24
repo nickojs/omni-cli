@@ -131,7 +131,7 @@ display_workspaces() {
         local display_name=$(echo "$workspace_name" | sed 's/[_-]/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)} 1')
 
         # Workspace header matching settings menu style
-        printf " ${BRIGHT_CYAN}Workspace %s${NC}\n" "$display_name"
+        printf " ${BRIGHT_CYAN}%s${NC}\n" "$display_name"
         echo ""
         echo -e "  ${BRIGHT_WHITE}${header_counter}${header_name}${header_status}${header_vaults}${NC}"
         echo ""
