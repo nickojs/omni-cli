@@ -18,21 +18,10 @@ show_secrets_default_screen() {
 
     printf '\033[?25l'
     clear
-    print_header "Secrets"
+    print_header "Secrets & Vaults"
 
-    # Display secrets section
-    if [ "$secret_count" -eq 0 ]; then
-        display_secrets_empty
-    else
-        display_secrets_table secrets
-    fi
-
-    # Display vaults section
-    if [ "$vault_count" -eq 0 ]; then
-        display_vaults_empty
-    else
-        display_vaults_table vaults
-    fi
+    # Display secrets and vaults side by side
+    display_secrets_and_vaults secrets vaults
 
     # Build and display menu commands
     echo ""
@@ -41,11 +30,11 @@ show_secrets_default_screen() {
         "$([[ $secret_count -gt 0 ]] && menu_cmd 'v' 'add vault' "$MENU_COLOR_ADD")" \
         "$(menu_num_cmd 'm' "$vault_count" 'mount' "$MENU_COLOR_ACTION")" \
         "$(menu_num_cmd 'u' "$vault_count" 'unmount' "$MENU_COLOR_ACTION")" \
-        "$([[ $vault_count -gt 0 && $secret_count -gt 0 ]] && menu_num_cmd 's' "$vault_count" 'switch' "$MENU_COLOR_OPEN")" \
+        "$([[ $vault_count -gt 0 && $secret_count -gt 0 ]] && menu_num_cmd 's' "$vault_count" 'switch secret' "$MENU_COLOR_OPEN")" \
         "$(menu_num_cmd 'd' "$secret_count" 'delete secret' "$MENU_COLOR_DELETE")" \
         "$(menu_num_cmd 'r' "$vault_count" 'remove vault' "$MENU_COLOR_DELETE")" \
-        "$(menu_cmd 'h' 'help' "$MENU_COLOR_NAV")" \
-        "$(menu_cmd 'b' 'back' "$MENU_COLOR_NAV")"
+        "$(menu_cmd 'b' 'back' "$MENU_COLOR_NAV")" \
+        "$(menu_cmd 'h' 'help' "$MENU_COLOR_NAV")"
     echo ""
 
     printf '\033[?25h'

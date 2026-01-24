@@ -111,14 +111,23 @@ render_workspace_header() {
     local status_icon="$4"
     local status_text="$5"
 
-    if [ "$mode" = "menu" ]; then
-        printf " ${BRIGHT_CYAN}%s${NC}\n" "$display_name"
-    else
-        printf " %s ${BRIGHT_CYAN}%s${NC} ${BOLD}%-25s${NC} %s" \
-            "$status_icon" "Workspace #$counter" "\"${display_name:0:45}\""
-    fi
-    echo ""
-    echo ""
+    case "$mode" in
+        menu)
+            echo ""
+            printf " ${BRIGHT_CYAN}%s${NC}\n" "$display_name"
+            ;;
+        settings)
+            printf " %s ${BRIGHT_CYAN}%s${NC} ${BOLD}%-25s${NC} %s" \
+                "$status_icon" "Workspace #$counter" "\"${display_name:0:45}\""
+            echo ""
+            echo ""
+            ;;
+        *)
+            # Unknown mode: basic fallback
+            printf " ${BRIGHT_CYAN}%s${NC}\n" "$display_name"
+            echo ""
+            ;;
+    esac
 }
 
 # Render table header row
@@ -128,22 +137,30 @@ render_workspace_header() {
 render_table_header() {
     local mode="$1"
 
-    if [ "$mode" = "menu" ]; then
-        local h_counter=$(format_column "#" 3)
-        local h_name=$(format_column "Name" 34)
-        local h_status=$(format_column "Status" 16)
-        local h_vaults="Vaults"
-        echo -e "  ${BRIGHT_WHITE}${h_counter}${h_name}${h_status}${h_vaults}${NC}"
-    else
-        local h_name=$(format_column "Project name" 24)
-        local h_folder=$(format_column "Folder name" 24)
-        local h_startup=$(format_column "Startup cmd" 20)
-        local h_shutdown=$(format_column "Shutdown cmd" 20)
-        local h_vaults=$(format_column "Vaults" 20)
-        printf "  ${BRIGHT_WHITE}%s %s %s %s %s\n${NC}" \
-            "$h_name" "$h_folder" "$h_startup" "$h_shutdown" "$h_vaults"
-    fi
-    echo ""
+    case "$mode" in
+        menu)
+            echo ""
+            local h_counter=$(format_column "#" 3)
+            local h_name=$(format_column "Name" 34)
+            local h_status=$(format_column "Status" 16)
+            local h_vaults="Vaults"
+            echo -e "  ${BRIGHT_WHITE}${h_counter}${h_name}${h_status}${h_vaults}${NC}"
+            ;;
+        settings)
+            local h_name=$(format_column "Project name" 24)
+            local h_folder=$(format_column "Folder name" 24)
+            local h_startup=$(format_column "Startup cmd" 20)
+            local h_shutdown=$(format_column "Shutdown cmd" 20)
+            local h_vaults=$(format_column "Vaults" 20)
+            printf "   ${BRIGHT_WHITE}%s %s %s %s %s\n${NC}" \
+                "$h_name" "$h_folder" "$h_startup" "$h_shutdown" "$h_vaults"
+            ;;
+        *)
+            # Unknown mode: basic fallback
+            echo -e "  ${BRIGHT_WHITE}# Name${NC}"
+            echo ""
+            ;;
+    esac
 }
 
 # Render project row for menu mode
@@ -165,7 +182,7 @@ render_menu_project_row() {
     local col_status=$(format_column "$status_text" 16)
     local col_vaults="${vaults:-}"
 
-    echo -e "  ${BRIGHT_CYAN}${col_counter}${NC}${BRIGHT_WHITE}${col_name}${NC}${status_color}${col_status}${NC}${DIM}${col_vaults}${NC}"
+    echo -e "  ${BRIGHT_CYAN}${col_counter}${NC}${DIM}${col_name}${NC}${status_color}${col_status}${NC}${DIM}${col_vaults}${NC}"
 }
 
 # Render project row for settings mode
@@ -195,7 +212,7 @@ render_settings_project_row() {
     local col_shutdown=$(format_column "$shutdown_cmd" 22)
     local col_vaults=$(format_column "${vaults:-}" 20)
 
-    printf "  ${DIM}%s %s %s %s %s${NC}\n" \
+    printf "   ${DIM}%s %s %s %s %s${NC}\n" \
         "$col_name" "$col_folder" "$col_startup" "$col_shutdown" "$col_vaults"
 }
 

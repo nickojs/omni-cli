@@ -68,13 +68,8 @@ display_workspaces() {
 
     local global_counter=1
 
-    echo ""
     for workspace_file in "${workspace_files[@]}"; do
         local display_name=$(format_workspace_display_name "$workspace_file")
-
-        # Render workspace header and table header
-        render_workspace_header "menu" "$display_name"
-        render_table_header "menu"
 
         # Find projects belonging to this workspace
         local workspace_project_indices=()
@@ -84,10 +79,13 @@ display_workspaces() {
             fi
         done
 
-        # Display projects for this workspace
+        render_workspace_header "menu" "$display_name"
+
+        # Display projects or empty message
         if [ ${#workspace_project_indices[@]} -eq 0 ]; then
             echo -e "  ${DIM}No projects configured${NC}"
         else
+            render_table_header "menu"
             for j in "${!workspace_project_indices[@]}"; do
                 local project_index=${workspace_project_indices[j]}
                 IFS=':' read -r project_display_name folder_name startup_cmd shutdown_cmd <<< "${projects[project_index]}"
@@ -104,7 +102,6 @@ display_workspaces() {
                 render_menu_project_row "$global_counter" "$project_display_name" "$status_text" "$status_color" "$vault_text"
                 global_counter=$((global_counter + 1))
             done
-            echo ""
         fi
         echo ""
     done

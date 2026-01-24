@@ -104,10 +104,6 @@ display_workspaces_info() {
         local status_icon="${status_result%%|*}"
         local status_text="${status_result#*|}"
 
-        # Render workspace header and table header
-        render_workspace_header "settings" "$display_name" "$counter" "$status_icon" "$status_text"
-        render_table_header "settings"
-
         # Parse projects from this workspace file
         local workspace_projects=()
         if command -v jq >/dev/null 2>&1 && [ -f "$workspace_file" ]; then
@@ -116,10 +112,13 @@ display_workspaces_info() {
             done < <(jq -r '.[] | "\(.displayName):\(.projectName):\(.relativePath):\(.startupCmd // ""):\(.shutdownCmd // "")"' "$workspace_file" 2>/dev/null)
         fi
 
-        # Display projects for this workspace
+        render_workspace_header "settings" "$display_name" "$counter" "$status_icon" "$status_text"
+
+        # Display projects or empty message
         if [ ${#workspace_projects[@]} -eq 0 ]; then
-            echo -e "  ${DIM}No projects configured${NC}"
+            echo -e "   ${DIM}No projects configured${NC}"
         else
+            render_table_header "settings"
             for project_info in "${workspace_projects[@]}"; do
                 IFS=':' read -r project_display_name folder_name relative_path startup_cmd shutdown_cmd <<< "$project_info"
 
@@ -133,7 +132,6 @@ display_workspaces_info() {
                 # Render row using shared component
                 render_settings_project_row "$project_display_name" "$folder_name" "$startup_cmd" "$shutdown_cmd" "$vault_text"
             done
-            echo ""
         fi
         echo ""
         counter=$((counter + 1))

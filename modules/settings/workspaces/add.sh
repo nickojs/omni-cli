@@ -33,6 +33,10 @@ show_add_workspace_screen() {
             workspace_name="$default_name"
         fi
 
+        # Convert spaces to hyphens and lowercase
+        workspace_name="${workspace_name// /-}"
+        workspace_name="${workspace_name,,}"
+
         # Validate workspace name
         if ! [[ "$workspace_name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
             print_error "Invalid workspace name. Use only letters, numbers, dashes, and underscores."

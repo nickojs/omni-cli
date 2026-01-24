@@ -18,7 +18,9 @@ show_workspace_name_prompt() {
     clear
     print_header "Create Workspace"
     echo ""
-    print_success "Directory selected: $display_path"
+    echo -e "${BRIGHT_WHITE}Selected directory:${NC} ${DIM}${display_path}${NC}"
+    echo ""
+    echo -e "${DIM}Spaces will be converted to hyphens (e.g., 'My Projects' → 'my-projects')${NC}"
     echo ""
     echo -e "${DIM}Press Esc to cancel${NC}"
     echo ""
@@ -113,11 +115,11 @@ show_workspace_management_commands() {
     echo ""
     menu_line \
         "$(menu_cmd 'a' 'add project' "$MENU_COLOR_ADD")" \
-        "$(menu_num_cmd 'e' "$project_count" 'edit' "$MENU_COLOR_EDIT")" \
+        "$(menu_num_cmd 'e' "$project_count" 'edit project' "$MENU_COLOR_EDIT")" \
         "$(menu_num_cmd 'v' "$project_count" 'secure files' "$MENU_COLOR_ACTION")" \
-        "$(menu_num_cmd 'x' "$project_count" 'remove' "$MENU_COLOR_DELETE")" \
-        "$(menu_cmd 'r' 'rename' "$MENU_COLOR_EDIT")" \
-        "$(menu_cmd 'd' 'delete' "$MENU_COLOR_DELETE")" \
+        "$(menu_num_cmd 'x' "$project_count" 'remove project' "$MENU_COLOR_DELETE")" \
+        "$(menu_cmd 'r' 'rename workspace' "$MENU_COLOR_EDIT")" \
+        "$(menu_cmd 'd' 'delete workspace' "$MENU_COLOR_DELETE")" \
         "$(menu_cmd 'b' 'back' "$MENU_COLOR_NAV")"
     echo ""
 }

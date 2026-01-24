@@ -22,7 +22,9 @@ rename_workspace() {
     clear
     print_header "Rename Workspace"
     echo ""
-    echo -e "${BRIGHT_WHITE}Current name: ${DIM}${current_display}${NC}"
+    echo -e "${BRIGHT_WHITE}Current name:${NC} ${DIM}${current_display}${NC}"
+    echo ""
+    echo -e "${DIM}Spaces will be converted to hyphens (e.g., 'My Projects' → 'my-projects')${NC}"
     echo ""
     echo -e "${DIM}Press Esc to cancel${NC}"
     echo ""
@@ -45,6 +47,10 @@ rename_workspace() {
         wait_for_enter
         return 0
     fi
+
+    # Convert spaces to hyphens and lowercase
+    new_name="${new_name// /-}"
+    new_name="${new_name,,}"
 
     # Validate workspace name
     if ! [[ "$new_name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
