@@ -7,9 +7,10 @@
 # Usage: source modules/settings/workspaces/manage.sh
 
 # Function to manage a specific workspace (add projects, etc.)
-# Parameters: workspace_file
+# Parameters: workspace_file, restricted_mode (optional)
 manage_workspace() {
     local workspace_file="$1"
+    local restricted_mode="${2:-false}"
     local display_name=$(format_workspace_display_name "$workspace_file")
 
     while true; do
@@ -37,7 +38,7 @@ manage_workspace() {
         display_projects_list workspace_projects "$workspace_file" "$projects_root"
 
         # Show commands
-        show_workspace_management_commands "$project_count"
+        show_workspace_management_commands "$project_count" "$restricted_mode"
 
         # Get user input
         printf '\033[?25h'  # Show cursor for input
@@ -55,8 +56,13 @@ manage_workspace() {
             continue
         fi
 
-        # Handle edit project commands (e1, e2, etc.)
+        # Handle edit project commands (e1, e2, etc.) - blocked in restricted mode
         if [[ $choice =~ ^[Ee]([0-9]+)$ ]]; then
+            if [[ "$restricted_mode" == true ]]; then
+                print_error "Cannot edit projects while projects are running"
+                sleep 1
+                continue
+            fi
             local project_choice="${BASH_REMATCH[1]}"
             if [ "$project_choice" -ge 1 ] && [ "$project_choice" -le "$project_count" ]; then
                 local project_index=$((project_choice - 1))
@@ -75,8 +81,13 @@ manage_workspace() {
             continue
         fi
 
-        # Handle remove project commands (x1, x2, etc.)
+        # Handle remove project commands (x1, x2, etc.) - blocked in restricted mode
         if [[ $choice =~ ^[Xx]([0-9]+)$ ]]; then
+            if [[ "$restricted_mode" == true ]]; then
+                print_error "Cannot remove projects while projects are running"
+                sleep 1
+                continue
+            fi
             local project_choice="${BASH_REMATCH[1]}"
             if [ "$project_choice" -ge 1 ] && [ "$project_choice" -le "$project_count" ]; then
                 local project_index=$((project_choice - 1))
@@ -98,8 +109,13 @@ manage_workspace() {
             continue
         fi
 
-        # Handle delete workspace command
+        # Handle delete workspace command - blocked in restricted mode
         if [[ $choice =~ ^[Dd]$ ]]; then
+            if [[ "$restricted_mode" == true ]]; then
+                print_error "Cannot delete workspace while projects are running"
+                sleep 1
+                continue
+            fi
             if delete_workspace "$workspace_file"; then
                 return 0  # Exit to settings menu
             fi

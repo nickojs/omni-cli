@@ -16,6 +16,23 @@ format_workspace_display_name() {
     echo "$workspace_name" | sed 's/[_-]/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)} 1'
 }
 
+# Format workspace display name using nameref (no subshell)
+# Parameters:
+#   $1 - workspace_file path
+#   $2 - nameref for result
+format_workspace_display_name_ref() {
+    local workspace_file="$1"
+    local -n _result=$2
+    local workspace_name="${workspace_file##*/}"
+    workspace_name="${workspace_name%.json}"
+    # Title case: replace _ and - with space, capitalize first letter of each word
+    local word result_str=""
+    for word in ${workspace_name//[-_]/ }; do
+        result_str+="${word^} "
+    done
+    _result="${result_str% }"
+}
+
 # Get workspace files from config directory
 # Parameters:
 #   $1 - mode: "active" (only active workspaces) or "all" (all workspaces)
@@ -68,6 +85,31 @@ get_project_vaults() {
             '.[] | select(.relativePath == $path) | .assignedVaults[]? // empty' \
             "$workspace_file" 2>/dev/null | tr '\n' ',' | sed 's/,$//'
     fi
+}
+
+# Vault cache for batch loading
+declare -gA _vault_cache=()
+
+# Load all vaults for a workspace into cache (single jq call)
+# Parameters: $1 - workspace_file path
+load_workspace_vaults() {
+    local workspace_file="$1"
+
+    if [ -f "$workspace_file" ] && command -v jq >/dev/null 2>&1; then
+        local project_path vaults
+        while IFS=$'\t' read -r project_path vaults; do
+            [[ -n "$project_path" ]] && _vault_cache["${workspace_file}:${project_path}"]="$vaults"
+        done < <(jq -r '.[] | [.relativePath, (.assignedVaults // [] | join(","))] | @tsv' "$workspace_file" 2>/dev/null)
+    fi
+}
+
+# Get vaults from cache using nameref (no subshell)
+# Parameters: $1 - workspace_file, $2 - relative_path, $3 - nameref for result
+get_project_vaults_ref() {
+    local workspace_file="$1"
+    local relative_path="$2"
+    local -n _vaults=$3
+    _vaults="${_vault_cache["${workspace_file}:${relative_path}"]:-}"
 }
 
 # Truncate value to max length with ellipsis
@@ -140,20 +182,11 @@ render_table_header() {
     case "$mode" in
         menu)
             echo ""
-            local h_counter=$(format_column "#" 3)
-            local h_name=$(format_column "Name" 34)
-            local h_status=$(format_column "Status" 16)
-            local h_vaults="Vaults"
-            echo -e "  ${BRIGHT_WHITE}${h_counter}${h_name}${h_status}${h_vaults}${NC}"
+            printf "  ${BRIGHT_WHITE}%-3s%-34s%-16s${NC}\n" "#" "Name" "Status"
             ;;
         settings)
-            local h_name=$(format_column "Project name" 24)
-            local h_folder=$(format_column "Folder name" 24)
-            local h_startup=$(format_column "Startup cmd" 20)
-            local h_shutdown=$(format_column "Shutdown cmd" 20)
-            local h_vaults=$(format_column "Vaults" 20)
-            printf "   ${BRIGHT_WHITE}%s %s %s %s %s\n${NC}" \
-                "$h_name" "$h_folder" "$h_startup" "$h_shutdown" "$h_vaults"
+            printf "   ${BRIGHT_WHITE}%-24s %-24s %-20s %-20s %-20s${NC}\n" \
+                "Project name" "Folder name" "Startup cmd" "Shutdown cmd" "Vaults"
             ;;
         *)
             # Unknown mode: basic fallback
@@ -164,28 +197,26 @@ render_table_header() {
 }
 
 # Render project row for menu mode
+# Render project row for menu mode (optimized - no subshells)
 # Parameters:
 #   $1 - counter
 #   $2 - project_name
 #   $3 - status_text
 #   $4 - status_color
-#   $5 - vaults
 render_menu_project_row() {
     local counter="$1"
     local project_name="$2"
     local status_text="$3"
     local status_color="$4"
-    local vaults="$5"
 
-    local col_counter=$(format_column "$counter" 3)
-    local col_name=$(format_column "${project_name:0:34}" 34)
-    local col_status=$(format_column "$status_text" 16)
-    local col_vaults="${vaults:-}"
+    # Truncate name if needed
+    [[ ${#project_name} -gt 34 ]] && project_name="${project_name:0:31}..."
 
-    echo -e "  ${BRIGHT_CYAN}${col_counter}${NC}${DIM}${col_name}${NC}${status_color}${col_status}${NC}${DIM}${col_vaults}${NC}"
+    printf "  ${BRIGHT_CYAN}%-3s${NC}${DIM}%-34s${NC}${status_color}%-16s${NC}\n" \
+        "$counter" "$project_name" "$status_text"
 }
 
-# Render project row for settings mode
+# Render project row for settings mode (optimized - no subshells)
 # Parameters:
 #   $1 - project_name
 #   $2 - folder_name
@@ -197,23 +228,17 @@ render_settings_project_row() {
     local folder_name="$2"
     local startup_cmd="$3"
     local shutdown_cmd="$4"
-    local vaults="$5"
+    local vaults="${5:-}"
 
-    # Truncate long values
-    folder_name=$(truncate_value "$folder_name" 24)
-    startup_cmd=$(truncate_value "$startup_cmd" 20)
-    shutdown_cmd=$(truncate_value "$shutdown_cmd" 20)
-    vaults=$(truncate_value "$vaults" 20)
+    # Inline truncation (no subshells)
+    [[ ${#folder_name} -gt 24 ]] && folder_name="${folder_name:0:21}..."
+    [[ ${#startup_cmd} -gt 24 ]] && startup_cmd="${startup_cmd:0:17}..."
+    [[ ${#shutdown_cmd} -gt 20 ]] && shutdown_cmd="${shutdown_cmd:0:17}..."
+    [[ ${#vaults} -gt 20 ]] && vaults="${vaults:0:17}..."
 
-    # Format columns
-    local col_name=$(format_column "$project_name" 24)
-    local col_folder=$(format_column "$folder_name" 24)
-    local col_startup=$(format_column "$startup_cmd" 20)
-    local col_shutdown=$(format_column "$shutdown_cmd" 22)
-    local col_vaults=$(format_column "${vaults:-}" 20)
-
-    printf "   ${DIM}%s %s %s %s %s${NC}\n" \
-        "$col_name" "$col_folder" "$col_startup" "$col_shutdown" "$col_vaults"
+    # Direct printf with width specifiers (no subshells)
+    printf "   ${DIM}%-24s %-24s %-20s %-20s %-20s${NC}\n" \
+        "$project_name" "$folder_name" "$startup_cmd" "$shutdown_cmd" "$vaults"
 }
 
 # Get project status for menu display
@@ -261,5 +286,24 @@ get_workspace_status() {
         echo "${BRIGHT_GREEN}●${NC}|${DIM}active${NC}"
     else
         echo "${DIM}○${NC}|${DIM}inactive${NC}"
+    fi
+}
+
+# Get workspace status using nameref (no subshell)
+# Parameters:
+#   $1 - workspace_file path
+#   $2 - nameref for icon
+#   $3 - nameref for text
+get_workspace_status_ref() {
+    local workspace_file="$1"
+    local -n _icon=$2
+    local -n _text=$3
+
+    if is_workspace_active "$workspace_file"; then
+        _icon="${BRIGHT_GREEN}●${NC}"
+        _text="${DIM}active${NC}"
+    else
+        _icon="${DIM}○${NC}"
+        _text="${DIM}inactive${NC}"
     fi
 }

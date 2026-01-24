@@ -40,6 +40,7 @@ show_settings_menu() {
         if [[ "$restricted_mode" == true ]]; then
             menu_line \
                 "$(menu_num_cmd 't' "$ws_count" 'toggle workspace' "$MENU_COLOR_EDIT")" \
+                "$(menu_num_cmd 'm' "$ws_count" 'manage workspace' "$MENU_COLOR_ADD")" \
                 "$(menu_cmd 's' 'secrets' "$MENU_COLOR_NAV")" \
                 "$(menu_cmd 'b' 'back' "$MENU_COLOR_NAV")" \
                 "$(menu_cmd 'h' 'help' "$MENU_COLOR_NAV")"
@@ -95,14 +96,17 @@ display_workspaces_info() {
     echo ""
 
     local counter=1
+    local display_name status_icon status_text vault_text
+
     for workspace_basename in "${available_workspaces[@]}"; do
         local workspace_file="$config_dir/$workspace_basename"
-        local display_name=$(format_workspace_display_name "$workspace_file")
 
-        # Get workspace status using shared component
-        local status_result=$(get_workspace_status "$workspace_file")
-        local status_icon="${status_result%%|*}"
-        local status_text="${status_result#*|}"
+        # Use nameref functions (no subshells)
+        format_workspace_display_name_ref "$workspace_file" display_name
+        get_workspace_status_ref "$workspace_file" status_icon status_text
+
+        # Load all vaults for this workspace in one jq call
+        load_workspace_vaults "$workspace_file"
 
         # Parse projects from this workspace file
         local workspace_projects=()
@@ -123,13 +127,14 @@ display_workspaces_info() {
                 IFS=':' read -r project_display_name folder_name relative_path startup_cmd shutdown_cmd <<< "$project_info"
 
                 # Use dash for empty values
-                [[ -z "$startup_cmd" || "$startup_cmd" == "null" ]] && startup_cmd="—"
-                [[ -z "$shutdown_cmd" || "$shutdown_cmd" == "null" ]] && shutdown_cmd="—"
+                [[ -z "$startup_cmd" || "$startup_cmd" == "null" ]] && startup_cmd="-"
+                [[ -z "$shutdown_cmd" || "$shutdown_cmd" == "null" ]] && shutdown_cmd="-"
 
-                # Get vaults using shared component
-                local vault_text=$(get_project_vaults "$workspace_file" "$relative_path")
+                # Get vaults from cache (no subshell)
+                get_project_vaults_ref "$workspace_file" "$relative_path" vault_text
+                [[ -z "$vault_text" ]] && vault_text="-"
 
-                # Render row using shared component
+                # Render row (optimized, no subshells)
                 render_settings_project_row "$project_display_name" "$folder_name" "$startup_cmd" "$shutdown_cmd" "$vault_text"
             done
         fi

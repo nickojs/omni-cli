@@ -65,7 +65,33 @@ while true; do
         s|S)
             echo ""
             echo -ne " ${BRIGHT_WHITE}Layout name (ESC to cancel):${NC} "
-            read -r layout_name
+
+            # Read with ESC support
+            layout_name=""
+            while true; do
+                IFS= read -r -s -n 1 char
+                # ESC key
+                if [[ "$char" == $'\x1b' ]]; then
+                    layout_name=""
+                    echo ""
+                    break
+                fi
+                # Enter key
+                if [[ -z "$char" ]]; then
+                    echo ""
+                    break
+                fi
+                # Backspace
+                if [[ "$char" == $'\x7f' ]] || [[ "$char" == $'\x08' ]]; then
+                    if [[ -n "$layout_name" ]]; then
+                        layout_name="${layout_name%?}"
+                        echo -ne "\b \b"
+                    fi
+                    continue
+                fi
+                layout_name+="$char"
+                echo -n "$char"
+            done
 
             if [[ -n "$layout_name" ]]; then
                 # Get current activeConfig from .workspaces.json
@@ -81,6 +107,99 @@ while true; do
                         --argjson activeConfig "$(jq '.activeConfig' "$workspaces_file")" \
                         '{layoutName: $name, activeConfig: $activeConfig}' \
                         > "$layout_file"
+                fi
+            fi
+            ;;
+        l|L)
+            if [[ $layout_count -gt 0 ]]; then
+                echo ""
+                echo -ne " ${BRIGHT_WHITE}Load layout # (ESC to cancel):${NC} "
+
+                # Read number with ESC support
+                load_num=""
+                while true; do
+                    IFS= read -r -s -n 1 char
+                    # ESC key
+                    if [[ "$char" == $'\x1b' ]]; then
+                        load_num=""
+                        echo ""
+                        break
+                    fi
+                    # Enter key
+                    if [[ -z "$char" ]]; then
+                        echo ""
+                        break
+                    fi
+                    # Backspace
+                    if [[ "$char" == $'\x7f' ]] || [[ "$char" == $'\x08' ]]; then
+                        if [[ -n "$load_num" ]]; then
+                            load_num="${load_num%?}"
+                            echo -ne "\b \b"
+                        fi
+                        continue
+                    fi
+                    # Only accept digits
+                    if [[ "$char" =~ ^[0-9]$ ]]; then
+                        load_num+="$char"
+                        echo -n "$char"
+                    fi
+                done
+
+                # Validate and load
+                if [[ -n "$load_num" ]] && [[ "$load_num" -ge 1 ]] && [[ "$load_num" -le "$layout_count" ]]; then
+                    idx=$((load_num - 1))
+                    selected_layout="${layout_files[$idx]}"
+                    workspaces_file="$config_dir/.workspaces.json"
+
+                    if [[ -f "$selected_layout" ]] && [[ -f "$workspaces_file" ]]; then
+                        # Get activeConfig from selected layout and update .workspaces.json
+                        new_active_config=$(jq '.activeConfig' "$selected_layout")
+                        jq --argjson active "$new_active_config" '.activeConfig = $active' "$workspaces_file" > "${workspaces_file}.tmp" \
+                            && mv "${workspaces_file}.tmp" "$workspaces_file"
+                    fi
+                fi
+            fi
+            ;;
+        d|D)
+            if [[ $layout_count -gt 0 ]]; then
+                echo ""
+                echo -ne " ${BRIGHT_WHITE}Delete layout # (ESC to cancel):${NC} "
+
+                # Read number with ESC support
+                delete_num=""
+                while true; do
+                    IFS= read -r -s -n 1 char
+                    # ESC key
+                    if [[ "$char" == $'\x1b' ]]; then
+                        delete_num=""
+                        echo ""
+                        break
+                    fi
+                    # Enter key
+                    if [[ -z "$char" ]]; then
+                        echo ""
+                        break
+                    fi
+                    # Backspace
+                    if [[ "$char" == $'\x7f' ]] || [[ "$char" == $'\x08' ]]; then
+                        if [[ -n "$delete_num" ]]; then
+                            delete_num="${delete_num%?}"
+                            echo -ne "\b \b"
+                        fi
+                        continue
+                    fi
+                    # Only accept digits
+                    if [[ "$char" =~ ^[0-9]$ ]]; then
+                        delete_num+="$char"
+                        echo -n "$char"
+                    fi
+                done
+
+                # Validate and delete
+                if [[ -n "$delete_num" ]] && [[ "$delete_num" -ge 1 ]] && [[ "$delete_num" -le "$layout_count" ]]; then
+                    idx=$((delete_num - 1))
+                    file_to_delete="${layout_files[$idx]}"
+                    rm -f "$file_to_delete"
                 fi
             fi
             ;;

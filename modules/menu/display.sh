@@ -96,11 +96,8 @@ display_workspaces() {
                 local status_text="${status_result%%|*}"
                 local status_color="${status_result#*|}"
 
-                # Get vaults using shared component
-                local vault_text=$(get_project_vaults "$workspace_file" "$folder_name")
-
-                # Render row using shared component
-                render_menu_project_row "$global_counter" "$project_display_name" "$status_text" "$status_color" "$vault_text"
+                # Render row
+                render_menu_project_row "$global_counter" "$project_display_name" "$status_text" "$status_color"
                 global_counter=$((global_counter + 1))
             done
         fi

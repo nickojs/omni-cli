@@ -39,15 +39,10 @@ handle_settings_choice() {
         return 0
     fi
 
-    # Handle manage workspace commands (m1, m2, etc.) - blocked in restricted mode
+    # Handle manage workspace commands (m1, m2, etc.) - allowed with restrictions
     if [[ $choice =~ ^[Mm]([0-9]+)$ ]]; then
-        if [[ "$restricted_mode" == true ]]; then
-            print_error "Cannot manage workspaces while projects are running"
-            sleep 1
-            return 0
-        fi
         local workspace_choice="${BASH_REMATCH[1]}"
-        handle_manage_workspace_command "$workspace_choice"
+        handle_manage_workspace_command "$workspace_choice" "$restricted_mode"
         return 0
     fi
 
@@ -62,6 +57,7 @@ handle_settings_choice() {
 # Function to handle manage workspace command with workspace number
 handle_manage_workspace_command() {
     local workspace_choice="$1"
+    local restricted_mode="${2:-false}"
 
     # Validate workspace number
     if [ "$workspace_choice" -lt 1 ] || [ "$workspace_choice" -gt "${#settings_workspaces[@]}" ]; then
@@ -77,7 +73,7 @@ handle_manage_workspace_command() {
     local selected_workspace="$config_dir/$selected_workspace_basename"
 
     # Open workspace management screen
-    manage_workspace "$selected_workspace"
+    manage_workspace "$selected_workspace" "$restricted_mode"
 
     return 0
 }

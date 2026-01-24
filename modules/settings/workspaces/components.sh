@@ -69,35 +69,7 @@ display_projects_list() {
         local counter=1
         for project_info in "${projects_list[@]}"; do
             IFS=':' read -r proj_display proj_name proj_start proj_stop <<< "$project_info"
-
-            # Check if this project has files in any mounted vaults
-            local vault_indicator=""
-            local has_vault_files=false
-
-            # Load vaults and check if project has files in any of them
-            local -a vaults=()
-            load_vaults vaults
-            for vault_info in "${vaults[@]}"; do
-                IFS=':' read -r vault_name _ mount_point _ <<< "$vault_info"
-
-                # Check if vault is mounted and has files for this project
-                if get_vault_status "$mount_point"; then
-                    local vault_project_dir="${mount_point}/${proj_name}"
-                    if [ -d "$vault_project_dir" ]; then
-                        local file_count=$(find "$vault_project_dir" -type f 2>/dev/null | wc -l)
-                        if [ "$file_count" -gt 0 ]; then
-                            has_vault_files=true
-                            break
-                        fi
-                    fi
-                fi
-            done
-
-            if [ "$has_vault_files" = true ]; then
-                vault_indicator=" ${BRIGHT_PURPLE}🛡️${NC}"
-            fi
-
-            echo -e "  ${BRIGHT_CYAN}${counter}.${NC} ${BRIGHT_WHITE}${proj_display}${NC}${vault_indicator} ${DIM}(${proj_name})${NC}"
+            echo -e "  ${BRIGHT_CYAN}${counter}.${NC} ${BRIGHT_WHITE}${proj_display}${NC} ${DIM}(${proj_name})${NC}"
             counter=$((counter + 1))
         done
         echo ""
@@ -108,19 +80,29 @@ display_projects_list() {
 }
 
 # Function to show workspace management menu commands
-# Parameters: project_count
+# Parameters: project_count, restricted_mode (optional)
 show_workspace_management_commands() {
     local project_count="$1"
+    local restricted_mode="${2:-false}"
 
     echo ""
-    menu_line \
-        "$(menu_cmd 'a' 'add project' "$MENU_COLOR_ADD")" \
-        "$(menu_num_cmd 'e' "$project_count" 'edit project' "$MENU_COLOR_EDIT")" \
-        "$(menu_num_cmd 'v' "$project_count" 'secure files' "$MENU_COLOR_ACTION")" \
-        "$(menu_num_cmd 'x' "$project_count" 'remove project' "$MENU_COLOR_DELETE")" \
-        "$(menu_cmd 'r' 'rename workspace' "$MENU_COLOR_EDIT")" \
-        "$(menu_cmd 'd' 'delete workspace' "$MENU_COLOR_DELETE")" \
-        "$(menu_cmd 'b' 'back' "$MENU_COLOR_NAV")"
+    if [[ "$restricted_mode" == true ]]; then
+        # Restricted: only a, v, r, b
+        menu_line \
+            "$(menu_cmd 'a' 'add project' "$MENU_COLOR_ADD")" \
+            "$(menu_num_cmd 'v' "$project_count" 'secure files' "$MENU_COLOR_ACTION")" \
+            "$(menu_cmd 'r' 'rename workspace' "$MENU_COLOR_EDIT")" \
+            "$(menu_cmd 'b' 'back' "$MENU_COLOR_NAV")"
+    else
+        menu_line \
+            "$(menu_cmd 'a' 'add project' "$MENU_COLOR_ADD")" \
+            "$(menu_num_cmd 'e' "$project_count" 'edit project' "$MENU_COLOR_EDIT")" \
+            "$(menu_num_cmd 'v' "$project_count" 'secure files' "$MENU_COLOR_ACTION")" \
+            "$(menu_num_cmd 'x' "$project_count" 'remove project' "$MENU_COLOR_DELETE")" \
+            "$(menu_cmd 'r' 'rename workspace' "$MENU_COLOR_EDIT")" \
+            "$(menu_cmd 'd' 'delete workspace' "$MENU_COLOR_DELETE")" \
+            "$(menu_cmd 'b' 'back' "$MENU_COLOR_NAV")"
+    fi
     echo ""
 }
 
