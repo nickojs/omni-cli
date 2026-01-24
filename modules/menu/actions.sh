@@ -111,6 +111,13 @@ handle_settings_command() {
     reload_config
 }
 
+# Function to handle layout command
+handle_layout_command() {
+    show_layout_menu
+    # Reload configuration after returning from layouts
+    reload_config
+}
+
 # Function to handle kill all command
 handle_kill_all_command() {
     # Check if there are any running projects

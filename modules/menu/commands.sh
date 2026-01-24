@@ -22,6 +22,12 @@ handle_menu_choice() {
         return
     fi
 
+    # Handle layout command
+    if [[ $choice =~ ^[Ll]$ ]]; then
+        handle_layout_command
+        return
+    fi
+
     # Handle help command
     if [[ $choice =~ ^[Hh]$ ]]; then
         clear

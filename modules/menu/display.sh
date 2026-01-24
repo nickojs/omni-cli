@@ -33,6 +33,7 @@ show_project_menu_tmux() {
             "$(menu_num_cmd 'r' "$n" 'restart' "$MENU_COLOR_ACTION")" \
             "$(menu_num_cmd 'k' "$n" 'kill' "$MENU_COLOR_DELETE")" \
             "$([[ $n -gt 1 ]] && menu_cmd 'ka' 'kill all' "$MENU_COLOR_DELETE")" \
+            "$(menu_cmd 'l' 'layout' "$MENU_COLOR_OPEN")" \
             "$(menu_cmd 's' 'settings' "$MENU_COLOR_NAV")" \
             "$(menu_cmd 'h' 'help' "$MENU_COLOR_NAV")" \
             "$(menu_cmd 'q' 'quit' "$MENU_COLOR_NAV")"
