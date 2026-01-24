@@ -82,11 +82,10 @@ select_vault_screen() {
 
         # Build inline menu based on number of vaults
         local vault_count="${#mounted_indices[@]}"
-        if [ $vault_count -eq 1 ]; then
-            echo -e "${BRIGHT_GREEN}a1${NC} add to vault    ${BRIGHT_CYAN}m1${NC} move from vault    ${BRIGHT_RED}b${NC} back"
-        else
-            echo -e "${BRIGHT_GREEN}a1-a${vault_count}${NC} add to vault    ${BRIGHT_CYAN}m1-m${vault_count}${NC} move from vault    ${BRIGHT_RED}b${NC} back"
-        fi
+        menu_line \
+            "$(menu_num_cmd 'a' "$vault_count" 'add to vault' "$MENU_COLOR_ADD")" \
+            "$(menu_num_cmd 'm' "$vault_count" 'move from vault' "$MENU_COLOR_ACTION")" \
+            "$(menu_cmd 'b' 'back' "$MENU_COLOR_NAV")"
         echo ""
         echo -ne "${BRIGHT_CYAN}>${NC} "
 

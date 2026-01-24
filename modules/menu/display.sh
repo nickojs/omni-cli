@@ -26,13 +26,16 @@ show_project_menu_tmux() {
         # Commands section with better formatting and grouping
         echo ""
 
-        if [ ${#projects[@]} -eq 0 ]; then
-            echo -e "${BRIGHT_PURPLE}s${NC} settings    ${BRIGHT_PURPLE}h${NC} help    ${BRIGHT_PURPLE}q${NC} quit"
-        elif [ ${#projects[@]} -eq 1 ]; then
-            echo -e "${BRIGHT_GREEN}1${NC} start    ${BRIGHT_YELLOW}c1${NC} terminal    ${BRIGHT_CYAN}r1${NC} restart    ${BRIGHT_RED}k1${NC} kill    ${BRIGHT_PURPLE}s${NC} settings    ${BRIGHT_PURPLE}h${NC} help    ${BRIGHT_PURPLE}q${NC} quit"
-        else
-            echo -e "${BRIGHT_GREEN}1-${#projects[@]}${NC} start    ${BRIGHT_YELLOW}c1-${#projects[@]}${NC} terminal    ${BRIGHT_CYAN}r1-${#projects[@]}${NC} restart    ${BRIGHT_RED}k1-${#projects[@]}${NC}  ${BRIGHT_RED}ka${NC} kill    ${BRIGHT_PURPLE}s${NC} settings    ${BRIGHT_PURPLE}h${NC} help    ${BRIGHT_PURPLE}q${NC} quit"
-        fi
+        local n=${#projects[@]}
+        menu_line \
+            "$(menu_num_cmd '' "$n" 'start' "$MENU_COLOR_ADD")" \
+            "$(menu_num_cmd 'c' "$n" 'terminal' "$MENU_COLOR_OPEN")" \
+            "$(menu_num_cmd 'r' "$n" 'restart' "$MENU_COLOR_ACTION")" \
+            "$(menu_num_cmd 'k' "$n" 'kill' "$MENU_COLOR_DELETE")" \
+            "$([[ $n -gt 1 ]] && menu_cmd 'ka' 'kill all' "$MENU_COLOR_DELETE")" \
+            "$(menu_cmd 's' 'settings' "$MENU_COLOR_NAV")" \
+            "$(menu_cmd 'h' 'help' "$MENU_COLOR_NAV")" \
+            "$(menu_cmd 'q' 'quit' "$MENU_COLOR_NAV")"
 
         # Get user input with clean prompt
         echo ""

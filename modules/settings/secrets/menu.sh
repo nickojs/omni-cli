@@ -34,54 +34,18 @@ show_secrets_default_screen() {
         display_vaults_table vaults
     fi
 
-    # Build menu commands
-    local menu_items="${BRIGHT_GREEN}a${NC} add secret"
-
-    # Only show vault commands if secrets exist
-    if [ "$secret_count" -gt 0 ]; then
-        menu_items+="    ${BRIGHT_GREEN}v${NC} add vault"
-    fi
-
-    # Mount/unmount commands
-    if [ "$vault_count" -gt 0 ]; then
-        if [ "$vault_count" -eq 1 ]; then
-            menu_items+="    ${BRIGHT_CYAN}m1${NC} mount    ${BRIGHT_CYAN}u1${NC} unmount"
-        else
-            menu_items+="    ${BRIGHT_CYAN}m1-m${vault_count}${NC} mount    ${BRIGHT_CYAN}u1-u${vault_count}${NC} unmount"
-        fi
-    fi
-
-    # Switch/reassign secret commands
-    if [ "$vault_count" -gt 0 ] && [ "$secret_count" -gt 0 ]; then
-        if [ "$vault_count" -eq 1 ]; then
-            menu_items+="    ${BRIGHT_YELLOW}s1${NC} switch secret"
-        else
-            menu_items+="    ${BRIGHT_YELLOW}s1-s${vault_count}${NC} switch secret"
-        fi
-    fi
-
-    # Delete secret commands
-    if [ "$secret_count" -gt 0 ]; then
-        if [ "$secret_count" -eq 1 ]; then
-            menu_items+="    ${BRIGHT_RED}d1${NC} delete secret"
-        else
-            menu_items+="    ${BRIGHT_RED}d1-d${secret_count}${NC} delete secret"
-        fi
-    fi
-
-    # Remove vault commands
-    if [ "$vault_count" -gt 0 ]; then
-        if [ "$vault_count" -eq 1 ]; then
-            menu_items+="    ${BRIGHT_RED}r1${NC} remove vault"
-        else
-            menu_items+="    ${BRIGHT_RED}r1-r${vault_count}${NC} remove vault"
-        fi
-    fi
-
-    menu_items+="    ${BRIGHT_PURPLE}h${NC} help    ${BRIGHT_PURPLE}b${NC} back"
-
+    # Build and display menu commands
     echo ""
-    echo -e "$menu_items"
+    menu_line \
+        "$(menu_cmd 'a' 'add secret' "$MENU_COLOR_ADD")" \
+        "$([[ $secret_count -gt 0 ]] && menu_cmd 'v' 'add vault' "$MENU_COLOR_ADD")" \
+        "$(menu_num_cmd 'm' "$vault_count" 'mount' "$MENU_COLOR_ACTION")" \
+        "$(menu_num_cmd 'u' "$vault_count" 'unmount' "$MENU_COLOR_ACTION")" \
+        "$([[ $vault_count -gt 0 && $secret_count -gt 0 ]] && menu_num_cmd 's' "$vault_count" 'switch' "$MENU_COLOR_OPEN")" \
+        "$(menu_num_cmd 'd' "$secret_count" 'delete secret' "$MENU_COLOR_DELETE")" \
+        "$(menu_num_cmd 'r' "$vault_count" 'remove vault' "$MENU_COLOR_DELETE")" \
+        "$(menu_cmd 'h' 'help' "$MENU_COLOR_NAV")" \
+        "$(menu_cmd 'b' 'back' "$MENU_COLOR_NAV")"
     echo ""
 
     printf '\033[?25h'

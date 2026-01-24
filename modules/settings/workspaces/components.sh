@@ -110,18 +110,15 @@ display_projects_list() {
 show_workspace_management_commands() {
     local project_count="$1"
 
-    local commands="${BRIGHT_GREEN}a${NC} add project"
-
-    if [ $project_count -eq 1 ]; then
-        commands="$commands    ${BRIGHT_BLUE}e1${NC} edit    ${BRIGHT_CYAN}v1${NC} secure files    ${BRIGHT_RED}x1${NC} remove"
-    elif [ $project_count -gt 1 ]; then
-        commands="$commands    ${BRIGHT_BLUE}e1-e${project_count}${NC} edit    ${BRIGHT_CYAN}v1-v${project_count}${NC} secure files    ${BRIGHT_RED}x1-x${project_count}${NC} remove"
-    fi
-
-    commands="$commands    ${BRIGHT_BLUE}r${NC} rename    ${BRIGHT_RED}d${NC} delete    ${BRIGHT_PURPLE}b${NC} back"
-
     echo ""
-    echo -e "$commands"
+    menu_line \
+        "$(menu_cmd 'a' 'add project' "$MENU_COLOR_ADD")" \
+        "$(menu_num_cmd 'e' "$project_count" 'edit' "$MENU_COLOR_EDIT")" \
+        "$(menu_num_cmd 'v' "$project_count" 'secure files' "$MENU_COLOR_ACTION")" \
+        "$(menu_num_cmd 'x' "$project_count" 'remove' "$MENU_COLOR_DELETE")" \
+        "$(menu_cmd 'r' 'rename' "$MENU_COLOR_EDIT")" \
+        "$(menu_cmd 'd' 'delete' "$MENU_COLOR_DELETE")" \
+        "$(menu_cmd 'b' 'back' "$MENU_COLOR_NAV")"
     echo ""
 }
 

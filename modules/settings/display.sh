@@ -33,52 +33,24 @@ show_settings_menu() {
         # Display workspaces from .workspaces.json (also populates settings_workspaces)
         display_workspaces_info
 
-        # Build workspace command displays based on workspace count and mode
-        local manage_cmd=""
-        local toggle_cmd=""
-        local add_cmd=""
+        # Build and display menu commands
+        local ws_count=${#settings_workspaces[@]}
 
-        if [ ${#settings_workspaces[@]} -gt 0 ]; then
-            # Toggle is always available
-            if [ ${#settings_workspaces[@]} -eq 1 ]; then
-                toggle_cmd="${BRIGHT_BLUE}t1${NC} toggle workspace"
-            else
-                toggle_cmd="${BRIGHT_BLUE}t1-t${#settings_workspaces[@]}${NC} toggle workspace"
-            fi
-
-            # Manage only in unrestricted mode
-            if [[ "$restricted_mode" != true ]]; then
-                if [ ${#settings_workspaces[@]} -eq 1 ]; then
-                    manage_cmd="${BRIGHT_GREEN}m1${NC} manage workspace"
-                else
-                    manage_cmd="${BRIGHT_GREEN}m1-m${#settings_workspaces[@]}${NC} manage workspace"
-                fi
-            fi
-        fi
-
-        # Add only in unrestricted mode
-        if [[ "$restricted_mode" != true ]]; then
-            add_cmd="${BRIGHT_GREEN}a${NC} add workspace"
-        fi
-
-        local secrets_cmd="${BRIGHT_YELLOW}s${NC} secrets"
-
-        # Display command line based on mode
         echo ""
         if [[ "$restricted_mode" == true ]]; then
-            # Restricted mode: only toggle, secrets, navigation, and help
-            if [ -n "$toggle_cmd" ]; then
-                echo -e "${toggle_cmd}    ${secrets_cmd}    ${BRIGHT_PURPLE}b${NC} back    ${BRIGHT_PURPLE}h${NC} help"
-            else
-                echo -e "${secrets_cmd}    ${BRIGHT_PURPLE}b${NC} back    ${BRIGHT_PURPLE}h${NC} help"
-            fi
+            menu_line \
+                "$(menu_num_cmd 't' "$ws_count" 'toggle workspace' "$MENU_COLOR_EDIT")" \
+                "$(menu_cmd 's' 'secrets' "$MENU_COLOR_NAV")" \
+                "$(menu_cmd 'b' 'back' "$MENU_COLOR_NAV")" \
+                "$(menu_cmd 'h' 'help' "$MENU_COLOR_NAV")"
         else
-            # Full mode: all commands
-            if [ -n "$manage_cmd" ]; then
-                echo -e "${add_cmd}    ${manage_cmd}    ${toggle_cmd}    ${secrets_cmd}    ${BRIGHT_PURPLE}b${NC} back    ${BRIGHT_PURPLE}h${NC} help"
-            else
-                echo -e "${add_cmd}    ${secrets_cmd}    ${BRIGHT_PURPLE}b${NC} back    ${BRIGHT_PURPLE}h${NC} help"
-            fi
+            menu_line \
+                "$(menu_cmd 'a' 'add workspace' "$MENU_COLOR_ADD")" \
+                "$(menu_num_cmd 'm' "$ws_count" 'manage workspace' "$MENU_COLOR_ADD")" \
+                "$(menu_num_cmd 't' "$ws_count" 'toggle workspace' "$MENU_COLOR_EDIT")" \
+                "$(menu_cmd 's' 'secrets' "$MENU_COLOR_NAV")" \
+                "$(menu_cmd 'b' 'back' "$MENU_COLOR_NAV")" \
+                "$(menu_cmd 'h' 'help' "$MENU_COLOR_NAV")"
         fi
         echo ""
 
