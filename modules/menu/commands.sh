@@ -22,9 +22,12 @@ handle_menu_choice() {
         return
     fi
 
-    # Handle layout command
+    # Handle layout command - blocked when projects are running
     if [[ $choice =~ ^[Ll]$ ]]; then
-        handle_layout_command
+        local running=$(list_project_panes)
+        if [[ -z "$running" ]]; then
+            handle_layout_command
+        fi
         return
     fi
 

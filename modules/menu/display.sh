@@ -27,13 +27,17 @@ show_project_menu_tmux() {
         echo ""
 
         local n=${#projects[@]}
+        local has_running=$(list_project_panes)
+        local layout_cmd=""
+        [[ -z "$has_running" ]] && layout_cmd="$(menu_cmd 'l' 'layout' "$MENU_COLOR_OPEN")"
+
         menu_line \
             "$(menu_num_cmd '' "$n" 'start' "$MENU_COLOR_ADD")" \
             "$(menu_num_cmd 'c' "$n" 'terminal' "$MENU_COLOR_OPEN")" \
             "$(menu_num_cmd 'r' "$n" 'restart' "$MENU_COLOR_ACTION")" \
             "$(menu_num_cmd 'k' "$n" 'kill' "$MENU_COLOR_DELETE")" \
             "$([[ $n -gt 1 ]] && menu_cmd 'ka' 'kill all' "$MENU_COLOR_DELETE")" \
-            "$(menu_cmd 'l' 'layout' "$MENU_COLOR_OPEN")" \
+            "$layout_cmd" \
             "$(menu_cmd 's' 'settings' "$MENU_COLOR_NAV")" \
             "$(menu_cmd 'h' 'help' "$MENU_COLOR_NAV")" \
             "$(menu_cmd 'q' 'quit' "$MENU_COLOR_NAV")"
@@ -42,7 +46,36 @@ show_project_menu_tmux() {
         echo ""
         printf '\033[?25h'  # Show cursor for input
         echo -ne "${BRIGHT_CYAN}>${NC} "
-        read -r choice
+
+        # Custom read: L is instant (when no projects running), others need Enter
+        choice=""
+        while true; do
+            IFS= read -r -s -n 1 char
+
+            # Enter - submit what we have
+            if [[ -z "$char" ]]; then
+                echo ""
+                break
+            fi
+
+            # Backspace
+            if [[ "$char" == $'\x7f' ]] || [[ "$char" == $'\x08' ]]; then
+                if [[ -n "$choice" ]]; then
+                    choice="${choice%?}"
+                    echo -ne "\b \b"
+                fi
+                continue
+            fi
+
+            choice+="$char"
+            echo -n "$char"
+
+            # L is instant only when no projects running
+            if [[ "$choice" =~ ^[Ll]$ ]] && [[ -z "$has_running" ]]; then
+                echo ""
+                break
+            fi
+        done
 
         # Handle user input
         handle_menu_choice "$choice"

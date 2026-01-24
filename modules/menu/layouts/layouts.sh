@@ -50,8 +50,8 @@ while true; do
 
     # Display menu
     menu_line \
-        "$(menu_cmd 's' 'save current layout' "$MENU_COLOR_ADD")" \
-        "$([[ $layout_count -gt 0 ]] && menu_cmd 'l' 'load layout' "$MENU_COLOR_OPEN")" \
+        "$(menu_num_cmd '' "$layout_count" 'load layout' "$MENU_COLOR_OPEN")" \
+        "$(menu_cmd 's' 'save layout' "$MENU_COLOR_ADD")" \
         "$([[ $layout_count -gt 0 ]] && menu_cmd 'd' 'delete layout' "$MENU_COLOR_DELETE")" \
         "$(menu_cmd 'b' 'back' "$MENU_COLOR_NAV")"
     echo ""
@@ -62,6 +62,21 @@ while true; do
     echo ""
 
     case "$choice" in
+        [0-9])
+            # Instant load if number matches a layout
+            if [[ $layout_count -gt 0 ]] && [[ "$choice" -ge 1 ]] && [[ "$choice" -le "$layout_count" ]]; then
+                idx=$((choice - 1))
+                selected_layout="${layout_files[$idx]}"
+                workspaces_file="$config_dir/.workspaces.json"
+
+                if [[ -f "$selected_layout" ]] && [[ -f "$workspaces_file" ]]; then
+                    new_active_config=$(jq '.activeConfig' "$selected_layout")
+                    jq --argjson active "$new_active_config" '.activeConfig = $active' "$workspaces_file" > "${workspaces_file}.tmp" \
+                        && mv "${workspaces_file}.tmp" "$workspaces_file"
+                fi
+                exit 0
+            fi
+            ;;
         s|S)
             echo ""
             echo -ne " ${BRIGHT_WHITE}Layout name (ESC to cancel):${NC} "
@@ -107,56 +122,6 @@ while true; do
                         --argjson activeConfig "$(jq '.activeConfig' "$workspaces_file")" \
                         '{layoutName: $name, activeConfig: $activeConfig}' \
                         > "$layout_file"
-                fi
-            fi
-            ;;
-        l|L)
-            if [[ $layout_count -gt 0 ]]; then
-                echo ""
-                echo -ne " ${BRIGHT_WHITE}Load layout # (ESC to cancel):${NC} "
-
-                # Read number with ESC support
-                load_num=""
-                while true; do
-                    IFS= read -r -s -n 1 char
-                    # ESC key
-                    if [[ "$char" == $'\x1b' ]]; then
-                        load_num=""
-                        echo ""
-                        break
-                    fi
-                    # Enter key
-                    if [[ -z "$char" ]]; then
-                        echo ""
-                        break
-                    fi
-                    # Backspace
-                    if [[ "$char" == $'\x7f' ]] || [[ "$char" == $'\x08' ]]; then
-                        if [[ -n "$load_num" ]]; then
-                            load_num="${load_num%?}"
-                            echo -ne "\b \b"
-                        fi
-                        continue
-                    fi
-                    # Only accept digits
-                    if [[ "$char" =~ ^[0-9]$ ]]; then
-                        load_num+="$char"
-                        echo -n "$char"
-                    fi
-                done
-
-                # Validate and load
-                if [[ -n "$load_num" ]] && [[ "$load_num" -ge 1 ]] && [[ "$load_num" -le "$layout_count" ]]; then
-                    idx=$((load_num - 1))
-                    selected_layout="${layout_files[$idx]}"
-                    workspaces_file="$config_dir/.workspaces.json"
-
-                    if [[ -f "$selected_layout" ]] && [[ -f "$workspaces_file" ]]; then
-                        # Get activeConfig from selected layout and update .workspaces.json
-                        new_active_config=$(jq '.activeConfig' "$selected_layout")
-                        jq --argjson active "$new_active_config" '.activeConfig = $active' "$workspaces_file" > "${workspaces_file}.tmp" \
-                            && mv "${workspaces_file}.tmp" "$workspaces_file"
-                    fi
                 fi
             fi
             ;;
