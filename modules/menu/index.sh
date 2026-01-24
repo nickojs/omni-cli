@@ -14,7 +14,7 @@ MENU_DIR="$(dirname "${BASH_SOURCE[0]}")"
 source "$MENU_DIR/actions.sh"         # Action handlers (start, kill, quit, etc.)
 source "$MENU_DIR/commands.sh"        # Command handling functions
 source "$MENU_DIR/display.sh"         # Menu display and UI functions
-source "$MENU_DIR/layouts.sh"         # Layout management
+source "$MENU_DIR/layouts/index.sh"   # Layout management
 
 # Export a function to verify menu modules are loaded
 menu_modules_loaded() {

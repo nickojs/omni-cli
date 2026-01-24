@@ -1,0 +1,91 @@
+#!/bin/bash
+
+# Source dependencies
+source modules/ui/colors.sh
+source modules/ui/menu.sh
+source modules/config/json.sh
+
+config_dir=$(get_config_directory)
+layouts_dir="$config_dir/layouts"
+mkdir -p "$layouts_dir" 2>/dev/null
+
+while true; do
+    clear
+
+    # Get list of layout files
+    layout_files=()
+    if [ -d "$layouts_dir" ]; then
+        while IFS= read -r file; do
+            layout_files+=("$file")
+        done < <(find "$layouts_dir" -maxdepth 1 -name "*.json" -type f 2>/dev/null | sort)
+    fi
+
+    layout_count=${#layout_files[@]}
+
+    # Display header
+    echo ""
+    echo -e " ${BRIGHT_WHITE}Layouts${NC}"
+    echo ""
+
+    if [ "$layout_count" -eq 0 ]; then
+        echo -e " ${DIM}No layouts configured.${NC}"
+        echo ""
+    else
+        counter=1
+        for layout_file in "${layout_files[@]}"; do
+            layout_name=""
+            if command -v jq >/dev/null 2>&1 && [ -f "$layout_file" ]; then
+                layout_name=$(jq -r '.layoutName // empty' "$layout_file" 2>/dev/null)
+            fi
+
+            if [ -z "$layout_name" ]; then
+                layout_name=$(basename "$layout_file" .json)
+            fi
+
+            echo -e " ${BRIGHT_CYAN}${counter}.${NC} ${BRIGHT_WHITE}${layout_name}${NC}"
+            counter=$((counter + 1))
+        done
+        echo ""
+    fi
+
+    # Display menu
+    menu_line \
+        "$(menu_cmd 's' 'save current layout' "$MENU_COLOR_ADD")" \
+        "$([[ $layout_count -gt 0 ]] && menu_cmd 'l' 'load layout' "$MENU_COLOR_OPEN")" \
+        "$([[ $layout_count -gt 0 ]] && menu_cmd 'd' 'delete layout' "$MENU_COLOR_DELETE")" \
+        "$(menu_cmd 'b' 'back' "$MENU_COLOR_NAV")"
+    echo ""
+    echo -ne " ${BRIGHT_CYAN}>${NC} "
+
+    # Read input
+    read -n 1 choice
+    echo ""
+
+    case "$choice" in
+        s|S)
+            echo ""
+            echo -ne " ${BRIGHT_WHITE}Layout name (ESC to cancel):${NC} "
+            read -r layout_name
+
+            if [[ -n "$layout_name" ]]; then
+                # Get current activeConfig from .workspaces.json
+                workspaces_file="$config_dir/.workspaces.json"
+
+                filename=$(echo "$layout_name" | tr ' ' '_' | tr -cd '[:alnum:]_-')
+                layout_file="$layouts_dir/${filename}.json"
+
+                if command -v jq >/dev/null 2>&1 && [ -f "$workspaces_file" ]; then
+                    # Extract activeConfig and save with layout name
+                    jq -n \
+                        --arg name "$layout_name" \
+                        --argjson activeConfig "$(jq '.activeConfig' "$workspaces_file")" \
+                        '{layoutName: $name, activeConfig: $activeConfig}' \
+                        > "$layout_file"
+                fi
+            fi
+            ;;
+        b|B)
+            exit 0
+            ;;
+    esac
+done
