@@ -121,12 +121,20 @@ display_workspaces() {
 
     # Display each active workspace with its projects using global numbering
     echo ""
+    # Table header with fixed column widths
+    local header_counter=$(printf "%-3s" "#")
+    local header_name=$(printf "%-34s" "Name")
+    local header_status=$(printf "%-16s" "Status")
+    local header_vaults=$(printf "%-0s" "Vaults")
     for workspace_file in "${workspace_files[@]}"; do
         local workspace_name=$(basename "$workspace_file" .json)
         local display_name=$(echo "$workspace_name" | sed 's/[_-]/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)} 1')
 
         # Workspace header matching settings menu style
-        printf "${BRIGHT_CYAN}%s${NC}\n" "$display_name"
+        printf " ${BRIGHT_CYAN}Workspace %s${NC}\n" "$display_name"
+        echo ""
+        echo -e "  ${BRIGHT_WHITE}${header_counter}${header_name}${header_status}${header_vaults}${NC}"
+        echo ""
 
         # Find projects belonging to this workspace
         local workspace_project_indices=()
@@ -145,36 +153,45 @@ display_workspaces() {
                 IFS=':' read -r project_display_name folder_name startup_cmd shutdown_cmd <<< "${projects[project_index]}"
 
                 # Get status (works for any workspace since we have global project array)
-                local status_display=""
+                local status_text=""
+                local status_color=""
                 if is_project_running "$project_display_name"; then
                     if is_project_stopping "$project_display_name"; then
-                        status_display="${BRIGHT_YELLOW}stopping${NC}"
+                        status_text="stopping"
+                        status_color="${BRIGHT_YELLOW}"
                     else
-                        status_display="${GREEN}running${NC}"
+                        status_text="running"
+                        status_color="${GREEN}"
                     fi
                 else
                     clear_project_stopping "$project_display_name"
                     if [ -d "$folder_name" ]; then
-                        status_display="${DIM}stopped${NC}"
+                        status_text="stopped"
+                        status_color="${DIM}"
                     else
-                        status_display="${RED}not found${NC}"
+                        status_text="not found"
+                        status_color="${RED}"
                     fi
                 fi
 
-                # Format project name with fixed width for alignment
-                local formatted_name
-                if [ ${#project_display_name} -gt 32 ]; then
-                    # Truncate long names
-                    formatted_name=$(printf "%.29s..." "$project_display_name")
-                else
-                    # Pad short names to 32 characters
-                    formatted_name=$(printf "%-32s" "$project_display_name")
+                # Get assigned vaults for this project
+                local vault_text=""
+                if [ -f "$workspace_file" ] && command -v jq >/dev/null 2>&1; then
+                    vault_text=$(jq -r --arg path "$folder_name" \
+                        '.[] | select(.relativePath == $path) | .assignedVaults[]? // empty' \
+                        "$workspace_file" 2>/dev/null | tr '\n' ',' | sed 's/,$//')
                 fi
 
-                # Display project with number and status
-                echo -e "  ${BRIGHT_CYAN}${global_counter}${NC} ${BRIGHT_WHITE}${formatted_name}${NC} ${status_display}${NC}"
+                # Format columns with fixed widths
+                local col_counter=$(printf "%-3s" "$global_counter")
+                local col_name=$(printf "%-34s" "${project_display_name:0:34}")
+                local col_status=$(printf "%-16s" "$status_text")
+                local col_vaults=$(printf "%-0s" "${vault_text:-}")
+
+                echo -e "  ${BRIGHT_CYAN}${col_counter}${NC}${BRIGHT_WHITE}${col_name}${NC}${status_color}${col_status}${NC}${DIM}${col_vaults}${NC}"
                 global_counter=$((global_counter + 1))
             done
+            echo ""
         fi
         echo ""
     done
