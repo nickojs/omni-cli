@@ -57,8 +57,13 @@ while true; do
     echo ""
     echo -ne " ${BRIGHT_CYAN}>${NC} "
 
-    # Read input
-    read -n 1 choice
+    # Read input (with ESC support)
+    IFS= read -r -s -n 1 choice
+
+    # ESC to close
+    if [[ "$choice" == $'\x1b' ]]; then
+        exit 0
+    fi
     echo ""
 
     case "$choice" in
