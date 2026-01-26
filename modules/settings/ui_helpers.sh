@@ -116,10 +116,39 @@ scan_and_display_available_folders() {
     done
 
     echo "" >&2
-    echo -e "${BRIGHT_WHITE}Select a folder (enter number), or press Enter to go back${NC}" >&2
+    echo -e "${BRIGHT_WHITE}Select a folder (enter number), or press Enter/ESC to go back${NC}" >&2
     echo -ne "${BRIGHT_CYAN}>${NC} " >&2
 
-    read -r folder_choice
+    # Read with ESC support
+    folder_choice=""
+    while true; do
+        IFS= read -r -s -n 1 char
+        # ESC key
+        if [[ "$char" == $'\x1b' ]]; then
+            # Consume any escape sequence chars
+            read -r -s -n 2 -t 0.01 _ 2>/dev/null || true
+            echo "" >&2
+            return 1
+        fi
+        # Enter key
+        if [[ -z "$char" ]]; then
+            echo "" >&2
+            break
+        fi
+        # Backspace
+        if [[ "$char" == $'\x7f' ]] || [[ "$char" == $'\x08' ]]; then
+            if [[ -n "$folder_choice" ]]; then
+                folder_choice="${folder_choice%?}"
+                echo -ne "\b \b" >&2
+            fi
+            continue
+        fi
+        # Only accept digits
+        if [[ "$char" =~ ^[0-9]$ ]]; then
+            folder_choice+="$char"
+            echo -n "$char" >&2
+        fi
+    done
 
     # Handle empty input (go back)
     if [ -z "$folder_choice" ]; then
@@ -218,31 +247,51 @@ is_workspace_in_active_list() {
 # Function to prompt for all project input fields
 # Parameters: folder_name
 # Outputs to stdout: display_name, startup_cmd, shutdown_cmd (one per line)
+# Returns: 0 on success, 2 if ESC pressed (cancelled)
 # Usage:
 #   IFS=$'\n' read -r display_name startup_cmd shutdown_cmd < <(prompt_project_input_fields "$folder_name")
 prompt_project_input_fields() {
     local folder_name="$1"
+    local display_name startup_cmd shutdown_cmd
 
-    # Get display name
-    echo -e "${BRIGHT_WHITE}Enter display name for this project:${NC}" >&2
-    echo -ne "${DIM}(press Enter to use '$folder_name')${NC} ${BRIGHT_CYAN}>${NC} " >&2
-    read -r display_name
+    echo -e "${DIM}(ESC to cancel)${NC}" >&2
+    echo "" >&2
 
-    if [ -z "$display_name" ]; then
-        display_name="$folder_name"
-    fi
+    # Get display name (required, loops until valid)
+    while true; do
+        echo -e "${BRIGHT_WHITE}Enter display name for this project:${NC}" >&2
+        echo -ne "${DIM}(Enter to use '$folder_name')${NC} ${BRIGHT_CYAN}>${NC} " >&2
+        read_with_esc_cancel display_name
+        [[ $? -eq 2 ]] && return 2
+
+        # Default to folder name if empty
+        if [ -z "$display_name" ]; then
+            display_name="$folder_name"
+        fi
+
+        # Trim whitespace and validate
+        display_name=$(echo "$display_name" | xargs)
+        if [ -n "$display_name" ]; then
+            break
+        fi
+
+        echo -e "${RED}Display name cannot be empty.${NC}" >&2
+        echo "" >&2
+    done
 
     # Get startup command
     echo "" >&2
     echo -e "${BRIGHT_WHITE}Enter startup command:${NC}" >&2
     echo -ne "${DIM}(e.g., 'npm start', 'yarn dev')${NC} ${BRIGHT_CYAN}>${NC} " >&2
-    read -r startup_cmd
+    read_with_esc_cancel startup_cmd
+    [[ $? -eq 2 ]] && return 2
 
     # Get shutdown command
     echo "" >&2
     echo -e "${BRIGHT_WHITE}Enter shutdown command:${NC}" >&2
     echo -ne "${DIM}(e.g., 'npm run stop', 'pkill -f node')${NC} ${BRIGHT_CYAN}>${NC} " >&2
-    read -r shutdown_cmd
+    read_with_esc_cancel shutdown_cmd
+    [[ $? -eq 2 ]] && return 2
 
     # Output the three values to stdout (one per line)
     echo "$display_name"
@@ -253,6 +302,7 @@ prompt_project_input_fields() {
 # Function to read input with Esc key cancellation support
 # Parameters: variable name to store result
 # Returns: 0 for normal input, 2 for Esc pressed
+# NOTE: All echo output goes to stderr so stdout can be captured separately
 # Usage: read_with_esc_cancel result_variable
 read_with_esc_cancel() {
     local -n result_var=$1  # nameref to result variable
@@ -267,14 +317,14 @@ read_with_esc_cancel() {
         if [[ "$char" == $'\x1b' ]]; then
             # Read any remaining escape sequence characters (for arrow keys, etc.)
             read -r -s -n 2 -t 0.01 _ 2>/dev/null || true
-            echo ""
+            echo "" >&2
             result_var=""
             return 2
         fi
 
         # Handle Enter (empty char from read -n 1)
         if [[ -z "$char" ]]; then
-            echo ""  # Add newline
+            echo "" >&2  # Add newline
             result_var="$input"
             return 0
         fi
@@ -285,21 +335,21 @@ read_with_esc_cancel() {
                 # Remove last character from input
                 input="${input%?}"
                 # Move cursor back, overwrite with space, move back again
-                echo -ne "\b \b"
+                echo -ne "\b \b" >&2
             fi
             continue
         fi
 
         # Handle Ctrl+C
         if [[ "$char" == $'\x03' ]]; then
-            echo ""
+            echo "" >&2
             result_var=""
             return 2
         fi
 
         # Add character to input and echo it
         input+="$char"
-        echo -n "$char"
+        echo -n "$char" >&2
     done
 }
 

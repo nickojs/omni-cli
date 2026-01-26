@@ -35,6 +35,14 @@ add_project_to_workspace() {
     # Prompt for project fields
     local temp_config_file=$(mktemp)
     prompt_project_input_fields "$selected_folder" > "$temp_config_file"
+    local prompt_result=$?
+
+    # Handle ESC cancellation
+    if [ $prompt_result -eq 2 ]; then
+        rm -f "$temp_config_file"
+        unset JSON_CONFIG_FILE
+        return 1
+    fi
 
     # Read the three lines from temp file
     local display_name startup_cmd shutdown_cmd
