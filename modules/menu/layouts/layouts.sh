@@ -22,7 +22,29 @@ while true; do
 
     layout_count=${#layout_files[@]}
 
-    # Display header
+    # Get terminal height for flex layout
+    term_height=$(tput lines 2>/dev/null || echo 24)
+
+    # Calculate content heights
+    # Top: 1 empty + 1 header + 1 empty + list lines (or 2 if empty)
+    if [ "$layout_count" -eq 0 ]; then
+        top_lines=5  # empty + header + empty + "no layouts" + empty
+    else
+        top_lines=$((3 + layout_count + 1))  # empty + header + empty + items + empty
+    fi
+
+    # Bottom: menu items + empty + prompt
+    if [ "$layout_count" -gt 0 ]; then
+        bottom_lines=7  # load + save + overwrite + delete + back + empty + prompt
+    else
+        bottom_lines=4  # save + back + empty + prompt
+    fi
+
+    # Calculate spacer
+    spacer=$((term_height - top_lines - bottom_lines))
+    [[ $spacer -lt 1 ]] && spacer=1
+
+    # === TOP SECTION: Header + List ===
     echo ""
     echo -e " ${BRIGHT_WHITE}Layouts${NC}"
     echo ""
@@ -48,12 +70,15 @@ while true; do
         echo ""
     fi
 
-    # Display menu
-    menu_line \
-        "$(menu_num_cmd '' "$layout_count" 'load layout' "$MENU_COLOR_OPEN")" \
-        "$(menu_cmd 's' 'save layout' "$MENU_COLOR_ADD")" \
-        "$([[ $layout_count -gt 0 ]] && menu_cmd 'd' 'delete layout' "$MENU_COLOR_DELETE")" \
-        "$(menu_cmd 'b' 'back' "$MENU_COLOR_NAV")"
+    # === SPACER: Push menu to bottom ===
+    for ((i=0; i<spacer; i++)); do echo ""; done
+
+    # === BOTTOM SECTION: Menu + Input ===
+    [[ $layout_count -gt 0 ]] && echo -e " $(menu_num_cmd '' "$layout_count" 'load layout' "$MENU_COLOR_OPEN")"
+    echo -e " $(menu_cmd 's' 'save layout' "$MENU_COLOR_ADD")"
+    [[ $layout_count -gt 0 ]] && echo -e " $(menu_cmd 'o' 'overwrite layout' "$MENU_COLOR_EDIT")"
+    [[ $layout_count -gt 0 ]] && echo -e " $(menu_cmd 'd' 'delete layout' "$MENU_COLOR_DELETE")"
+    echo -e " $(menu_cmd 'b' 'back' "$MENU_COLOR_NAV")"
     echo ""
     echo -ne " ${BRIGHT_CYAN}>${NC} "
 
@@ -117,6 +142,17 @@ while true; do
                 # Get current activeConfig from .workspaces.json
                 workspaces_file="$config_dir/.workspaces.json"
 
+                # Check if there are any active workspaces
+                if command -v jq >/dev/null 2>&1 && [ -f "$workspaces_file" ]; then
+                    active_count=$(jq '.activeConfig | length' "$workspaces_file" 2>/dev/null)
+                    if [[ -z "$active_count" ]] || [[ "$active_count" -eq 0 ]]; then
+                        echo ""
+                        echo -e " ${RED}No active workspaces to save.${NC}"
+                        sleep 1.5
+                        continue
+                    fi
+                fi
+
                 filename=$(echo "$layout_name" | tr ' ' '_' | tr -cd '[:alnum:]_-')
                 layout_file="$layouts_dir/${filename}.json"
 
@@ -127,6 +163,84 @@ while true; do
                         --argjson activeConfig "$(jq '.activeConfig' "$workspaces_file")" \
                         '{layoutName: $name, activeConfig: $activeConfig}' \
                         > "$layout_file"
+                fi
+            fi
+            ;;
+        o|O)
+            if [[ $layout_count -gt 0 ]]; then
+                echo ""
+                echo -ne " ${BRIGHT_WHITE}Overwrite layout # (ESC to cancel):${NC} "
+
+                # Read number with ESC support
+                overwrite_num=""
+                while true; do
+                    IFS= read -r -s -n 1 char
+                    # ESC key
+                    if [[ "$char" == $'\x1b' ]]; then
+                        overwrite_num=""
+                        echo ""
+                        break
+                    fi
+                    # Enter key
+                    if [[ -z "$char" ]]; then
+                        echo ""
+                        break
+                    fi
+                    # Backspace
+                    if [[ "$char" == $'\x7f' ]] || [[ "$char" == $'\x08' ]]; then
+                        if [[ -n "$overwrite_num" ]]; then
+                            overwrite_num="${overwrite_num%?}"
+                            echo -ne "\b \b"
+                        fi
+                        continue
+                    fi
+                    # Only accept digits
+                    if [[ "$char" =~ ^[0-9]$ ]]; then
+                        overwrite_num+="$char"
+                        echo -n "$char"
+                    fi
+                done
+
+                # Validate and overwrite
+                if [[ -n "$overwrite_num" ]] && [[ "$overwrite_num" -ge 1 ]] && [[ "$overwrite_num" -le "$layout_count" ]]; then
+                    idx=$((overwrite_num - 1))
+                    file_to_overwrite="${layout_files[$idx]}"
+
+                    # Get layout name for confirmation
+                    layout_name=""
+                    if command -v jq >/dev/null 2>&1 && [ -f "$file_to_overwrite" ]; then
+                        layout_name=$(jq -r '.layoutName // empty' "$file_to_overwrite" 2>/dev/null)
+                    fi
+                    if [ -z "$layout_name" ]; then
+                        layout_name=$(basename "$file_to_overwrite" .json)
+                    fi
+
+                    # Confirm overwrite
+                    echo -ne " ${YELLOW}Overwrite '${layout_name}'? (y/n):${NC} "
+                    IFS= read -r -s -n 1 confirm
+                    echo ""
+
+                    if [[ "$confirm" == "y" ]] || [[ "$confirm" == "Y" ]]; then
+                        workspaces_file="$config_dir/.workspaces.json"
+
+                        # Check if there are any active workspaces
+                        if command -v jq >/dev/null 2>&1 && [ -f "$workspaces_file" ]; then
+                            active_count=$(jq '.activeConfig | length' "$workspaces_file" 2>/dev/null)
+                            if [[ -z "$active_count" ]] || [[ "$active_count" -eq 0 ]]; then
+                                echo ""
+                                echo -e " ${RED}No active workspaces to save.${NC}"
+                                sleep 1.5
+                                continue
+                            fi
+
+                            # Overwrite with current activeConfig, keeping layout name
+                            jq -n \
+                                --arg name "$layout_name" \
+                                --argjson activeConfig "$(jq '.activeConfig' "$workspaces_file")" \
+                                '{layoutName: $name, activeConfig: $activeConfig}' \
+                                > "$file_to_overwrite"
+                        fi
+                    fi
                 fi
             fi
             ;;
