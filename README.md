@@ -8,12 +8,8 @@ A powerful terminal-based project manager with tmux integration and workspace or
 - **📱 Tmux Integration**: Seamless tmux session management with smart pane layouts
 - **🎨 Beautiful UI**: Rich terminal interface with colors and responsive layouts
 - **⚙️ Interactive Settings**: Add, edit, and manage workspaces and projects
-- **🔧 Modular Design**: Clean architecture with reusable components
-- **📊 Status Monitoring**: Real-time project status tracking
-- **🏠 Flexible Deployment**: Run locally for development or install system-wide
 - **🔒 Restricted Mode**: Access settings while projects run (toggle workspaces only)
-- **🛡️ Smart Protection**: Can't deactivate workspaces with running projects
-- **⎋ Esc Key Support**: Cancel out of any dialog with Escape
+- **🛡️ Smart Protection**: age + gocryptfs integration for secrets and vaults
 
 ## 📋 Requirements
 
@@ -141,17 +137,6 @@ flowchart TB
     class LIST_PROJS,CONFIG_PROJ addProjFlow
 ```
 
-## ⚙️ Configuration
-
-### Workspace System
-The application uses a workspace-based configuration system:
-- **`.workspaces.json`**: Defines active workspaces and their locations
-- **Workspace configs**: Individual JSON files for each workspace's projects
-
-Configuration storage:
-- **Local development**: `./config/`
-- **System installation**: `~/.cache/omni-cli/`
-
 ## 🧪 Testing
 
 For development testing, use the included test environment:
@@ -186,7 +171,7 @@ The masquerade script safely swaps your configs with generated mock workspaces, 
 
 ## 🔮 Future Features
 
-- **Custom Terminal Support**: Extend 'custom command' to support terminals other than kgx
+- **System-wide instalation**
 
 ## 🤝 Contributing
 
