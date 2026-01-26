@@ -46,7 +46,6 @@ handle_kill_command() {
         local workspace_file="${project_workspaces[$project_index]}"
 
         if is_project_running "$display_name"; then
-            mark_project_stopping "$display_name"
             with_workspace_context "$workspace_file" kill_project "$display_name" "$shutdown_command"
         fi
     fi

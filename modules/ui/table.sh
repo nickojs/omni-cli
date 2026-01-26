@@ -231,6 +231,7 @@ render_settings_project_row() {
     local vaults="${5:-}"
 
     # Inline truncation (no subshells)
+    [[ ${#project_name} -gt 24 ]] && project_name="${project_name:0:19}..."
     [[ ${#folder_name} -gt 24 ]] && folder_name="${folder_name:0:21}..."
     [[ ${#startup_cmd} -gt 24 ]] && startup_cmd="${startup_cmd:0:17}..."
     [[ ${#shutdown_cmd} -gt 20 ]] && shutdown_cmd="${shutdown_cmd:0:17}..."
@@ -254,15 +255,9 @@ get_project_status() {
     local status_color=""
 
     if is_project_running "$project_name"; then
-        if is_project_stopping "$project_name"; then
-            status_text="stopping"
-            status_color="${BRIGHT_YELLOW}"
-        else
-            status_text="running"
-            status_color="${GREEN}"
-        fi
+        status_text="running"
+        status_color="${GREEN}"
     else
-        clear_project_stopping "$project_name"
         if [ -d "$folder_path" ]; then
             status_text="stopped"
             status_color="${DIM}"
