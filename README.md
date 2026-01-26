@@ -1,6 +1,6 @@
-# FM Manager
+# omni-cli
 
-A powerful terminal-based project manager with tmux integration and workspace organization. FM Manager helps you organize, monitor, and manage multiple projects from a single, intuitive interface.
+A powerful terminal-based project manager with tmux integration and workspace organization. omni-cli helps you organize, monitor, and manage multiple projects from a single, intuitive interface.
 
 ## ✨ Features
 
@@ -39,7 +39,7 @@ A powerful terminal-based project manager with tmux integration and workspace or
 1. **Clone and setup:**
    ```bash
    git clone <repository-url>
-   cd fm-manager
+   cd omni-cli
    chmod +x startup.sh
    ```
 
@@ -66,7 +66,7 @@ A powerful terminal-based project manager with tmux integration and workspace or
 ## 📁 Project Structure
 
 ```
-fm-manager/
+omni-cli/
 ├── startup.sh          # Entry point
 ├── config/             # Workspace configs (.json)
 ├── styles/             # UI, colors, animations
@@ -150,7 +150,7 @@ The application uses a workspace-based configuration system:
 
 Configuration storage:
 - **Local development**: `./config/`
-- **System installation**: `~/.cache/fm-manager/`
+- **System installation**: `~/.cache/omni-cli/`
 
 ## 🧪 Testing
 
@@ -173,7 +173,7 @@ For development testing, use the included test environment:
 # Switch to test configuration (backs up original configs)
 ./test-area/masquerade.sh enable
 
-# Run fm-manager to test functionality safely
+# Run omni-cli to test functionality safely
 ./startup.sh
 
 # Test starting/stopping projects without affecting real ones

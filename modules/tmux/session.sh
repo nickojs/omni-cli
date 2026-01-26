@@ -7,7 +7,7 @@
 # Usage: source modules/tmux/session.sh
 
 # Tmux session name (use environment variable if set, otherwise default)
-SESSION_NAME="${SESSION_NAME:-fm-session}"
+SESSION_NAME="${SESSION_NAME}"
 
 # Function to create or attach to tmux session
 setup_tmux_session() {
