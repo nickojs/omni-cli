@@ -154,18 +154,45 @@ handle_custom_command() {
 
         print_info "Opening terminal for $display_name in $folder_name"
 
-        local terminal_emulator="${TERMINAL_EMULATOR}"
-        
+        local terminal_file="$(get_config_directory)/terminal"
+        local terminal_emulator=""
+        if [[ -f "$terminal_file" ]]; then
+            terminal_emulator=$(< "$terminal_file")
+        fi
+
+        # No terminal configured
+        if [[ -z "$terminal_emulator" ]]; then
+            print_warning "No terminal configured. Use settings > configure terminal."
+            wait_for_enter
+            return 1
+        fi
+
+        # Verify binary exists
+        if ! command -v "$terminal_emulator" >/dev/null 2>&1; then
+            print_warning "Terminal '$terminal_emulator' not found on PATH"
+            wait_for_enter
+            return 1
+        fi
+
         case "$terminal_emulator" in
             konsole)
                 konsole --workdir="$folder_name" &
                 ;;
-            kgx|gnome-terminal)
-                kgx --working-directory="$folder_name" &
+            gnome-terminal|kgx|xfce4-terminal|lxterminal|terminator|alacritty|foot)
+                "$terminal_emulator" --working-directory="$folder_name" &
+                ;;
+            kitty)
+                kitty --directory="$folder_name" &
+                ;;
+            wezterm)
+                wezterm start --cwd "$folder_name" &
+                ;;
+            xterm)
+                (cd "$folder_name" && xterm) &
                 ;;
             *)
-                print_warning "Unknown terminal emulator: $terminal_emulator"
-                return 1
+                # Unknown terminal -- attempt generic --working-directory flag
+                "$terminal_emulator" --working-directory="$folder_name" &
                 ;;
         esac
         

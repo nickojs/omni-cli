@@ -22,6 +22,29 @@ handle_settings_choice() {
         return 0
     fi
 
+    # Handle configure terminal command
+    if [[ $choice =~ ^[Cc]$ ]]; then
+        echo ""
+        local config_dir=$(get_config_directory)
+        local terminal_file="$config_dir/terminal"
+        if [[ -f "$terminal_file" ]] && [[ -s "$terminal_file" ]]; then
+            echo -e "Current terminal: ${BRIGHT_CYAN}$(< "$terminal_file")${NC}"
+        else
+            echo -e "No terminal configured"
+        fi
+        echo -ne "Enter terminal binary name (e.g. konsole, kgx): "
+        local term_input
+        read -r term_input
+        if [[ -n "$term_input" ]]; then
+            printf '%s' "$term_input" > "$config_dir/terminal"
+            print_success "Terminal set to: $term_input"
+        else
+            print_warning "No input provided, terminal unchanged"
+        fi
+        wait_for_enter
+        return 0
+    fi
+
     # Handle secrets command - always available
     if [[ $choice =~ ^[Ss]$ ]]; then
         show_secrets_menu
