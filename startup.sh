@@ -3,18 +3,24 @@
 # Detect if running from installed location or development directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Project naming
+# Determine installation type first
+if [[ "$SCRIPT_DIR" == *"/usr/lib/"* ]]; then
+    export IS_INSTALLED=true
+    # For installed, BASE_DIR is the script directory
+    export BASE_DIR="$SCRIPT_DIR"
+else
+    export IS_INSTALLED=false
+    export BASE_DIR="$(dirname "${BASH_SOURCE[0]}")"
+fi
+
+# Load .env early to get project variables
+if [ -f "$BASE_DIR/.env" ]; then
+    source "$BASE_DIR/.env"
+fi
+
+# Project naming (from .env or defaults)
 PROJECT_FOLDER_NAME="${PROJECT_FOLDER_NAME}"
 PROJECT_DISPLAY_NAME="${PROJECT_DISPLAY_NAME}"
-
-# Determine base directory
-if [[ "$SCRIPT_DIR" == *"/usr/lib/"* ]]; then
-    export BASE_DIR="/usr/lib/$PROJECT_FOLDER_NAME"
-    export IS_INSTALLED=true
-else
-    export BASE_DIR="$(dirname "${BASH_SOURCE[0]}")"
-    export IS_INSTALLED=false
-fi
 
 # Function to set up configuration paths
 setup_config_paths() {
