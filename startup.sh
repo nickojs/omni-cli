@@ -35,7 +35,7 @@ setup_config_paths() {
     # Set JSON_CONFIG_FOLDER based on installation type
     if [ "$IS_INSTALLED" = true ]; then
         # Installed: use user cache directory
-        JSON_CONFIG_FOLDER="$HOME/.cache/$PROJECT_FOLDER_NAME"
+        JSON_CONFIG_FOLDER="$HOME/.config/$PROJECT_FOLDER_NAME"
         if ! mkdir -p "$JSON_CONFIG_FOLDER" 2>/dev/null; then
             echo "Error: Failed to create cache directory: $JSON_CONFIG_FOLDER" >&2
             echo "Please check permissions or try running: mkdir -p $JSON_CONFIG_FOLDER" >&2
