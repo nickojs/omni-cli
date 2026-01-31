@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Source dependencies
-source modules/ui/colors.sh
-source modules/ui/menu.sh
-source modules/config/json.sh
+# Source dependencies (BASE_DIR is passed from index.sh)
+source "$BASE_DIR/styles/colors.sh"
+source "$BASE_DIR/modules/ui/menu.sh"
+source "$BASE_DIR/modules/config/json.sh"
 
 config_dir=$(get_config_directory)
 layouts_dir="$config_dir/layouts"
