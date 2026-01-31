@@ -210,7 +210,8 @@ The masquerade script safely swaps your configs with generated mock workspaces, 
 
 ## 🔮 Future Features
 
-- **System-wide instalation**
+- **Debug tools** - build mode indicators, environment diagnostics, verbose logging
+- **Sub-packages** - make navigator and vaults/secrets their own packages
 
 ## 🤝 Contributing
 
