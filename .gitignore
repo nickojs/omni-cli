@@ -6,6 +6,7 @@ config/
 
 # Test area generated files
 test-area/*/
+!test-area/build/
 test-area/*.json
 
 # Ignore everything in build directory
