@@ -10,7 +10,7 @@ source=("git+${url}.git")
 sha256sums=('SKIP')
 
 package() {
-    cd "$srcdir/omni-cli"
+    cd "$srcdir/$pkgname"
 
     # Install app modules and scripts to /usr/lib/omni-cli
     install -dm755 "${pkgdir}/usr/lib/omni-cli"
