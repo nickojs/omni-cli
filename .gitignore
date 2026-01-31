@@ -20,3 +20,10 @@ build/*
 .vscode
 .python*
 .tldr*
+
+# PKGBUILD artifacts
+src/
+pkg/
+*.pkg.tar.zst
+*.pkg.tar.zst.sig
+omni-cli/
