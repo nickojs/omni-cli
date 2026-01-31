@@ -71,7 +71,7 @@ setup_config_paths() {
 
 # Import all modules after setting up paths
 setup_config_paths
-source "$BASE_DIR/styles/index.sh"
+source "$BASE_DIR/libs/omni-ui-kit/index.sh"
 source "$BASE_DIR/modules/index.sh"
 
 main() {

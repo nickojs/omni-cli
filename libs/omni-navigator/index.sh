@@ -4,7 +4,7 @@
 # Filesystem Navigator Module
 # ========================================
 # Interactive filesystem navigation for path and file selection
-# Usage: source modules/navigator/index.sh
+# Usage: source libs/navigator/index.sh
 
 # Get the directory where this script is located
 NAVIGATOR_DIR="$(dirname "${BASH_SOURCE[0]}")"

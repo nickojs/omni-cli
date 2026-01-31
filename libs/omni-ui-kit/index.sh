@@ -5,7 +5,7 @@
 # ========================================
 # Main entry point for all styling modules
 # This file imports and makes available all styling functions and variables
-# Usage: source styles/index.sh
+# Usage: source libs/omni-ui-kit/index.sh
 
 # Get the directory where this script is located
 STYLES_DIR="$(dirname "${BASH_SOURCE[0]}")"

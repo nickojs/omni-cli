@@ -4,7 +4,7 @@
 # Filesystem Navigator Rendering
 # ========================================
 # Display and rendering functions
-# Usage: source modules/navigator/render.sh
+# Usage: source libs/navigator/render.sh
 
 # Function to render a single directory line
 # Parameters: index (0-based), is_selected (0 or 1)

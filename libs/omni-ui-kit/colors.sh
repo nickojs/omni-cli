@@ -4,7 +4,7 @@
 # Color Definitions Module
 # ========================================
 # This module exports all color constants for terminal styling
-# Usage: source styles/colors.sh
+# Usage: source libs/omni-ui-kit/colors.sh
 
 # Basic colors
 export RED=$'\033[0;31m'

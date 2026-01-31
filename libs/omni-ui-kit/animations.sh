@@ -4,7 +4,7 @@
 # Animations Module
 # ========================================
 # This module provides loading animations and visual effects
-# Usage: source styles/animations.sh
+# Usage: source libs/omni-ui-kit/animations.sh
 
 # Ensure colors are available
 if [[ -z "$BRIGHT_PURPLE" ]]; then

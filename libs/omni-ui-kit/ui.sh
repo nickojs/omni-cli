@@ -4,7 +4,7 @@
 # UI Components Module
 # ========================================
 # This module provides UI components like headers, separators, and message functions
-# Usage: source styles/ui.sh
+# Usage: source libs/omni-ui-kit/ui.sh
 
 # Ensure colors are available
 if [[ -z "$BRIGHT_CYAN" ]]; then

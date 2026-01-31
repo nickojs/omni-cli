@@ -4,7 +4,7 @@
 # Filesystem Navigator Input Handling
 # ========================================
 # Key handling for navigation
-# Usage: source modules/navigator/input.sh
+# Usage: source libs/navigator/input.sh
 
 # Function to handle browsing keys
 # Return codes:
