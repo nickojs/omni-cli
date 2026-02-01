@@ -4,7 +4,7 @@
 # Secrets Add Module
 # ========================================
 # Handles adding new secrets
-# Usage: source modules/settings/secrets/add.sh
+# Usage: source libs/omni-secrets/add.sh
 
 # Navigator-based add secret flow
 # Returns: 0 on success, 1 on cancel

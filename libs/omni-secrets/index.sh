@@ -5,10 +5,22 @@
 # ========================================
 # Main entry point for all secrets modules
 # This file imports and makes available all secrets functions
-# Usage: source modules/settings/secrets/index.sh
+# Usage: source libs/omni-secrets/index.sh
 
 # Get the directory where this script is located
 SECRETS_DIR="$(dirname "${BASH_SOURCE[0]}")"
+
+# Config directory for omni-secrets — no dependency on host app
+get_secrets_config_directory() {
+    local dir
+    if [[ "$SECRETS_DIR" == *"/usr/lib/"* ]]; then
+        dir="$HOME/.config/omni-secrets"
+    else
+        dir="$SECRETS_DIR/config"
+    fi
+    mkdir -p "$dir" 2>/dev/null
+    echo "$dir"
+}
 
 # Import all secrets modules in dependency order
 source "$SECRETS_DIR/storage.sh"           # JSON storage functions

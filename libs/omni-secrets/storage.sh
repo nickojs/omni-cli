@@ -4,11 +4,11 @@
 # Secrets Storage Module
 # ========================================
 # Handles JSON storage for secrets
-# Usage: source modules/settings/secrets/storage.sh
+# Usage: source libs/omni-secrets/storage.sh
 
 # Get path to secrets JSON file
 get_secrets_file() {
-    local config_dir=$(get_config_directory)
+    local config_dir=$(get_secrets_config_directory)
     echo "$config_dir/.secrets.json"
 }
 

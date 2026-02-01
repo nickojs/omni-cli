@@ -4,7 +4,7 @@
 # Vault Add Module
 # ========================================
 # Add vault flow
-# Usage: source modules/settings/secrets/vaults/add.sh
+# Usage: source libs/omni-secrets/vaults/add.sh
 
 # Global variables for select_secret_interactive results
 declare -g SECRET_ID_RESULT=""

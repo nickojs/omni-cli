@@ -4,7 +4,7 @@
 # Secrets Components Module
 # ========================================
 # UI display components for secrets
-# Usage: source modules/settings/secrets/components.sh
+# Usage: source libs/omni-secrets/components.sh
 
 # Column width for side-by-side display
 SECRETS_COL_WIDTH=58

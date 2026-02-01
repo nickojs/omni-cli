@@ -4,7 +4,7 @@
 # Vault Operations Module
 # ========================================
 # Mount, unmount, and init operations for gocryptfs vaults
-# Usage: source modules/settings/secrets/vaults_ops.sh
+# Usage: source libs/omni-secrets/vaults/ops.sh
 
 # Mount a vault
 # Parameters: vault_index (0-based)

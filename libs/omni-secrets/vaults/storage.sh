@@ -4,11 +4,11 @@
 # Vaults Storage Module
 # ========================================
 # Handles JSON storage for vaults
-# Usage: source modules/settings/secrets/vaults_storage.sh
+# Usage: source libs/omni-secrets/vaults/storage.sh
 
 # Get path to vaults JSON file
 get_vaults_file() {
-    local config_dir=$(get_config_directory)
+    local config_dir=$(get_secrets_config_directory)
     echo "$config_dir/.vaults.json"
 }
 

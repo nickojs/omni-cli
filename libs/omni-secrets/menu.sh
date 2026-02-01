@@ -4,7 +4,7 @@
 # Secrets Menu Module
 # ========================================
 # Main menu screen and entry point for secrets
-# Usage: source modules/settings/secrets/menu.sh
+# Usage: source libs/omni-secrets/menu.sh
 
 # Default secrets screen
 # Returns: 0 = stay, 1 = back to settings, 2 = add secret, 3 = show help, 4 = add vault
