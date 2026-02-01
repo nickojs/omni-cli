@@ -58,15 +58,6 @@ read_with_instant_back() {
     done
 }
 
-# Function to format workspace filename into display name
-# Parameters: workspace_file_path
-# Returns: formatted display name via echo
-format_workspace_display_name() {
-    local workspace_file="$1"
-    local workspace_name=$(basename "$workspace_file" .json)
-    echo "$workspace_name" | sed 's/[_-]/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)} 1'
-}
-
 # Function to scan a directory for folders and let user select one
 # Parameters: projects_root
 # Returns: selected folder name via echo (to stdout), or empty if cancelled
@@ -194,55 +185,6 @@ parse_workspace_projects() {
     fi
 }
 
-# Function to get projects root or return "<unknown>"
-# Parameters: workspace_file
-# Returns: projects root path or "<unknown>" via echo
-get_projects_root_or_unknown() {
-    local workspace_file="$1"
-
-    local projects_root
-    projects_root=$(get_workspace_projects_root "$workspace_file")
-    if [ $? -ne 0 ] || [ -z "$projects_root" ]; then
-        echo "<unknown>"
-    else
-        echo "$projects_root"
-    fi
-}
-
-# Function to get list of active workspaces
-# Parameters: none
-# Returns: array variable name to populate (pass by reference)
-# Usage: get_active_workspaces_list active_workspaces
-get_active_workspaces_list() {
-    local -n result_array=$1  # nameref to array
-
-    result_array=()
-    local config_dir=$(get_config_directory)
-    local workspaces_file="$config_dir/.workspaces.json"
-
-    if [ -f "$workspaces_file" ] && command -v jq >/dev/null 2>&1; then
-        while IFS= read -r active_workspace; do
-            result_array+=("$active_workspace")
-        done < <(jq -r '.activeConfig[]? // empty' "$workspaces_file" 2>/dev/null)
-    fi
-}
-
-# Function to check if workspace is in active list
-# Parameters: workspace_file, active_workspaces_array_name
-# Returns: 0 if active, 1 if not active
-is_workspace_in_active_list() {
-    local workspace_file="$1"
-    local -n check_array=$2  # nameref to array
-    local workspace_basename
-    workspace_basename=$(basename "$workspace_file")
-
-    for active_ws in "${check_array[@]}"; do
-        if [ "$workspace_basename" = "$active_ws" ]; then
-            return 0
-        fi
-    done
-    return 1
-}
 
 # Function to prompt for all project input fields
 # Parameters: folder_name
@@ -379,37 +321,5 @@ prompt_yes_no_confirmation() {
             return 1
             ;;
     esac
-}
-
-# Function to format project data into columns
-# Parameters: display_name, folder_name, startup_cmd, shutdown_cmd, prefix
-# Returns: formatted string via echo
-format_project_columns() {
-    local project_display_name="$1"
-    local folder_name="$2"
-    local startup_cmd="$3"
-    local shutdown_cmd="$4"
-    local prefix="$5"
-
-    # Format data with fixed column widths: 32 | 30 | 32 | 32
-    local col1="$project_display_name"
-    local col2="$folder_name"
-    local col3="$startup_cmd"
-    local col4="$shutdown_cmd"
-
-    # Truncate if longer than max width
-    [ ${#col1} -gt 32 ] && col1=$(printf "%.29s..." "$col1")
-    [ ${#col2} -gt 30 ] && col2=$(printf "%.27s..." "$col2")
-    [ ${#col3} -gt 32 ] && col3=$(printf "%.29s..." "$col3")
-    [ ${#col4} -gt 32 ] && col4=$(printf "%.29s..." "$col4")
-
-    # Ensure fixed width with padding to exact column sizes
-    col1=$(printf "%-32.32s" "$col1")
-    col2=$(printf "%-30.30s" "$col2")
-    col3=$(printf "%-32.32s" "$col3")
-    col4=$(printf "%-32.32s" "$col4")
-
-    # Return formatted row
-    echo -e "  $prefix ${BRIGHT_WHITE}${col1}${NC} | ${DIM}${col2}${NC} | ${DIM}${col3}${NC} | ${DIM}${col4}${NC}"
 }
 
