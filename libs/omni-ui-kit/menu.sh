@@ -4,7 +4,7 @@
 # Shared Menu UI Component
 # ========================================
 # Provides reusable functions for building menu command lines
-# Usage: source modules/ui/menu.sh
+# Usage: source libs/omni-ui-kit/menu.sh
 
 # Semantic color constants for menu actions
 MENU_COLOR_ADD="$BRIGHT_GREEN"      # add, start, create

@@ -22,6 +22,10 @@ get_secrets_config_directory() {
     echo "$dir"
 }
 
+# TODO: Remove when using actual packages
+UI_KIT_DIR="$(cd "$SECRETS_DIR/../omni-ui-kit" && pwd)"
+source "$UI_KIT_DIR/index.sh"
+
 # Import all secrets modules in dependency order
 source "$SECRETS_DIR/storage.sh"           # JSON storage functions
 source "$SECRETS_DIR/vaults/storage.sh"    # Vaults JSON storage functions

@@ -84,3 +84,137 @@ wait_for_enter() {
     echo -ne "${WHITE}${message}${NC}"
     read -r
 }
+
+# Function to read user input with instant back key handling
+# The 'b' key will trigger immediately without needing Enter
+# Handles backspace properly for full editing support
+# Returns: user input via variable name passed as parameter
+# Usage: read_with_instant_back choice
+read_with_instant_back() {
+    local -n result_var=$1  # nameref to result variable
+    local input=""
+    local char
+
+    while true; do
+        # Read single character without echo
+        IFS= read -r -s -n 1 char
+
+        # Handle Enter (empty char from read -n 1)
+        if [[ -z "$char" ]]; then
+            echo ""  # Add newline
+            result_var="$input"
+            return 0
+        fi
+
+        # Handle backspace (ASCII 127) or ctrl-H (ASCII 8)
+        if [[ "$char" == $'\x7f' ]] || [[ "$char" == $'\x08' ]]; then
+            if [[ -n "$input" ]]; then
+                # Remove last character from input
+                input="${input%?}"
+                # Move cursor back, overwrite with space, move back again
+                echo -ne "\b \b"
+            fi
+            continue
+        fi
+
+        # Handle Ctrl+C
+        if [[ "$char" == $'\x03' ]]; then
+            echo ""
+            result_var=""
+            return 1
+        fi
+
+        # If first character is 'b' and input is empty, return immediately
+        if [[ -z "$input" ]] && [[ "$char" == "b" ]]; then
+            echo "b"  # Echo the character and newline
+            result_var="b"
+            return 0
+        fi
+
+        # Add character to input and echo it
+        input+="$char"
+        echo -n "$char"
+    done
+}
+
+# Function to read input with Esc key cancellation support
+# Parameters: variable name to store result
+# Returns: 0 for normal input, 2 for Esc pressed
+# NOTE: All echo output goes to stderr so stdout can be captured separately
+# Usage: read_with_esc_cancel result_variable
+read_with_esc_cancel() {
+    local -n result_var=$1  # nameref to result variable
+    local input=""
+    local char
+
+    while true; do
+        # Read single character without echo
+        IFS= read -r -s -n 1 char
+
+        # Handle Escape key (ASCII 27)
+        if [[ "$char" == $'\x1b' ]]; then
+            # Read any remaining escape sequence characters (for arrow keys, etc.)
+            read -r -s -n 2 -t 0.01 _ 2>/dev/null || true
+            echo "" >&2
+            result_var=""
+            return 2
+        fi
+
+        # Handle Enter (empty char from read -n 1)
+        if [[ -z "$char" ]]; then
+            echo "" >&2  # Add newline
+            result_var="$input"
+            return 0
+        fi
+
+        # Handle backspace (ASCII 127) or ctrl-H (ASCII 8)
+        if [[ "$char" == $'\x7f' ]] || [[ "$char" == $'\x08' ]]; then
+            if [[ -n "$input" ]]; then
+                # Remove last character from input
+                input="${input%?}"
+                # Move cursor back, overwrite with space, move back again
+                echo -ne "\b \b" >&2
+            fi
+            continue
+        fi
+
+        # Handle Ctrl+C
+        if [[ "$char" == $'\x03' ]]; then
+            echo "" >&2
+            result_var=""
+            return 2
+        fi
+
+        # Add character to input and echo it
+        input+="$char"
+        echo -n "$char" >&2
+    done
+}
+
+# Function to prompt for yes/no confirmation with Esc support
+# Parameters: prompt_message
+# Returns: 0 for yes, 1 for no, 2 for Esc/cancel
+prompt_yes_no_confirmation() {
+    local prompt_message="$1"
+    local confirm_input=""
+
+    echo -ne "${BRIGHT_WHITE}${prompt_message} (y/n): ${NC}"
+
+    # Use read_with_esc_cancel to get input with Esc support
+    read_with_esc_cancel confirm_input
+    local result=$?
+
+    # Handle Esc/Ctrl+C
+    if [ $result -eq 2 ]; then
+        return 2
+    fi
+
+    case "${confirm_input,,}" in
+        "y"|"yes")
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
